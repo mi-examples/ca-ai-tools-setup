@@ -51,7 +51,7 @@ npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants curso
 - `--assistants <list>`: comma-separated assistants, e.g. `cursor,claude`
 - `--dry-run`: preview created/skipped/overwritten files without writing
 - `--force`: overwrite existing generated files (no merge prompts; MCP files are fully replaced)
-- `--yes` / `-y`: non-interactive defaults (existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
+- `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
 
 ## Local development
@@ -67,6 +67,6 @@ npm test
 
 - **Interactive MCP conflicts:** If Playwright MCP is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
 - Docker/MySQL setup is intentionally excluded from generated templates.
-- Re-run with `--force` to update existing generated files.
+- Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place.
 - **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories that use current **`@metricinsights/pp-dev`** should use **Node.js 22+** for dev and CI (recent pp-dev requires it); align `engines` and workflow images in those app repos when you adopt newer pp-dev.
 - **CI:** Consumer app repositories may not have GitHub Actions (or other CI) yet—that is still often the exception—but the goal is for **build / lint / test on every change** to become the default. This tool does not generate CI files; add workflows in each app repo when you standardize, and pin the same Node version you use locally (see above for pp-dev).

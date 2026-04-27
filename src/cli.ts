@@ -20,6 +20,8 @@ type CliArgs = {
   'mcp-playwright'?: string;
 };
 
+const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claude-assistant.md']);
+
 function parseArgs(): CliArgs {
   return minimist(process.argv.slice(2), {
     string: ['target', 'assistants', 'mcp-playwright', '_'],
@@ -215,6 +217,17 @@ function printSummary(
     }
     for (const file of result.overwritten) {
       console.log(`  - ${file} (overwritten)`);
+    }
+  }
+
+  const autoReplacedSetupFiles = result.overwritten.filter((file) => SETUP_ASSISTANT_FILES.has(file));
+  if (autoReplacedSetupFiles.length > 0) {
+    console.log('');
+    console.log(
+      'Setup assistant files were replaced with the latest generated templates:',
+    );
+    for (const file of autoReplacedSetupFiles) {
+      console.log(`  - ${file}`);
     }
   }
 

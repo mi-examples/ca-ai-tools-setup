@@ -37,6 +37,12 @@ export type PlaywrightMcpTargets = {
   projectRootFile: boolean;
 };
 
+const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claude-assistant.md']);
+
+function shouldAlwaysOverwrite(filePath: string): boolean {
+  return SETUP_ASSISTANT_FILES.has(filePath);
+}
+
 export function resolvePlaywrightMcpTargets(assistants: Assistant[], include: boolean): PlaywrightMcpTargets {
   if (!include) {
     return { cursorFile: false, projectRootFile: false };
@@ -102,6 +108,15 @@ function writeOneFile(
   }
 
   if (exists) {
+    if (shouldAlwaysOverwrite(file.path)) {
+      if (!options.dryRun) {
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(destination, file.content, 'utf8');
+      }
+      result.overwritten.push(file.path);
+      return;
+    }
+
     const action = actions?.[file.path] ?? 'skip';
 
     if (action === 'skip') {

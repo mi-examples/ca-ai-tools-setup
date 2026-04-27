@@ -86,7 +86,7 @@ test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', ()
   assert.ok(md.includes('installer **chose not to**'));
 });
 
-test('generateSetup skips existing files unless force is enabled', () => {
+test('generateSetup always overwrites setup assistant files', () => {
   const dir = makeTempDir();
 
   generateSetup({
@@ -105,7 +105,8 @@ test('generateSetup skips existing files unless force is enabled', () => {
     playwrightMcpInclude: false,
   });
 
-  assert.ok(second.skipped.includes('setup-claude-assistant.md'));
+  assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
+  assert.ok(second.skipped.includes('.assistant-setup/linear-cli-setup.json'));
 
   const forced = generateSetup({
     targetDir: dir,
