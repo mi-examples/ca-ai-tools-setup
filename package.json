@@ -1,0 +1,37 @@
+{
+  "name": "@metricinsights/ca-ai-tools-setup",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bootstrap Cursor and Claude Linear CLI setup files in a repository",
+  "bin": {
+    "ca-ai-tools-setup": "dist/cli.js"
+  },
+  "files": [
+    "dist/**",
+    "templates/**",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "npm run build && tsx --test tests/**/*.test.ts",
+    "format": "prettier --write \"**/*.{ts,md,json}\""
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "minimist": "^1.2.8"
+  },
+  "devDependencies": {
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^24.9.1",
+    "prettier": "^3.8.3",
+    "tsx": "^4.19.4",
+    "typescript": "^5.9.3"
+  },
+  "license": "ISC"
+}
