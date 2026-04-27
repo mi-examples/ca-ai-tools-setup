@@ -11,7 +11,7 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
     : readTemplate('cursor/setup-assistant-mcp-skipped.md');
 
   const setupCursorContent = readTemplate('setup-cursor-assistant.md').replace(
-    '__PLAYWRIGHT_MCP_BLOCK__',
+    /\*\*PLAYWRIGHT_MCP_BLOCK\*\*|__PLAYWRIGHT_MCP_BLOCK__/,
     `${mcpInstructions.trimEnd()}\n`,
   );
 

@@ -11,7 +11,7 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     : readTemplate('claude/setup-assistant-mcp-skipped.md');
 
   const setupClaudeContent = readTemplate('setup-claude-assistant.md').replace(
-    '__PLAYWRIGHT_MCP_BLOCK__',
+    /\*\*PLAYWRIGHT_MCP_BLOCK\*\*|__PLAYWRIGHT_MCP_BLOCK__/,
     `${mcpInstructions.trimEnd()}\n`,
   );
 
