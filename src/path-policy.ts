@@ -7,8 +7,10 @@ import path from 'node:path';
 export function resolveCliRepoRoot(rawTarget: string | undefined, cwd: string): string {
   const resolvedCwd = path.resolve(cwd);
   const trimmed = rawTarget?.trim();
+
   if (!trimmed) {
     return resolvedCwd;
   }
+
   return path.resolve(resolvedCwd, trimmed);
 }

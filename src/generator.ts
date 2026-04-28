@@ -48,6 +48,7 @@ export function resolvePlaywrightMcpTargets(assistants: Assistant[], include: bo
   if (!include) {
     return { cursorFile: false, projectRootFile: false };
   }
+
   return {
     cursorFile: assistants.includes('cursor'),
     projectRootFile: assistants.includes('claude'),
@@ -109,11 +110,13 @@ function writeOneFile(
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.writeFileSync(destination, file.content, 'utf8');
     }
+
     if (exists) {
       result.overwritten.push(file.path);
     } else {
       result.created.push(file.path);
     }
+
     return;
   }
 
@@ -123,7 +126,9 @@ function writeOneFile(
         fs.mkdirSync(path.dirname(destination), { recursive: true });
         fs.writeFileSync(destination, file.content, 'utf8');
       }
+
       result.overwritten.push(file.path);
+
       return;
     }
 
@@ -131,6 +136,7 @@ function writeOneFile(
 
     if (action === 'skip') {
       result.skipped.push(file.path);
+
       return;
     }
 
@@ -138,10 +144,13 @@ function writeOneFile(
       if (!options.dryRun) {
         const existingContent = fs.readFileSync(destination, 'utf8');
         const merged = mergeMcpJson(existingContent, file.content);
+
         fs.mkdirSync(path.dirname(destination), { recursive: true });
         fs.writeFileSync(destination, merged, 'utf8');
       }
+
       result.merged.push(file.path);
+
       return;
     }
 
@@ -150,11 +159,14 @@ function writeOneFile(
         fs.mkdirSync(path.dirname(destination), { recursive: true });
         fs.writeFileSync(destination, file.content, 'utf8');
       }
+
       result.overwritten.push(file.path);
+
       return;
     }
 
     result.skipped.push(file.path);
+
     return;
   }
 
@@ -162,6 +174,7 @@ function writeOneFile(
     fs.mkdirSync(path.dirname(destination), { recursive: true });
     fs.writeFileSync(destination, file.content, 'utf8');
   }
+
   result.created.push(file.path);
 }
 

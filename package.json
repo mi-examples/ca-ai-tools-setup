@@ -20,6 +20,8 @@
     "prepare": "npm run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "npm run build && tsx --test tests/**/*.test.ts",
+    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0 --fix",
     "format": "prettier --write \"**/*.{ts,md,json}\""
   },
   "dependencies": {
@@ -27,8 +29,16 @@
     "minimist": "^1.2.8"
   },
   "devDependencies": {
+    "@eslint/compat": "^2.0.5",
+    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/minimist": "^1.2.5",
     "@types/node": "^24.9.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0",
     "prettier": "^3.8.3",
     "tsx": "^4.19.4",
     "typescript": "^5.9.3"

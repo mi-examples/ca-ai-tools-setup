@@ -42,14 +42,19 @@ function mcpPlaywrightCliRaw(args: CliArgs): string | undefined {
 
 function firstNonEmptyTarget(args: CliArgs): string | undefined {
   const fromFlag = args.target?.trim();
+
   if (fromFlag) {
     return fromFlag;
   }
+
   const positional = args._[0];
+
   if (positional === undefined || positional === null) {
     return undefined;
   }
+
   const s = String(positional).trim();
+
   return s || undefined;
 }
 
@@ -80,6 +85,7 @@ async function pickTargetDir(args: CliArgs): Promise<string> {
 
 async function pickAssistants(args: CliArgs): Promise<Assistant[]> {
   const fromArg = parseAssistantsArg(args.assistants);
+
   if (fromArg) {
     return fromArg;
   }
@@ -108,6 +114,7 @@ async function pickAssistants(args: CliArgs): Promise<Assistant[]> {
 
 async function pickPlaywrightMcpInclude(args: CliArgs): Promise<boolean> {
   const fromFlag = parsePlaywrightMcpArg(mcpPlaywrightCliRaw(args));
+
   if (fromFlag !== undefined) {
     return fromFlag;
   }
@@ -118,7 +125,8 @@ async function pickPlaywrightMcpInclude(args: CliArgs): Promise<boolean> {
 
   const answer = await p.confirm({
     message:
-      'Add Playwright MCP? (writes .cursor/mcp.json if Cursor is selected, and .mcp.json in the project root if Claude is selected)',
+      'Add Playwright MCP? (writes .cursor/mcp.json if Cursor is selected, and' +
+      ' .mcp.json in the project root if Claude is selected)',
     initialValue: true,
   });
 
@@ -145,7 +153,9 @@ async function promptExistingMcpActions(
     if (!isMcpConfigPath(file.path)) {
       continue;
     }
+
     const dest = path.join(targetDir, file.path);
+
     if (!fs.existsSync(dest)) {
       continue;
     }
@@ -182,7 +192,9 @@ function printSummary(
   dryRun: boolean,
 ) {
   const modeLabel = dryRun ? 'Dry run completed.' : 'Setup generation completed.';
+
   p.outro(modeLabel);
+
   const pageContextPath = '.assistant-setup/page-workflow-context.md';
 
   const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
@@ -190,18 +202,23 @@ function printSummary(
   console.log('');
   console.log(`Target repository: ${targetDir}`);
   console.log(`Assistants: ${assistants.join(', ')}`);
+
   if (mcpTargets.cursorFile || mcpTargets.projectRootFile) {
     const parts: string[] = [];
+
     if (mcpTargets.cursorFile) {
       parts.push('.cursor/mcp.json');
     }
+
     if (mcpTargets.projectRootFile) {
       parts.push('.mcp.json (repo root)');
     }
+
     console.log(`Playwright MCP: yes — ${parts.join(', ')}`);
   } else {
     console.log('Playwright MCP: no (instructions only; no MCP files from this run)');
   }
+
   console.log('');
   console.log(`Created: ${result.created.length}`);
   console.log(`Merged: ${result.merged.length}`);
@@ -209,26 +226,30 @@ function printSummary(
   console.log(`Skipped: ${result.skipped.length}`);
 
   const allTouched = [...result.created, ...result.merged, ...result.overwritten];
+
   if (allTouched.length > 0) {
     console.log('');
     console.log('Updated files:');
+
     for (const file of result.created) {
       console.log(`  - ${file} (created)`);
     }
+
     for (const file of result.merged) {
       console.log(`  - ${file} (merged)`);
     }
+
     for (const file of result.overwritten) {
       console.log(`  - ${file} (overwritten)`);
     }
   }
 
   const autoReplacedSetupFiles = result.overwritten.filter((file) => SETUP_ASSISTANT_FILES.has(file));
+
   if (autoReplacedSetupFiles.length > 0) {
     console.log('');
-    console.log(
-      'Setup assistant files were replaced with the latest generated templates:',
-    );
+    console.log('Setup assistant files were replaced with the latest generated templates:');
+
     for (const file of autoReplacedSetupFiles) {
       console.log(`  - ${file}`);
     }
@@ -255,7 +276,7 @@ function printSummary(
     console.log('Skipped existing files:');
     console.log('  - MCP files (.cursor/mcp.json, .mcp.json): run without --yes to choose skip/merge/overwrite');
     console.log('  - Any existing generated file: use --force to overwrite');
-    
+
     for (const file of result.skipped) {
       console.log(`  - ${file}`);
     }
@@ -264,6 +285,7 @@ function printSummary(
 
 async function run(): Promise<void> {
   const args = parseArgs();
+
   p.intro('Create Linear Assistant Setup');
 
   const targetDir = await pickTargetDir(args);

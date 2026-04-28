@@ -19,6 +19,7 @@ export function parseAssistantsArg(value: string | undefined): Assistant[] | und
   }
 
   const invalid = parsed.filter((item) => !isAssistant(item));
+
   if (invalid.length > 0) {
     throw new Error(`Unknown assistant(s): ${invalid.join(', ')}. Supported values: ${ASSISTANTS.join(', ')}`);
   }

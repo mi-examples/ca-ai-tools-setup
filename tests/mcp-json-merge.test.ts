@@ -44,6 +44,7 @@ test('mergeMcpJson incoming server wins on name collision', () => {
   const existing = JSON.stringify({ mcpServers: { playwright: { command: 'old' } } }, null, 2);
   const incoming = JSON.stringify({ mcpServers: { playwright: { command: 'new' } } }, null, 2);
   const parsed = JSON.parse(mergeMcpJson(existing, incoming)) as { mcpServers: { playwright: { command: string } } };
+
   assert.equal(parsed.mcpServers.playwright.command, 'new');
 });
 

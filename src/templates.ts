@@ -7,5 +7,6 @@ const templateRoot = path.resolve(fileURLToPath(new URL('../templates', import.m
 
 export function readTemplate(relativePath: string): string {
   const fullPath = path.join(templateRoot, relativePath);
+
   return fs.readFileSync(fullPath, 'utf8');
 }

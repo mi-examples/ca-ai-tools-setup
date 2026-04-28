@@ -40,12 +40,14 @@ test('generateSetup omits .cursor/mcp.json when Playwright MCP is declined', () 
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
   const md = fs.readFileSync(path.join(dir, 'setup-cursor-assistant.md'), 'utf8');
+
   assert.ok(md.includes('installer **chose not to**'));
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
 });
 
 test('generateSetup setup-cursor notes bootstrap included MCP when enabled', () => {
   const dir = makeTempDir();
+
   generateSetup({
     targetDir: dir,
     assistants: ['cursor'],
@@ -54,12 +56,14 @@ test('generateSetup setup-cursor notes bootstrap included MCP when enabled', () 
     playwrightMcpInclude: true,
   });
   const md = fs.readFileSync(path.join(dir, 'setup-cursor-assistant.md'), 'utf8');
+
   assert.ok(md.includes('bootstrapped **with**'));
   assert.ok(md.includes('can differ by Metric Insights instance version'));
 });
 
 test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', () => {
   const dir = makeTempDir();
+
   generateSetup({
     targetDir: dir,
     assistants: ['claude'],
@@ -70,6 +74,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
+
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
   assert.equal(meta.version, 2);
   assert.deepEqual(meta.pageWorkflowContext, {
@@ -77,12 +82,14 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
     generated: true,
   });
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
+
   assert.ok(md.includes('bootstrapped **with**'));
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
 });
 
 test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', () => {
   const dir = makeTempDir();
+
   generateSetup({
     targetDir: dir,
     assistants: ['claude'],
@@ -92,6 +99,7 @@ test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', ()
   });
   assert.equal(fs.existsSync(path.join(dir, '.mcp.json')), false);
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
+
   assert.ok(md.includes('installer **chose not to**'));
   assert.ok(md.includes('can differ by Metric Insights instance version'));
 });
@@ -132,6 +140,7 @@ test('generateSetup always overwrites setup assistant files', () => {
 
 test('generateSetup writes both MCP files when Cursor and Claude selected and MCP enabled', () => {
   const dir = makeTempDir();
+
   generateSetup({
     targetDir: dir,
     assistants: ['cursor', 'claude'],
@@ -142,6 +151,7 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
+
   assert.deepEqual(meta.playwrightMcp, { cursorFile: true, projectRootFile: true });
   assert.deepEqual(meta.pageWorkflowContext, {
     file: '.assistant-setup/page-workflow-context.md',
@@ -166,6 +176,7 @@ test('generateSetup dry-run does not write files', () => {
 
 test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () => {
   const dir = makeTempDir();
+
   fs.mkdirSync(path.join(dir, '.cursor'), { recursive: true });
   const prior = {
     mcpServers: {
@@ -173,6 +184,7 @@ test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () 
     },
     note: 'keep-me',
   };
+
   fs.writeFileSync(path.join(dir, '.cursor/mcp.json'), `${JSON.stringify(prior, null, 2)}\n`, 'utf8');
 
   const result = generateSetup({
@@ -189,6 +201,7 @@ test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () 
     mcpServers: Record<string, unknown>;
     note: string;
   };
+
   assert.equal(parsed.note, 'keep-me');
   assert.ok(parsed.mcpServers.custom);
   assert.ok(parsed.mcpServers.playwright);

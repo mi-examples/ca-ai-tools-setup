@@ -18,6 +18,7 @@ export function parsePlaywrightMcpArg(value: string | undefined): boolean | unde
   }
 
   throw new Error(
-    `Invalid --mcp-playwright value "${value}". Use "yes" (or yes/true/1/cursor/on) to add MCP files for selected assistants, or "no" (or none/false/0/off) to skip.`,
+    `Invalid --mcp-playwright value "${value}". Use "yes" (or yes/true/1/cursor/on) to ` +
+      `add MCP files for selected assistants, or "no" (or none/false/0/off) to skip.`,
   );
 }
