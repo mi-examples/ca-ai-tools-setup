@@ -108,6 +108,10 @@ export function getGeneratedFiles(
     assistants,
     playwrightMcp: mcpTargets,
     figmaMcp: figmaTargets,
+    devEnvironment: {
+      file: '.dev-environment.md',
+      generated: true,
+    },
     pageWorkflowContext: {
       file: '.assistant-setup/page-workflow-context.md',
       generated: true,
@@ -118,6 +122,11 @@ export function getGeneratedFiles(
   files.push({
     path: '.assistant-setup/page-workflow-context.md',
     content: readTemplate('assistant-setup/page-workflow-context.md'),
+  });
+
+  files.push({
+    path: '.dev-environment.md',
+    content: readTemplate('assistant-setup/dev-environment.md'),
   });
 
   files.push({

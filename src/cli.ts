@@ -237,6 +237,7 @@ function printSummary(
   p.outro(modeLabel);
 
   const pageContextPath = '.assistant-setup/page-workflow-context.md';
+  const devEnvironmentPath = '.dev-environment.md';
 
   const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
   const figmaTargets = resolveFigmaMcpTargets(assistants, figmaMcpInclude);
@@ -327,6 +328,22 @@ function printSummary(
     console.log('');
     console.log('Page workflow context file:');
     console.log(`  - ${pageContextPath} (${pageContextState})`);
+  }
+
+  const devEnvironmentState = result.created.includes(devEnvironmentPath)
+    ? 'created'
+    : result.overwritten.includes(devEnvironmentPath)
+      ? 'overwritten'
+      : result.skipped.includes(devEnvironmentPath)
+        ? 'skipped'
+        : result.merged.includes(devEnvironmentPath)
+          ? 'merged'
+          : null;
+
+  if (devEnvironmentState) {
+    console.log('');
+    console.log('Developer environment file:');
+    console.log(`  - ${devEnvironmentPath} (${devEnvironmentState})`);
   }
 
   if (result.skipped.length > 0) {

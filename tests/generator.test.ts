@@ -23,6 +23,7 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
+  assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
   assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/page-workflow-context.md')));
   assert.ok(!fs.existsSync(path.join(dir, 'setup-claude-assistant.md')));
 });
@@ -79,7 +80,11 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
-  assert.equal(meta.version, 2);
+  assert.equal(meta.version, 3);
+  assert.deepEqual(meta.devEnvironment, {
+    file: '.dev-environment.md',
+    generated: true,
+  });
   assert.deepEqual(meta.pageWorkflowContext, {
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
@@ -129,6 +134,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   });
 
   assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
+  assert.ok(second.skipped.includes('.dev-environment.md'));
   assert.ok(second.skipped.includes('.assistant-setup/linear-cli-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
 
@@ -160,6 +166,10 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: true, projectRootFile: true });
   assert.deepEqual(meta.figmaMcp, { cursorFile: false, projectRootFile: false });
+  assert.deepEqual(meta.devEnvironment, {
+    file: '.dev-environment.md',
+    generated: true,
+  });
   assert.deepEqual(meta.pageWorkflowContext, {
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
@@ -228,6 +238,7 @@ test('generateSetup dry-run does not write files', () => {
   assert.ok(result.created.length > 0);
   assert.equal(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')), false);
   assert.equal(fs.existsSync(path.join(dir, 'setup-claude-assistant.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.dev-environment.md')), false);
 });
 
 test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () => {

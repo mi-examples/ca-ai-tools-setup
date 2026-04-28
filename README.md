@@ -12,6 +12,7 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 - `.cursor/mcp.json` (optional — when Cursor is selected and you enable one or more MCP servers in the CLI)
 - `.mcp.json` in the repository root (optional — when Claude is selected and you enable one or more MCP servers in the CLI)
 - `.claude/agents/figma-mcp.md` (optional — when Claude is selected and Figma MCP is enabled)
+- `.dev-environment.md`
 - `.assistant-setup/page-workflow-context.md`
 - `.assistant-setup/linear-cli-setup.json`
 
@@ -102,6 +103,7 @@ npm test
 - **Interactive MCP conflicts:** If any MCP server is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
 - Docker/MySQL setup is intentionally excluded from generated templates.
 - Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place.
+- `.dev-environment.md` is generated as a personal local profile; keep it up to date and add it to `.gitignore`.
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.
 - **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories that use current **`@metricinsights/pp-dev`** should use **Node.js 22+** for dev and CI (recent pp-dev requires it); align `engines` and workflow images in those app repos when you adopt newer pp-dev.
 - **CI:** Consumer app repositories may not have GitHub Actions (or other CI) yet—that is still often the exception—but the goal is for **build / lint / test on every change** to become the default. This tool does not generate CI files; add workflows in each app repo when you standardize, and pin the same Node version you use locally (see above for pp-dev).

@@ -258,7 +258,20 @@ Create **`.linear-assistant-setup.md`** in the project root with:
 
 Do not include Docker or MySQL instructions.
 
-### Step 4: Final verification
+### Step 4: Developer environment profile (finalize after setup)
+
+After installing tools, update **`.dev-environment.md`** with the final
+local environment details:
+
+- If the file is missing, create it from the generated template and fill in local details.
+- Record OS, architecture, and available shells (PowerShell, cmd, bash, zsh, etc.) so future
+  commands use the correct syntax for this machine.
+- Keep shell notes explicit (for example: "primary shell is PowerShell; avoid `&&` and Bash
+  heredocs").
+- Add **`.dev-environment.md`** to **`.gitignore`** if not already present (this file is personal
+  and should not be committed).
+
+### Step 5: Final verification
 
 Run:
 
