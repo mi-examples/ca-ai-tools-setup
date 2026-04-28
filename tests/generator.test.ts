@@ -77,7 +77,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
 
-  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
   assert.equal(meta.version, 3);
@@ -135,7 +135,7 @@ test('generateSetup always overwrites setup assistant files', () => {
 
   assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
   assert.ok(second.skipped.includes('.dev-environment.md'));
-  assert.ok(second.skipped.includes('.assistant-setup/linear-cli-setup.json'));
+  assert.ok(second.skipped.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
 
   const forced = generateSetup({
@@ -162,7 +162,7 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
 
-  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: true, projectRootFile: true });
   assert.deepEqual(meta.figmaMcp, { cursorFile: false, projectRootFile: false });
@@ -194,7 +194,7 @@ test('generateSetup writes figma MCP only when requested', () => {
   const claudeMcp = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8')) as {
     mcpServers: Record<string, unknown>;
   };
-  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
   assert.ok(cursorMcp.mcpServers.figma);
   assert.equal(cursorMcp.mcpServers.playwright, undefined);
@@ -272,4 +272,54 @@ test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () 
   assert.equal(parsed.note, 'keep-me');
   assert.ok(parsed.mcpServers.custom);
   assert.ok(parsed.mcpServers.playwright);
+});
+
+test('generateSetup migrates legacy setup metadata files to new names', () => {
+  const dir = makeTempDir();
+
+  fs.mkdirSync(path.join(dir, '.assistant-setup'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.cursor'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), '{"legacy":true}\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.cursor/linear-cli-setup.json'), '{"legacy":true}\n', 'utf8');
+
+  const result = generateSetup({
+    targetDir: dir,
+    assistants: ['cursor', 'claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/linear-cli-setup.json')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/linear-cli-setup.json')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), true);
+  assert.ok(
+    result.migratedLegacy.includes('.assistant-setup/linear-cli-setup.json -> .assistant-setup/ca-ai-tools-setup.json'),
+  );
+  assert.ok(result.migratedLegacy.includes('.cursor/linear-cli-setup.json -> .cursor/ca-ai-tools-setup.json'));
+});
+
+test('generateSetup removes legacy metadata files with --force', () => {
+  const dir = makeTempDir();
+
+  fs.mkdirSync(path.join(dir, '.assistant-setup'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.cursor'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), '{"legacy":true}\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.cursor/linear-cli-setup.json'), '{"legacy":true}\n', 'utf8');
+
+  const result = generateSetup({
+    targetDir: dir,
+    assistants: ['cursor', 'claude'],
+    force: true,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/linear-cli-setup.json')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/linear-cli-setup.json')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), true);
+  assert.ok(result.removedLegacy.includes('.assistant-setup/linear-cli-setup.json'));
+  assert.ok(result.removedLegacy.includes('.cursor/linear-cli-setup.json'));
 });

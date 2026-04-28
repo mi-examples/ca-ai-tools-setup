@@ -84,8 +84,8 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
       content: readTemplate('cursor/rules/README.md'),
     },
     {
-      path: '.cursor/linear-cli-setup.json',
-      content: readTemplate('cursor/linear-cli-setup.json'),
+      path: '.cursor/ca-ai-tools-setup.json',
+      content: readTemplate('cursor/ca-ai-tools-setup.json'),
     },
   ];
 

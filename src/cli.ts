@@ -284,6 +284,14 @@ function printSummary(
   console.log(`Overwritten: ${result.overwritten.length}`);
   console.log(`Skipped: ${result.skipped.length}`);
 
+  if (result.migratedLegacy.length > 0) {
+    console.log(`Migrated legacy files: ${result.migratedLegacy.length}`);
+  }
+
+  if (result.removedLegacy.length > 0) {
+    console.log(`Removed legacy files: ${result.removedLegacy.length}`);
+  }
+
   const allTouched = [...result.created, ...result.merged, ...result.overwritten];
 
   if (allTouched.length > 0) {
@@ -353,6 +361,24 @@ function printSummary(
     console.log('  - Any existing generated file: use --force to overwrite');
 
     for (const file of result.skipped) {
+      console.log(`  - ${file}`);
+    }
+  }
+
+  if (result.migratedLegacy.length > 0) {
+    console.log('');
+    console.log('Migrated legacy files:');
+
+    for (const file of result.migratedLegacy) {
+      console.log(`  - ${file}`);
+    }
+  }
+
+  if (result.removedLegacy.length > 0) {
+    console.log('');
+    console.log('Removed legacy files (--force):');
+
+    for (const file of result.removedLegacy) {
       console.log(`  - ${file}`);
     }
   }

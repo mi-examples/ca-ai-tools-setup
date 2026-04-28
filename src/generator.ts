@@ -36,6 +36,8 @@ export type GenerateResult = {
   skipped: string[];
   overwritten: string[];
   merged: string[];
+  migratedLegacy: string[];
+  removedLegacy: string[];
 };
 
 export type PlaywrightMcpTargets = {
@@ -49,6 +51,16 @@ export type FigmaMcpTargets = {
 };
 
 const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claude-assistant.md']);
+const LEGACY_FILE_MAPPINGS = [
+  {
+    legacyPath: '.cursor/linear-cli-setup.json',
+    currentPath: '.cursor/ca-ai-tools-setup.json',
+  },
+  {
+    legacyPath: '.assistant-setup/linear-cli-setup.json',
+    currentPath: '.assistant-setup/ca-ai-tools-setup.json',
+  },
+] as const;
 
 function shouldAlwaysOverwrite(filePath: string): boolean {
   return SETUP_ASSISTANT_FILES.has(filePath);
@@ -130,11 +142,49 @@ export function getGeneratedFiles(
   });
 
   files.push({
-    path: '.assistant-setup/linear-cli-setup.json',
+    path: '.assistant-setup/ca-ai-tools-setup.json',
     content: JSON.stringify(sharedMetadata, null, 2) + '\n',
   });
 
   return files;
+}
+
+function migrateLegacyFiles(
+  targetDir: string,
+  options: Pick<GenerateOptions, 'force' | 'dryRun'>,
+  result: GenerateResult,
+): void {
+  for (const mapping of LEGACY_FILE_MAPPINGS) {
+    const legacyDestination = path.join(targetDir, mapping.legacyPath);
+    const currentDestination = path.join(targetDir, mapping.currentPath);
+    const legacyExists = fs.existsSync(legacyDestination);
+
+    if (!legacyExists) {
+      continue;
+    }
+
+    if (options.force) {
+      if (!options.dryRun) {
+        fs.rmSync(legacyDestination);
+      }
+
+      result.removedLegacy.push(mapping.legacyPath);
+      continue;
+    }
+
+    const currentExists = fs.existsSync(currentDestination);
+
+    if (currentExists) {
+      continue;
+    }
+
+    if (!options.dryRun) {
+      fs.mkdirSync(path.dirname(currentDestination), { recursive: true });
+      fs.renameSync(legacyDestination, currentDestination);
+    }
+
+    result.migratedLegacy.push(`${mapping.legacyPath} -> ${mapping.currentPath}`);
+  }
 }
 
 function writeOneFile(
@@ -236,7 +286,11 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
     skipped: [],
     overwritten: [],
     merged: [],
+    migratedLegacy: [],
+    removedLegacy: [],
   };
+
+  migrateLegacyFiles(options.targetDir, { force: options.force, dryRun: options.dryRun }, result);
 
   for (const file of files) {
     writeOneFile(

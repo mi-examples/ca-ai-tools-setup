@@ -8,13 +8,13 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 - `setup-claude-assistant.md`
 - `.cursor/rules/linear-cli.mdc`
 - `.cursor/rules/README.md`
-- `.cursor/linear-cli-setup.json`
+- `.cursor/ca-ai-tools-setup.json`
 - `.cursor/mcp.json` (optional — when Cursor is selected and you enable one or more MCP servers in the CLI)
 - `.mcp.json` in the repository root (optional — when Claude is selected and you enable one or more MCP servers in the CLI)
 - `.claude/agents/figma-mcp.md` (optional — when Claude is selected and Figma MCP is enabled)
 - `.dev-environment.md`
 - `.assistant-setup/page-workflow-context.md`
-- `.assistant-setup/linear-cli-setup.json`
+- `.assistant-setup/ca-ai-tools-setup.json`
 
 ## Distribution
 
@@ -101,6 +101,7 @@ npm test
 ## Notes
 
 - **Interactive MCP conflicts:** If any MCP server is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
+- Legacy metadata migration: old files **`.cursor/linear-cli-setup.json`** and **`.assistant-setup/linear-cli-setup.json`** are migrated to new names on update when possible; with **`--force`**, old legacy files are removed.
 - Docker/MySQL setup is intentionally excluded from generated templates.
 - Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place.
 - `.dev-environment.md` is generated as a personal local profile; keep it up to date and add it to `.gitignore`.
