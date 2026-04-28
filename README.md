@@ -11,6 +11,7 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 - `.cursor/linear-cli-setup.json`
 - `.cursor/mcp.json` (optional — when Cursor is selected and you enable Playwright MCP in the CLI)
 - `.mcp.json` in the repository root (optional — when Claude is selected and Playwright MCP is enabled; same Playwright server via `npx -y @playwright/mcp`)
+- `.assistant-setup/page-workflow-context.md`
 - `.assistant-setup/linear-cli-setup.json`
 
 ## Distribution
@@ -54,6 +55,29 @@ npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants curso
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
 
+## Page Workflow Context
+
+The generator creates **`.assistant-setup/page-workflow-context.md`** as a lightweight working document for page-focused tasks.
+
+Use it to capture:
+
+- Key routes/page entry points
+- Primary user flows
+- Preconditions (auth, env, feature flags, seed data)
+- Expected stable UI markers and known caveats
+
+The file is template-first by design and should be updated per repository.
+
+## Backend API Version Notes
+
+Use Metric Insights API docs as a baseline reference: [API Access](https://help.metricinsights.com/m/API_Access).
+
+Important:
+
+- Documentation coverage is helpful but not always complete for every environment.
+- Request/response shapes and validation rules may differ by instance version.
+- Validate assumptions against the target instance (token + representative API checks) and record confirmed differences in local setup notes.
+
 ## Local development
 
 ```bash
@@ -68,5 +92,6 @@ npm test
 - **Interactive MCP conflicts:** If Playwright MCP is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
 - Docker/MySQL setup is intentionally excluded from generated templates.
 - Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place.
+- Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.
 - **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories that use current **`@metricinsights/pp-dev`** should use **Node.js 22+** for dev and CI (recent pp-dev requires it); align `engines` and workflow images in those app repos when you adopt newer pp-dev.
 - **CI:** Consumer app repositories may not have GitHub Actions (or other CI) yet—that is still often the exception—but the goal is for **build / lint / test on every change** to become the default. This tool does not generate CI files; add workflows in each app repo when you standardize, and pin the same Node version you use locally (see above for pp-dev).

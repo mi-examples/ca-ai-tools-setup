@@ -48,6 +48,32 @@ I need your details to configure the environment:
 3. If API token auth will not work (older backend): username and password for http://localhost:<port>/login
 ```
 
+### Step 1.1: Build page working context
+
+Before making implementation changes, create a concise page workflow map and store it in
+**`.assistant-setup/page-workflow-context.md`**:
+
+- List key app pages/routes used in day-to-day work.
+- For each page, note primary user flow, required preconditions, and expected UI markers.
+- Add known caveats (required permissions, slow endpoints, unstable filters, etc.).
+- If routes are dynamic, include one concrete example URL per route pattern.
+
+Keep this file lightweight and update it when page behavior changes.
+
+### Step 1.2: Backend API context (version-aware)
+
+Use Metric Insights API documentation as a baseline reference:
+[https://help.metricinsights.com/m/API_Access](https://help.metricinsights.com/m/API_Access)
+
+Important:
+
+- This documentation is not always complete for every customer environment.
+- Real endpoints, field names, and validation rules can differ by Metric Insights instance version.
+- Always verify with a quick live check (token + 1-2 representative requests) before relying on a payload shape.
+
+Record any confirmed API differences in **`.linear-assistant-setup.md`** under a short
+`API Compatibility Notes` section.
+
 ### Step 2: Install tools
 
 Install each tool sequentially and verify after each install.
@@ -209,6 +235,7 @@ Create `.linear-assistant-setup.md` in the project root with:
 - Local app URL (`http://localhost:<port>` — default **3000**, otherwise next free port; record the actual port from `pp-dev.config` or the running server)
 - API token status in `.env` (`set` or `not configured yet`)
 - Login fallback (username noted if used for `/login`; omit password — never store passwords in this file)
+- API compatibility notes (confirmed endpoint/field differences for the current instance version)
 - Last verification date
 
 Do not include Docker or MySQL setup.

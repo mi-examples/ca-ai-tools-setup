@@ -5,6 +5,7 @@ import { generateCursorFiles } from './generators/cursor.js';
 import { generateClaudeFiles } from './generators/claude.js';
 import { isMcpConfigPath, mergeMcpJson } from './mcp-json-merge.js';
 import type { GeneratedFile } from './generators/types.js';
+import { readTemplate } from './templates.js';
 
 export type ExistingFileAction = 'skip' | 'merge' | 'overwrite';
 
@@ -69,8 +70,17 @@ export function getGeneratedFiles(assistants: Assistant[], playwrightMcpInclude:
     version: METADATA_VERSION,
     assistants,
     playwrightMcp: mcpTargets,
+    pageWorkflowContext: {
+      file: '.assistant-setup/page-workflow-context.md',
+      generated: true,
+    },
     generatedAt: new Date().toISOString(),
   };
+
+  files.push({
+    path: '.assistant-setup/page-workflow-context.md',
+    content: readTemplate('assistant-setup/page-workflow-context.md'),
+  });
 
   files.push({
     path: '.assistant-setup/linear-cli-setup.json',

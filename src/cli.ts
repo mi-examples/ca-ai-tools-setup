@@ -181,6 +181,7 @@ function printSummary(
 ) {
   const modeLabel = dryRun ? 'Dry run completed.' : 'Setup generation completed.';
   p.outro(modeLabel);
+  const pageContextPath = '.assistant-setup/page-workflow-context.md';
 
   const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
 
@@ -231,9 +232,28 @@ function printSummary(
     }
   }
 
+  const pageContextState = result.created.includes(pageContextPath)
+    ? 'created'
+    : result.overwritten.includes(pageContextPath)
+      ? 'overwritten'
+      : result.skipped.includes(pageContextPath)
+        ? 'skipped'
+        : result.merged.includes(pageContextPath)
+          ? 'merged'
+          : null;
+
+  if (pageContextState) {
+    console.log('');
+    console.log('Page workflow context file:');
+    console.log(`  - ${pageContextPath} (${pageContextState})`);
+  }
+
   if (result.skipped.length > 0) {
     console.log('');
-    console.log('Skipped existing files (re-run without --yes to choose merge/overwrite, or use --force):');
+    console.log('Skipped existing files:');
+    console.log('  - MCP files (.cursor/mcp.json, .mcp.json): run without --yes to choose skip/merge/overwrite');
+    console.log('  - Any existing generated file: use --force to overwrite');
+    
     for (const file of result.skipped) {
       console.log(`  - ${file}`);
     }

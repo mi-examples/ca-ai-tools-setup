@@ -23,6 +23,7 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
+  assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/page-workflow-context.md')));
   assert.ok(!fs.existsSync(path.join(dir, 'setup-claude-assistant.md')));
 });
 
@@ -40,6 +41,7 @@ test('generateSetup omits .cursor/mcp.json when Playwright MCP is declined', () 
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
   const md = fs.readFileSync(path.join(dir, 'setup-cursor-assistant.md'), 'utf8');
   assert.ok(md.includes('installer **chose not to**'));
+  assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
 });
 
 test('generateSetup setup-cursor notes bootstrap included MCP when enabled', () => {
@@ -53,6 +55,7 @@ test('generateSetup setup-cursor notes bootstrap included MCP when enabled', () 
   });
   const md = fs.readFileSync(path.join(dir, 'setup-cursor-assistant.md'), 'utf8');
   assert.ok(md.includes('bootstrapped **with**'));
+  assert.ok(md.includes('can differ by Metric Insights instance version'));
 });
 
 test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', () => {
@@ -68,8 +71,14 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
+  assert.equal(meta.version, 2);
+  assert.deepEqual(meta.pageWorkflowContext, {
+    file: '.assistant-setup/page-workflow-context.md',
+    generated: true,
+  });
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
   assert.ok(md.includes('bootstrapped **with**'));
+  assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
 });
 
 test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', () => {
@@ -84,6 +93,7 @@ test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', ()
   assert.equal(fs.existsSync(path.join(dir, '.mcp.json')), false);
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
   assert.ok(md.includes('installer **chose not to**'));
+  assert.ok(md.includes('can differ by Metric Insights instance version'));
 });
 
 test('generateSetup always overwrites setup assistant files', () => {
@@ -107,6 +117,7 @@ test('generateSetup always overwrites setup assistant files', () => {
 
   assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
   assert.ok(second.skipped.includes('.assistant-setup/linear-cli-setup.json'));
+  assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
 
   const forced = generateSetup({
     targetDir: dir,
@@ -132,6 +143,10 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
   assert.deepEqual(meta.playwrightMcp, { cursorFile: true, projectRootFile: true });
+  assert.deepEqual(meta.pageWorkflowContext, {
+    file: '.assistant-setup/page-workflow-context.md',
+    generated: true,
+  });
 });
 
 test('generateSetup dry-run does not write files', () => {
