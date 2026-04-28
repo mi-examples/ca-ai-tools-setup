@@ -1,0 +1,15 @@
+---
+description: Figma MCP implementation rules for Cursor Agent
+globs:
+alwaysApply: true
+---
+
+# Figma Implementation Rules
+
+1. **Prioritize Data over Visuals**: Never rely only on screenshots. Always fetch the node JSON and extract exact layout/style values (spacing, gap, colors, font size).
+2. **Deep Inspection**: When a node is selected, recursively inspect children to understand layout logic. Pay attention to `layoutMode`, `primaryAxisAlignItems`, and `counterAxisAlignItems`.
+3. **Variable & Style Resolution**: Resolve Figma `styles` and `variables` IDs to project tokens (Tailwind config, CSS variables, theme objects). Avoid hardcoded hex values when a named variable exists.
+4. **Code Connect First**: If Code Connect is available, treat `component documentation` and linked snippets as the source of truth for implementation.
+5. **Auto-layout to CSS**: Translate Auto-layout semantics to CSS Flexbox/Grid, including `space-between`, hugging content, and fill behaviors.
+6. **Prefer Existing UI Primitives**: Map Figma elements to existing design-system components in the codebase before introducing new custom components.
+7. **Token-safe Diffs**: During review, reject style regressions that replace semantic tokens with raw constants unless there is an explicit exception.

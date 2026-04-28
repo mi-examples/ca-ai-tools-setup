@@ -74,6 +74,18 @@ Important:
 Record any confirmed API differences in **`.linear-assistant-setup.md`** under a short
 `API Compatibility Notes` section.
 
+### Step 1.3: Claude project instructions and agents
+
+Before continuing with tooling setup, ensure this repository has Claude project instructions:
+
+- If **`CLAUDE.md`** is missing in the repository root, create it.
+- In **`CLAUDE.md`**, add a short section that tells Claude to use specialized agents from
+  **`.claude/agents/*.md`** when available.
+- If **`.claude/agents/figma-mcp.md`** exists, explicitly instruct Claude to use that agent
+  for Figma MCP design-to-code tasks instead of ad-hoc styling decisions.
+- Keep **`CLAUDE.md`** concise and repo-specific; avoid duplicating large setup instructions
+  already captured in this file.
+
 ### Step 2: Install tools
 
 Install each tool sequentially and verify after each install.

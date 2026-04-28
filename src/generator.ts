@@ -20,6 +20,11 @@ export type GenerateOptions = {
    */
   playwrightMcpInclude: boolean;
   /**
+   * When true, writes Figma MCP config for each selected assistant:
+   * Cursor → `.cursor/mcp.json`, Claude → `.mcp.json` at repo root.
+   */
+  figmaMcpInclude?: boolean;
+  /**
    * When a file already exists and `force` is false, per-path action.
    * Only `.cursor/mcp.json` and `.mcp.json` support `merge` (JSON `mcpServers` union).
    */
@@ -34,6 +39,11 @@ export type GenerateResult = {
 };
 
 export type PlaywrightMcpTargets = {
+  cursorFile: boolean;
+  projectRootFile: boolean;
+};
+
+export type FigmaMcpTargets = {
   cursorFile: boolean;
   projectRootFile: boolean;
 };
@@ -55,22 +65,49 @@ export function resolvePlaywrightMcpTargets(assistants: Assistant[], include: bo
   };
 }
 
-export function getGeneratedFiles(assistants: Assistant[], playwrightMcpInclude: boolean): GeneratedFile[] {
+export function resolveFigmaMcpTargets(assistants: Assistant[], include: boolean): FigmaMcpTargets {
+  if (!include) {
+    return { cursorFile: false, projectRootFile: false };
+  }
+
+  return {
+    cursorFile: assistants.includes('cursor'),
+    projectRootFile: assistants.includes('claude'),
+  };
+}
+
+export function getGeneratedFiles(
+  assistants: Assistant[],
+  playwrightMcpInclude: boolean,
+  figmaMcpInclude = false,
+): GeneratedFile[] {
   const files: GeneratedFile[] = [];
   const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
+  const figmaTargets = resolveFigmaMcpTargets(assistants, figmaMcpInclude);
 
   if (assistants.includes('cursor')) {
-    files.push(...generateCursorFiles({ includePlaywrightMcp: mcpTargets.cursorFile }));
+    files.push(
+      ...generateCursorFiles({
+        includePlaywrightMcp: mcpTargets.cursorFile,
+        includeFigmaMcp: figmaTargets.cursorFile,
+      }),
+    );
   }
 
   if (assistants.includes('claude')) {
-    files.push(...generateClaudeFiles({ includePlaywrightMcp: mcpTargets.projectRootFile }));
+    files.push(
+      ...generateClaudeFiles({
+        includePlaywrightMcp: mcpTargets.projectRootFile,
+        includeFigmaMcp: figmaTargets.projectRootFile,
+      }),
+    );
   }
 
   const sharedMetadata = {
     version: METADATA_VERSION,
     assistants,
     playwrightMcp: mcpTargets,
+    figmaMcp: figmaTargets,
     pageWorkflowContext: {
       file: '.assistant-setup/page-workflow-context.md',
       generated: true,
@@ -179,7 +216,7 @@ function writeOneFile(
 }
 
 export function generateSetup(options: GenerateOptions): GenerateResult {
-  const files = getGeneratedFiles(options.assistants, options.playwrightMcpInclude);
+  const files = getGeneratedFiles(options.assistants, options.playwrightMcpInclude, Boolean(options.figmaMcpInclude));
 
   if (!options.dryRun) {
     fs.mkdirSync(options.targetDir, { recursive: true });

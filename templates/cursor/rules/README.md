@@ -5,6 +5,7 @@ This directory contains Metric Insights guidance for using Linear CLI inside Cur
 ## Files
 
 - `linear-cli.mdc` - global rule set for Linear CLI usage behavior.
+- `figma-mcp.mdc` - Figma MCP design-to-code implementation rules.
 
 ## Portal Page / Custom App context
 

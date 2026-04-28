@@ -9,8 +9,9 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 - `.cursor/rules/linear-cli.mdc`
 - `.cursor/rules/README.md`
 - `.cursor/linear-cli-setup.json`
-- `.cursor/mcp.json` (optional — when Cursor is selected and you enable Playwright MCP in the CLI)
-- `.mcp.json` in the repository root (optional — when Claude is selected and Playwright MCP is enabled; same Playwright server via `npx -y @playwright/mcp`)
+- `.cursor/mcp.json` (optional — when Cursor is selected and you enable one or more MCP servers in the CLI)
+- `.mcp.json` in the repository root (optional — when Claude is selected and you enable one or more MCP servers in the CLI)
+- `.claude/agents/figma-mcp.md` (optional — when Claude is selected and Figma MCP is enabled)
 - `.assistant-setup/page-workflow-context.md`
 - `.assistant-setup/linear-cli-setup.json`
 
@@ -40,10 +41,18 @@ The CLI prompts with a multi-select for assistants (Cursor and Claude), defaulti
 npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes
 ```
 
-With **`--yes`**, Playwright MCP defaults to **on**: it writes **`.cursor/mcp.json`** if Cursor is selected and **`.mcp.json`** in the repo root if Claude is selected. Turn it off non-interactively:
+With **`--yes`**, Playwright MCP defaults to **on** and Figma MCP defaults to **off**. It writes **`.cursor/mcp.json`** if Cursor is selected and **`.mcp.json`** in the repo root if Claude is selected when at least one MCP server is enabled.
+
+Turn both off non-interactively:
 
 ```bash
 npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
+```
+
+Enable both Playwright and Figma MCP non-interactively:
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
 ```
 
 ## Options
@@ -54,6 +63,7 @@ npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants curso
 - `--force`: overwrite existing generated files (no merge prompts; MCP files are fully replaced)
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
+- `--mcp-figma <yes|no>`: add or skip Figma MCP files for the assistants you selected (`yes` / `true` / `1` / `figma` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **no** (requires `FIGMA_API_KEY`)
 
 ## Page Workflow Context
 
@@ -89,7 +99,7 @@ npm test
 
 ## Notes
 
-- **Interactive MCP conflicts:** If Playwright MCP is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
+- **Interactive MCP conflicts:** If any MCP server is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
 - Docker/MySQL setup is intentionally excluded from generated templates.
 - Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place.
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.

@@ -12,3 +12,4 @@ alwaysApply: true
 - If authentication fails, ask user to run:
   - `linear-cli auth oauth`
 - Keep updates concise and include the issue key in progress summaries when available.
+- If Figma MCP is configured for this repo, follow the dedicated Figma implementation rules from `.cursor/rules/figma-mcp.mdc`.

@@ -39,6 +39,7 @@ test('generateSetup omits .cursor/mcp.json when Playwright MCP is declined', () 
 
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
+
   const md = fs.readFileSync(path.join(dir, 'setup-cursor-assistant.md'), 'utf8');
 
   assert.ok(md.includes('installer **chose not to**'));
@@ -55,6 +56,7 @@ test('generateSetup setup-cursor notes bootstrap included MCP when enabled', () 
     dryRun: false,
     playwrightMcpInclude: true,
   });
+
   const md = fs.readFileSync(path.join(dir, 'setup-cursor-assistant.md'), 'utf8');
 
   assert.ok(md.includes('bootstrapped **with**'));
@@ -73,6 +75,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   });
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
+
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
@@ -81,6 +84,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
   });
+
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
 
   assert.ok(md.includes('bootstrapped **with**'));
@@ -98,6 +102,7 @@ test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', ()
     playwrightMcpInclude: false,
   });
   assert.equal(fs.existsSync(path.join(dir, '.mcp.json')), false);
+
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
 
   assert.ok(md.includes('installer **chose not to**'));
@@ -150,13 +155,64 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
   });
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
+
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: true, projectRootFile: true });
+  assert.deepEqual(meta.figmaMcp, { cursorFile: false, projectRootFile: false });
   assert.deepEqual(meta.pageWorkflowContext, {
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
   });
+});
+
+test('generateSetup writes figma MCP only when requested', () => {
+  const dir = makeTempDir();
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor', 'claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+    figmaMcpInclude: true,
+  });
+
+  const cursorMcp = JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf8')) as {
+    mcpServers: Record<string, unknown>;
+  };
+  const claudeMcp = JSON.parse(fs.readFileSync(path.join(dir, '.mcp.json'), 'utf8')) as {
+    mcpServers: Record<string, unknown>;
+  };
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/linear-cli-setup.json'), 'utf8'));
+
+  assert.ok(cursorMcp.mcpServers.figma);
+  assert.equal(cursorMcp.mcpServers.playwright, undefined);
+  assert.ok(claudeMcp.mcpServers.figma);
+  assert.equal(claudeMcp.mcpServers.playwright, undefined);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), true);
+  assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });
+  assert.deepEqual(meta.figmaMcp, { cursorFile: true, projectRootFile: true });
+});
+
+test('generateSetup can combine playwright and figma MCP in one file', () => {
+  const dir = makeTempDir();
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: true,
+    figmaMcpInclude: true,
+  });
+
+  const cursorMcp = JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf8')) as {
+    mcpServers: Record<string, unknown>;
+  };
+
+  assert.ok(cursorMcp.mcpServers.playwright);
+  assert.ok(cursorMcp.mcpServers.figma);
 });
 
 test('generateSetup dry-run does not write files', () => {

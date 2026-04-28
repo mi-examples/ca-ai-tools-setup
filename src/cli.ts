@@ -5,9 +5,16 @@ import minimist from 'minimist';
 import * as p from '@clack/prompts';
 import { DEFAULT_ASSISTANTS, type Assistant } from './constants.js';
 import { parseAssistantsArg } from './assistants.js';
-import { generateSetup, getGeneratedFiles, resolvePlaywrightMcpTargets, type ExistingFileAction } from './generator.js';
+import {
+  generateSetup,
+  getGeneratedFiles,
+  resolveFigmaMcpTargets,
+  resolvePlaywrightMcpTargets,
+  type ExistingFileAction,
+} from './generator.js';
 import { isMcpConfigPath } from './mcp-json-merge.js';
 import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
+import { parseFigmaMcpArg } from './figma-mcp-choice.js';
 import { resolveCliRepoRoot } from './path-policy.js';
 
 type CliArgs = {
@@ -19,13 +26,14 @@ type CliArgs = {
   dryRun?: boolean;
   force?: boolean;
   'mcp-playwright'?: string;
+  'mcp-figma'?: string;
 };
 
 const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claude-assistant.md']);
 
 function parseArgs(): CliArgs {
   return minimist(process.argv.slice(2), {
-    string: ['target', 'assistants', 'mcp-playwright', '_'],
+    string: ['target', 'assistants', 'mcp-playwright', 'mcp-figma', '_'],
     boolean: ['yes', 'dry-run', 'dryRun', 'force'],
     alias: {
       y: 'yes',
@@ -36,6 +44,12 @@ function parseArgs(): CliArgs {
 
 function mcpPlaywrightCliRaw(args: CliArgs): string | undefined {
   const v = args['mcp-playwright'];
+
+  return typeof v === 'string' ? v : undefined;
+}
+
+function mcpFigmaCliRaw(args: CliArgs): string | undefined {
+  const v = args['mcp-figma'];
 
   return typeof v === 'string' ? v : undefined;
 }
@@ -138,6 +152,32 @@ async function pickPlaywrightMcpInclude(args: CliArgs): Promise<boolean> {
   return answer;
 }
 
+async function pickFigmaMcpInclude(args: CliArgs): Promise<boolean> {
+  const fromFlag = parseFigmaMcpArg(mcpFigmaCliRaw(args));
+
+  if (fromFlag !== undefined) {
+    return fromFlag;
+  }
+
+  if (args.yes) {
+    return false;
+  }
+
+  const answer = await p.confirm({
+    message:
+      'Add Figma MCP? (writes .cursor/mcp.json if Cursor is selected, and' +
+      ' .mcp.json in the project root if Claude is selected; requires FIGMA_API_KEY)',
+    initialValue: false,
+  });
+
+  if (p.isCancel(answer)) {
+    p.cancel('Operation cancelled.');
+    process.exit(0);
+  }
+
+  return answer;
+}
+
 async function promptExistingMcpActions(
   args: CliArgs,
   targetDir: string,
@@ -188,6 +228,7 @@ function printSummary(
   targetDir: string,
   assistants: Assistant[],
   playwrightMcpInclude: boolean,
+  figmaMcpInclude: boolean,
   result: ReturnType<typeof generateSetup>,
   dryRun: boolean,
 ) {
@@ -198,6 +239,7 @@ function printSummary(
   const pageContextPath = '.assistant-setup/page-workflow-context.md';
 
   const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
+  const figmaTargets = resolveFigmaMcpTargets(assistants, figmaMcpInclude);
 
   console.log('');
   console.log(`Target repository: ${targetDir}`);
@@ -217,6 +259,22 @@ function printSummary(
     console.log(`Playwright MCP: yes — ${parts.join(', ')}`);
   } else {
     console.log('Playwright MCP: no (instructions only; no MCP files from this run)');
+  }
+
+  if (figmaTargets.cursorFile || figmaTargets.projectRootFile) {
+    const parts: string[] = [];
+
+    if (figmaTargets.cursorFile) {
+      parts.push('.cursor/mcp.json');
+    }
+
+    if (figmaTargets.projectRootFile) {
+      parts.push('.mcp.json (repo root)');
+    }
+
+    console.log(`Figma MCP: yes — ${parts.join(', ')}`);
+  } else {
+    console.log('Figma MCP: no');
   }
 
   console.log('');
@@ -291,7 +349,8 @@ async function run(): Promise<void> {
   const targetDir = await pickTargetDir(args);
   const assistants = await pickAssistants(args);
   const playwrightMcpInclude = await pickPlaywrightMcpInclude(args);
-  const files = getGeneratedFiles(assistants, playwrightMcpInclude);
+  const figmaMcpInclude = await pickFigmaMcpInclude(args);
+  const files = getGeneratedFiles(assistants, playwrightMcpInclude, figmaMcpInclude);
   const existingFileActions = await promptExistingMcpActions(args, targetDir, files);
 
   const result = generateSetup({
@@ -300,10 +359,11 @@ async function run(): Promise<void> {
     force: Boolean(args.force),
     dryRun: Boolean(args.dryRun),
     playwrightMcpInclude,
+    figmaMcpInclude,
     existingFileActions,
   });
 
-  printSummary(targetDir, assistants, playwrightMcpInclude, result, Boolean(args.dryRun));
+  printSummary(targetDir, assistants, playwrightMcpInclude, figmaMcpInclude, result, Boolean(args.dryRun));
 }
 
 run().catch((error: unknown) => {
