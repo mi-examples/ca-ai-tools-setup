@@ -15,6 +15,7 @@ type CliArgs = {
   target?: string;
   assistants?: string;
   yes?: boolean;
+  'dry-run'?: boolean;
   dryRun?: boolean;
   force?: boolean;
   'mcp-playwright'?: string;
@@ -25,9 +26,10 @@ const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claud
 function parseArgs(): CliArgs {
   return minimist(process.argv.slice(2), {
     string: ['target', 'assistants', 'mcp-playwright', '_'],
-    boolean: ['yes', 'dry-run', 'force'],
+    boolean: ['yes', 'dry-run', 'dryRun', 'force'],
     alias: {
       y: 'yes',
+      dryRun: 'dry-run',
     },
   }) as CliArgs;
 }
