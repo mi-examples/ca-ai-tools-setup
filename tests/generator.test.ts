@@ -283,6 +283,7 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.ok(claudeMcp.mcpServers.figma);
   assert.equal(claudeMcp.mcpServers.playwright, undefined);
   assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), true);
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });
   assert.deepEqual(meta.figmaMcp, { cursorFile: true, projectRootFile: true });
 
@@ -295,12 +296,29 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.ok(claudeSettings.permissions?.allow?.includes('mcp__figma__*'));
 });
 
+test('generateSetup omits .cursor/rules/figma-mcp.mdc when Figma MCP not selected', () => {
+  const dir = makeTempDir();
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor', 'claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: true,
+    figmaMcpInclude: false,
+  });
+
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), false);
+});
+
 test('buildClaudeSettingsJson enables both MCP servers when selected', () => {
   const doc = JSON.parse(
     buildClaudeSettingsJson({ includePlaywrightMcp: true, includeFigmaMcp: true }),
   ) as {
     enableAllProjectMcpServers?: boolean;
     enabledMcpjsonServers?: string[];
+    enabledPlugins?: Record<string, boolean>;
     permissions?: { allow?: string[] };
   };
 
@@ -308,6 +326,7 @@ test('buildClaudeSettingsJson enables both MCP servers when selected', () => {
   assert.deepEqual(doc.enabledMcpjsonServers, ['playwright', 'figma']);
   assert.ok(doc.permissions?.allow?.includes('mcp__playwright__*'));
   assert.ok(doc.permissions?.allow?.includes('mcp__figma__*'));
+  assert.equal(doc.enabledPlugins?.['claude-code-setup@claude-plugins-official'], true);
 });
 
 test('buildClaudeSettingsJson omits MCP keys when no MCP selected', () => {
@@ -317,6 +336,7 @@ test('buildClaudeSettingsJson omits MCP keys when no MCP selected', () => {
 
   assert.ok(doc.$schema);
   assert.equal(doc.enableAllProjectMcpServers, undefined);
+  assert.deepEqual(doc.enabledPlugins, { 'claude-code-setup@claude-plugins-official': true });
 });
 
 test('generateSetup can combine playwright and figma MCP in one file', () => {
@@ -386,6 +406,100 @@ test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () 
   assert.equal(parsed.note, 'keep-me');
   assert.ok(parsed.mcpServers.custom);
   assert.ok(parsed.mcpServers.playwright);
+});
+
+test('generateSetup merge combines MCP servers in existing .claude/settings.json', () => {
+  const dir = makeTempDir();
+
+  const prior = JSON.stringify(
+    {
+      $schema: 'https://existing.schema',
+      enableAllProjectMcpServers: true,
+      enabledMcpjsonServers: ['playwright'],
+      permissions: { allow: ['mcp__playwright__*'] },
+    },
+    null,
+    2,
+  );
+
+  fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.claude/settings.json'), `${prior}\n`, 'utf8');
+
+  const result = generateSetup({
+    targetDir: dir,
+    assistants: ['claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: true,
+    figmaMcpInclude: true,
+    existingFileActions: { '.claude/settings.json': 'merge' },
+  });
+
+  assert.ok(result.merged.includes('.claude/settings.json'));
+
+  const merged = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.json'), 'utf8')) as {
+    $schema: string;
+    enabledMcpjsonServers: string[];
+    permissions: { allow: string[] };
+  };
+
+  assert.equal(merged.$schema, 'https://existing.schema');
+  assert.deepEqual(merged.enabledMcpjsonServers.sort(), ['figma', 'playwright']);
+  assert.ok(merged.permissions.allow.includes('mcp__playwright__*'));
+  assert.ok(merged.permissions.allow.includes('mcp__figma__*'));
+});
+
+test('generateSetup merge appends new agent rows to existing AGENTS.md', () => {
+  const dir = makeTempDir();
+
+  const priorAgents = [
+    '# Claude Code — agent registry',
+    '',
+    '## Registered agents',
+    '',
+    '| File | Purpose |',
+    '|------|---------|',
+    '| `custom-agent.md` | My custom agent. |',
+    '',
+  ].join('\n');
+
+  fs.writeFileSync(path.join(dir, 'AGENTS.md'), priorAgents, 'utf8');
+
+  const result = generateSetup({
+    targetDir: dir,
+    assistants: ['claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+    figmaMcpInclude: true,
+    existingFileActions: { 'AGENTS.md': 'merge' },
+  });
+
+  assert.ok(result.merged.includes('AGENTS.md'));
+
+  const content = fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8');
+
+  assert.ok(content.includes('`custom-agent.md`'), 'existing row preserved');
+  assert.ok(content.includes('`figma-mcp.md`'), 'new row appended');
+});
+
+test('generateSetup throws when merge requested for unsupported file', () => {
+  const dir = makeTempDir();
+
+  fs.writeFileSync(path.join(dir, 'CLAUDE.md'), 'existing content\n', 'utf8');
+
+  assert.throws(
+    () =>
+      generateSetup({
+        targetDir: dir,
+        assistants: ['claude'],
+        force: false,
+        dryRun: false,
+        playwrightMcpInclude: false,
+        existingFileActions: { 'CLAUDE.md': 'merge' },
+      }),
+    /Merge is not supported/,
+  );
 });
 
 test('generateSetup migrates legacy setup metadata files to new names', () => {

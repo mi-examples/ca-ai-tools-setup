@@ -80,10 +80,6 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
       content: readTemplate('cursor/rules/linear-cli.mdc'),
     },
     {
-      path: '.cursor/rules/figma-mcp.mdc',
-      content: readTemplate('cursor/rules/figma-mcp.mdc'),
-    },
-    {
       path: '.cursor/rules/README.md',
       content: readTemplate('cursor/rules/README.md'),
     },
@@ -100,6 +96,13 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
         includePlaywrightMcp: options.includePlaywrightMcp,
         includeFigmaMcp: options.includeFigmaMcp,
       }),
+    });
+  }
+
+  if (options.includeFigmaMcp) {
+    files.push({
+      path: '.cursor/rules/figma-mcp.mdc',
+      content: readTemplate('cursor/rules/figma-mcp.mdc'),
     });
   }
 
