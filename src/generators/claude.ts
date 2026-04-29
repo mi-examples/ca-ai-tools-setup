@@ -31,6 +31,10 @@ export function buildClaudeSettingsJson(options: GenerateClaudeOptions): string 
     };
   }
 
+  doc.enabledPlugins = {
+    'claude-code-setup@claude-plugins-official': true,
+  };
+
   return `${JSON.stringify(doc, null, 2)}\n`;
 }
 
