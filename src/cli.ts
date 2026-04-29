@@ -16,6 +16,7 @@ import { isMcpConfigPath } from './mcp-json-merge.js';
 import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
 import { parseFigmaMcpArg } from './figma-mcp-choice.js';
 import { resolveCliRepoRoot } from './path-policy.js';
+import { loadPreviousInteractiveDefaults, type InteractiveDefaults } from './previous-setup.js';
 
 type CliArgs = {
   _: string[];
@@ -97,7 +98,7 @@ async function pickTargetDir(args: CliArgs): Promise<string> {
   return resolveCliRepoRoot(answer?.trim(), cwd);
 }
 
-async function pickAssistants(args: CliArgs): Promise<Assistant[]> {
+async function pickAssistants(args: CliArgs, previous: InteractiveDefaults | null): Promise<Assistant[]> {
   const fromArg = parseAssistantsArg(args.assistants);
 
   if (fromArg) {
@@ -108,10 +109,12 @@ async function pickAssistants(args: CliArgs): Promise<Assistant[]> {
     return DEFAULT_ASSISTANTS;
   }
 
+  const initialAssistants = previous?.assistants ?? DEFAULT_ASSISTANTS;
+
   const selected = await p.multiselect({
     message: 'Select assistants to configure:',
     required: true,
-    initialValues: DEFAULT_ASSISTANTS,
+    initialValues: initialAssistants,
     options: [
       { value: 'cursor', label: 'Cursor' },
       { value: 'claude', label: 'Claude' },
@@ -126,7 +129,7 @@ async function pickAssistants(args: CliArgs): Promise<Assistant[]> {
   return selected as Assistant[];
 }
 
-async function pickPlaywrightMcpInclude(args: CliArgs): Promise<boolean> {
+async function pickPlaywrightMcpInclude(args: CliArgs, previous: InteractiveDefaults | null): Promise<boolean> {
   const fromFlag = parsePlaywrightMcpArg(mcpPlaywrightCliRaw(args));
 
   if (fromFlag !== undefined) {
@@ -141,7 +144,7 @@ async function pickPlaywrightMcpInclude(args: CliArgs): Promise<boolean> {
     message:
       'Add Playwright MCP? (writes .cursor/mcp.json if Cursor is selected, and' +
       ' .mcp.json in the project root if Claude is selected)',
-    initialValue: true,
+    initialValue: previous?.playwrightMcpInclude ?? true,
   });
 
   if (p.isCancel(answer)) {
@@ -152,7 +155,7 @@ async function pickPlaywrightMcpInclude(args: CliArgs): Promise<boolean> {
   return answer;
 }
 
-async function pickFigmaMcpInclude(args: CliArgs): Promise<boolean> {
+async function pickFigmaMcpInclude(args: CliArgs, previous: InteractiveDefaults | null): Promise<boolean> {
   const fromFlag = parseFigmaMcpArg(mcpFigmaCliRaw(args));
 
   if (fromFlag !== undefined) {
@@ -167,7 +170,7 @@ async function pickFigmaMcpInclude(args: CliArgs): Promise<boolean> {
     message:
       'Add Figma MCP? (writes .cursor/mcp.json if Cursor is selected, and' +
       ' .mcp.json in the project root if Claude is selected; requires FIGMA_API_KEY)',
-    initialValue: false,
+    initialValue: previous?.figmaMcpInclude ?? false,
   });
 
   if (p.isCancel(answer)) {
@@ -390,9 +393,10 @@ async function run(): Promise<void> {
   p.intro('Create Linear Assistant Setup');
 
   const targetDir = await pickTargetDir(args);
-  const assistants = await pickAssistants(args);
-  const playwrightMcpInclude = await pickPlaywrightMcpInclude(args);
-  const figmaMcpInclude = await pickFigmaMcpInclude(args);
+  const previousDefaults = args.yes ? null : loadPreviousInteractiveDefaults(targetDir);
+  const assistants = await pickAssistants(args, previousDefaults);
+  const playwrightMcpInclude = await pickPlaywrightMcpInclude(args, previousDefaults);
+  const figmaMcpInclude = await pickFigmaMcpInclude(args, previousDefaults);
   const files = getGeneratedFiles(assistants, playwrightMcpInclude, figmaMcpInclude);
   const existingFileActions = await promptExistingMcpActions(args, targetDir, files);
 
