@@ -78,16 +78,16 @@ Record any confirmed API differences in **`.dev-environment.md`** under **API co
 
 ### Step 1.3: Claude project instructions and agents
 
-The **`ca-ai-tools-setup`** installer writes **`AGENTS.md`** in the repository root on every run (shared with Cursor-only bootstraps). It writes **`CLAUDE.md`** when Claude is selected. Before continuing with tooling setup:
+The **`ca-ai-tools-setup`** installer writes **`AGENTS.md`** in the repository root on every run (shared with Cursor-only bootstraps). When Claude is selected, it also writes **`CLAUDE.md`** and **`.claude/settings.json`** (Claude Code project config with JSON schema). Before continuing with tooling setup:
 
 - If either file is missing (older clone or manual deletion), recreate them from the latest
   **`ca-ai-tools-setup`** templates or copy from another MI repo that uses this bootstrapper.
 - **Bring them up to date:** Add repo-specific conventions to **`CLAUDE.md`** (tests, branching,
   ownership). Keep **`AGENTS.md`** aligned with files under **`.claude/agents/`** (add/remove rows
   in the table when agents change).
-- **Re-running setup:** A new installer run **does not overwrite** existing **`CLAUDE.md`** /
-  **`AGENTS.md`** unless you pass **`--force`**—to preserve local edits. To refresh from the latest
-  templates, merge manually or back up and run with **`--force`**.
+- **Re-running setup:** A new installer run **does not overwrite** existing **`CLAUDE.md`**,
+  **`.claude/settings.json`**, or **`AGENTS.md`** unless you pass **`--force`**—to preserve local edits.
+  To refresh from the latest templates, merge manually or back up and run with **`--force`**.
 - In **`CLAUDE.md`**, ensure Claude is told to use specialized agents from **`.claude/agents/*.md`**
   when available (the starter already does); extend as needed.
 - If **`.claude/agents/figma-mcp.md`** exists, ensure **`CLAUDE.md`** or **`AGENTS.md`** points at it

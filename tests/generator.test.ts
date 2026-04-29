@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { buildClaudeSettingsJson } from '../src/generators/claude.js';
 import { generateSetup } from '../src/generator.js';
 
 function makeTempDir(): string {
@@ -32,6 +33,7 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8').includes('AGENTS.md'));
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
+  assert.ok(!fs.existsSync(path.join(dir, '.claude/settings.json')));
   assert.ok(!fs.existsSync(path.join(dir, 'setup-claude-assistant.md')));
 });
 
@@ -143,6 +145,18 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('ca-ai-tools-setup'));
   assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/settings.json')));
+  const claudeSettings = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.json'), 'utf8')) as {
+    $schema?: string;
+    enableAllProjectMcpServers?: boolean;
+    enabledMcpjsonServers?: string[];
+    permissions?: { allow?: string[] };
+  };
+
+  assert.ok(claudeSettings.$schema?.includes('claude-code-settings'));
+  assert.equal(claudeSettings.enableAllProjectMcpServers, true);
+  assert.deepEqual(claudeSettings.enabledMcpjsonServers, ['playwright']);
+  assert.ok(claudeSettings.permissions?.allow?.includes('mcp__playwright__*'));
 });
 
 test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', () => {
@@ -161,6 +175,14 @@ test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', ()
 
   assert.ok(md.includes('installer **chose not to**'));
   assert.ok(md.includes('can differ by Metric Insights instance version'));
+
+  const noMcpSettings = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.json'), 'utf8')) as {
+    enableAllProjectMcpServers?: boolean;
+    enabledMcpjsonServers?: unknown;
+  };
+
+  assert.equal(noMcpSettings.enableAllProjectMcpServers, undefined);
+  assert.equal(noMcpSettings.enabledMcpjsonServers, undefined);
 });
 
 test('generateSetup always overwrites setup assistant files', () => {
@@ -184,6 +206,7 @@ test('generateSetup always overwrites setup assistant files', () => {
 
   assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
   assert.ok(second.skipped.includes('CLAUDE.md'));
+  assert.ok(second.skipped.includes('.claude/settings.json'));
   assert.ok(second.skipped.includes('AGENTS.md'));
   assert.ok(second.skipped.includes('.dev-environment.md'));
   assert.ok(second.skipped.includes('.assistant-setup/ca-ai-tools-setup.json'));
@@ -200,6 +223,7 @@ test('generateSetup always overwrites setup assistant files', () => {
 
   assert.ok(forced.overwritten.includes('setup-claude-assistant.md'));
   assert.ok(forced.overwritten.includes('CLAUDE.md'));
+  assert.ok(forced.overwritten.includes('.claude/settings.json'));
   assert.ok(forced.overwritten.includes('AGENTS.md'));
 });
 
@@ -261,6 +285,38 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), true);
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });
   assert.deepEqual(meta.figmaMcp, { cursorFile: true, projectRootFile: true });
+
+  const claudeSettings = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.json'), 'utf8')) as {
+    enabledMcpjsonServers?: string[];
+    permissions?: { allow?: string[] };
+  };
+
+  assert.deepEqual(claudeSettings.enabledMcpjsonServers, ['figma']);
+  assert.ok(claudeSettings.permissions?.allow?.includes('mcp__figma__*'));
+});
+
+test('buildClaudeSettingsJson enables both MCP servers when selected', () => {
+  const doc = JSON.parse(
+    buildClaudeSettingsJson({ includePlaywrightMcp: true, includeFigmaMcp: true }),
+  ) as {
+    enableAllProjectMcpServers?: boolean;
+    enabledMcpjsonServers?: string[];
+    permissions?: { allow?: string[] };
+  };
+
+  assert.equal(doc.enableAllProjectMcpServers, true);
+  assert.deepEqual(doc.enabledMcpjsonServers, ['playwright', 'figma']);
+  assert.ok(doc.permissions?.allow?.includes('mcp__playwright__*'));
+  assert.ok(doc.permissions?.allow?.includes('mcp__figma__*'));
+});
+
+test('buildClaudeSettingsJson omits MCP keys when no MCP selected', () => {
+  const doc = JSON.parse(
+    buildClaudeSettingsJson({ includePlaywrightMcp: false, includeFigmaMcp: false }),
+  ) as Record<string, unknown>;
+
+  assert.ok(doc.$schema);
+  assert.equal(doc.enableAllProjectMcpServers, undefined);
 });
 
 test('generateSetup can combine playwright and figma MCP in one file', () => {

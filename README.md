@@ -8,6 +8,7 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 - `.cursorrules` — short legacy entry point (points to **`.cursor/rules/`** and **`AGENTS.md`**; skipped on later runs if already present unless `--force`)
 - `setup-claude-assistant.md`
 - `CLAUDE.md` — Claude Code project instructions (starter; skipped on later runs if already present unless `--force`)
+- `.claude/settings.json` — Claude Code JSON settings (`$schema` on [Schema Store](https://json.schemastore.org/claude-code-settings.json)); when **`.mcp.json`** is emitted, this file also enables those servers (`enableAllProjectMcpServers`, `enabledMcpjsonServers`, `permissions.allow`). Same skip/`--force` behavior as **`CLAUDE.md`**
 - `.cursor/rules/linear-cli.mdc`
 - `.cursor/rules/README.md`
 - `.cursor/ca-ai-tools-setup.json`
@@ -106,7 +107,7 @@ npm test
 
 - **Interactive MCP conflicts:** If any MCP server is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
 - Legacy metadata migration: old files **`.cursor/linear-cli-setup.json`** and **`.assistant-setup/linear-cli-setup.json`** are migrated to new names on update when possible; with **`--force`**, old legacy files are removed.
-- Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place. Root **`AGENTS.md`**, **`CLAUDE.md`** (Claude only), and **`.cursorrules`** (Cursor only), follow the same rules as **`.dev-environment.md`**: created when missing, skipped if they already exist unless **`--force`**.
+- Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place. Root **`AGENTS.md`**, **`CLAUDE.md`** and **`.claude/settings.json`** (Claude only), and **`.cursorrules`** (Cursor only), follow the same rules as **`.dev-environment.md`**: created when missing, skipped if they already exist unless **`--force`**.
 - `.dev-environment.md` is generated as a personal local profile (including **Authentication**: `MI_ACCESS_TOKEN` for the dev proxy, `/data/page/index/auth/info` smoke check on localhost, session cookies); keep it up to date and add it to `.gitignore`. Store **`MI_USERNAME` / `MI_PASSWORD`** only in **`.mi-credentials.local.env`** (gitignored), never in `.dev-environment.md`.
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.
 - **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories that use current **`@metricinsights/pp-dev`** should use **Node.js 22+** for dev and CI (recent pp-dev requires it); align `engines` and workflow images in those app repos when you adopt newer pp-dev.

@@ -8,6 +8,12 @@ This repository targets **Metric Insights Portal Page / Custom App** development
 - Local app URL is **`http://localhost:<port>`** (default **3000**; next free port if busy). Resolve port from config, server output, or the browser.
 - Authentication and API quirks belong in **`.dev-environment.md`** (personal; often gitignored). Do not invent secrets; follow that file for **`MI_ACCESS_TOKEN`**, session checks, and credentials layout.
 
+## Claude Code settings
+
+- Project **`/.claude/settings.json`** is the shared **Claude Code** JSON config (permissions, hooks, `env`, etc.). Use **`/.claude/settings.local.json`** for personal overrides (typically gitignored). See [Claude Code settings](https://code.claude.com/docs/en/settings).
+- When this repo was bootstrapped **with** root **`.mcp.json`**, the generated **`.claude/settings.json`** includes **`enableAllProjectMcpServers`**, **`enabledMcpjsonServers`** (matching server keys such as **`playwright`** / **`figma`**), and **`permissions.allow`** patterns so those MCP tools are permitted—reload MCP in Claude Code after changes.
+- **Re-running `ca-ai-tools-setup`:** Without **`--force`**, an existing **`.claude/settings.json`** is **not** overwritten—extend it in place or merge new keys from the template after back-up.
+
 ## Agents
 
 - Read task-specific rules under **`.claude/agents/*.md`** when the task matches (design implementation, MCP-specific workflows, etc.).
