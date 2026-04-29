@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import minimist from 'minimist';
 import * as p from '@clack/prompts';
-import { DEFAULT_ASSISTANTS, type Assistant } from './constants.js';
+import { DEFAULT_ASSISTANTS, SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
 import { parseAssistantsArg } from './assistants.js';
 import {
   generateSetup,
@@ -12,7 +12,7 @@ import {
   resolvePlaywrightMcpTargets,
   type ExistingFileAction,
 } from './generator.js';
-import { isMcpConfigPath } from './mcp-json-merge.js';
+import { isMergeablePath } from './mcp-json-merge.js';
 import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
 import { parseFigmaMcpArg } from './figma-mcp-choice.js';
 import { resolveCliRepoRoot } from './path-policy.js';
@@ -29,8 +29,6 @@ type CliArgs = {
   'mcp-playwright'?: string;
   'mcp-figma'?: string;
 };
-
-const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claude-assistant.md']);
 
 function parseArgs(): CliArgs {
   return minimist(process.argv.slice(2), {
@@ -193,7 +191,7 @@ async function promptExistingMcpActions(
   const actions: Partial<Record<string, ExistingFileAction>> = {};
 
   for (const file of files) {
-    if (!isMcpConfigPath(file.path)) {
+    if (!isMergeablePath(file.path)) {
       continue;
     }
 
@@ -203,14 +201,18 @@ async function promptExistingMcpActions(
       continue;
     }
 
+    const mergeLabel =
+      file.path === '.cursor/mcp.json' || file.path === '.mcp.json'
+        ? 'Merge — union mcpServers (generated keys override on name collision)'
+        : file.path === '.claude/settings.json'
+          ? 'Merge — union MCP server lists; $schema and other keys preserved'
+          : 'Merge — append new agent table rows not already listed';
+
     const choice = await p.select({
       message: `File already exists: ${file.path}`,
       options: [
         { value: 'skip', label: 'Skip — keep the current file' },
-        {
-          value: 'merge',
-          label: 'Merge — combine mcpServers (generated keys override the same name)',
-        },
+        { value: 'merge', label: mergeLabel },
         { value: 'overwrite', label: 'Overwrite — replace with generated content' },
       ],
       initialValue: 'skip',
@@ -360,7 +362,7 @@ function printSummary(
   if (result.skipped.length > 0) {
     console.log('');
     console.log('Skipped existing files:');
-    console.log('  - MCP files (.cursor/mcp.json, .mcp.json): run without --yes to choose skip/merge/overwrite');
+    console.log('  - Mergeable files (.cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md): run without --yes to choose skip/merge/overwrite');
     console.log('  - Any existing generated file: use --force to overwrite');
 
     for (const file of result.skipped) {
@@ -408,6 +410,7 @@ async function run(): Promise<void> {
     playwrightMcpInclude,
     figmaMcpInclude,
     existingFileActions,
+    files,
   });
 
   printSummary(targetDir, assistants, playwrightMcpInclude, figmaMcpInclude, result, Boolean(args.dryRun));

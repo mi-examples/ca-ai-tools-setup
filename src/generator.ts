@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { METADATA_VERSION, type Assistant } from './constants.js';
+import { METADATA_VERSION, SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
 import { generateCursorFiles } from './generators/cursor.js';
 import { generateClaudeFiles } from './generators/claude.js';
-import { isMcpConfigPath, mergeMcpJson } from './mcp-json-merge.js';
+import { isMergeablePath, mergeFile } from './mcp-json-merge.js';
 import type { GeneratedFile } from './generators/types.js';
 import { readTemplate } from './templates.js';
 
@@ -29,6 +29,8 @@ export type GenerateOptions = {
    * Only `.cursor/mcp.json` and `.mcp.json` support `merge` (JSON `mcpServers` union).
    */
   existingFileActions?: Partial<Record<string, ExistingFileAction>>;
+  /** Pre-computed file list from `getGeneratedFiles`; skips a second call inside `generateSetup`. */
+  files?: GeneratedFile[];
 };
 
 export type GenerateResult = {
@@ -50,7 +52,6 @@ export type FigmaMcpTargets = {
   projectRootFile: boolean;
 };
 
-const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claude-assistant.md']);
 const LEGACY_FILE_MAPPINGS = [
   {
     legacyPath: '.cursor/linear-cli-setup.json',
@@ -250,10 +251,16 @@ function writeOneFile(
       return;
     }
 
-    if (action === 'merge' && isMcpConfigPath(file.path)) {
+    if (action === 'merge') {
+      if (!isMergeablePath(file.path)) {
+        throw new Error(
+          `Merge is not supported for "${file.path}". Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md.`,
+        );
+      }
+
       if (!options.dryRun) {
         const existingContent = fs.readFileSync(destination, 'utf8');
-        const merged = mergeMcpJson(existingContent, file.content);
+        const merged = mergeFile(file.path, existingContent, file.content);
 
         fs.mkdirSync(path.dirname(destination), { recursive: true });
         fs.writeFileSync(destination, merged, 'utf8');
@@ -289,7 +296,8 @@ function writeOneFile(
 }
 
 export function generateSetup(options: GenerateOptions): GenerateResult {
-  const files = getGeneratedFiles(options.assistants, options.playwrightMcpInclude, Boolean(options.figmaMcpInclude));
+  const files =
+    options.files ?? getGeneratedFiles(options.assistants, options.playwrightMcpInclude, Boolean(options.figmaMcpInclude));
 
   if (!options.dryRun) {
     fs.mkdirSync(options.targetDir, { recursive: true });
