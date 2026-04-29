@@ -169,20 +169,30 @@ Check first whether `linear-cli` is already installed:
 
 If `linear-cli` is already available, skip installation and continue with PATH/auth checks. Install only when the command is missing.
 
-Detect OS and architecture. Resolve the latest release tag from the GitHub API, then download the matching asset from [https://github.com/Finesssee/linear-cli/releases](https://github.com/Finesssee/linear-cli/releases):
+Detect OS and architecture. Fetch releases from the GitHub API (newest first) and download the platform archive from [https://github.com/Finesssee/linear-cli/releases](https://github.com/Finesssee/linear-cli/releases). **The latest release may not ship every platform binary.** If the asset is missing for your OS/arch (404), iterate through older releases until a download succeeds—use the first tag that provides the expected filename.
 
 **macOS:**
 
 ```bash
-LINEAR_CLI_VERSION=$(curl -sL https://api.github.com/repos/Finesssee/linear-cli/releases/latest | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
-echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
 ARCH=$(uname -m)
-mkdir -p ~/bin
 if [ "$ARCH" = "arm64" ]; then
-  curl -sL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${LINEAR_CLI_VERSION}/linear-cli-aarch64-apple-darwin.tar.gz"
+  ASSET="linear-cli-aarch64-apple-darwin.tar.gz"
 else
-  curl -sL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${LINEAR_CLI_VERSION}/linear-cli-x86_64-apple-darwin.tar.gz"
+  ASSET="linear-cli-x86_64-apple-darwin.tar.gz"
 fi
+mkdir -p ~/bin
+LINEAR_CLI_VERSION=""
+for tag in $(curl -sL "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'); do
+  if curl -fsL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${tag}/${ASSET}"; then
+    LINEAR_CLI_VERSION=$tag
+    break
+  fi
+done
+if [ -z "$LINEAR_CLI_VERSION" ]; then
+  echo "No release found with ${ASSET} (checked recent releases)." >&2
+  exit 1
+fi
+echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
 tar -xzf /tmp/linear-cli.tar.gz -C ~/bin/
 chmod +x ~/bin/linear-cli
 rm /tmp/linear-cli.tar.gz
@@ -192,15 +202,25 @@ rm /tmp/linear-cli.tar.gz
 **Linux:**
 
 ```bash
-LINEAR_CLI_VERSION=$(curl -sL https://api.github.com/repos/Finesssee/linear-cli/releases/latest | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
-echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
 ARCH=$(uname -m)
-mkdir -p ~/bin
 if [ "$ARCH" = "aarch64" ]; then
-  curl -sL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${LINEAR_CLI_VERSION}/linear-cli-aarch64-unknown-linux-gnu.tar.gz"
+  ASSET="linear-cli-aarch64-unknown-linux-gnu.tar.gz"
 else
-  curl -sL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${LINEAR_CLI_VERSION}/linear-cli-x86_64-unknown-linux-gnu.tar.gz"
+  ASSET="linear-cli-x86_64-unknown-linux-gnu.tar.gz"
 fi
+mkdir -p ~/bin
+LINEAR_CLI_VERSION=""
+for tag in $(curl -sL "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'); do
+  if curl -fsL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${tag}/${ASSET}"; then
+    LINEAR_CLI_VERSION=$tag
+    break
+  fi
+done
+if [ -z "$LINEAR_CLI_VERSION" ]; then
+  echo "No release found with ${ASSET} (checked recent releases)." >&2
+  exit 1
+fi
+echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
 tar -xzf /tmp/linear-cli.tar.gz -C ~/bin/
 chmod +x ~/bin/linear-cli
 rm /tmp/linear-cli.tar.gz
@@ -210,11 +230,23 @@ rm /tmp/linear-cli.tar.gz
 **Windows (PowerShell):**
 
 ```powershell
-$release = Invoke-RestMethod -Uri "https://api.github.com/repos/Finesssee/linear-cli/releases/latest"
-$version = $release.tag_name
-Write-Host "Installing linear-cli $version"
+$assetName = "linear-cli-x86_64-pc-windows-msvc.zip"
+$releases = Invoke-RestMethod -Uri "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100"
 New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\bin" | Out-Null
-Invoke-WebRequest -Uri "https://github.com/Finesssee/linear-cli/releases/download/$version/linear-cli-x86_64-pc-windows-msvc.zip" -OutFile "$env:TEMP\linear-cli.zip"
+$version = $null
+foreach ($rel in $releases) {
+  $tag = $rel.tag_name
+  $url = "https://github.com/Finesssee/linear-cli/releases/download/$tag/$assetName"
+  try {
+    Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\linear-cli.zip" -ErrorAction Stop
+    $version = $tag
+    break
+  } catch {
+    continue
+  }
+}
+if (-not $version) { throw "No release found with $assetName (checked recent releases)." }
+Write-Host "Installing linear-cli $version"
 Expand-Archive -Path "$env:TEMP\linear-cli.zip" -DestinationPath "$env:USERPROFILE\bin" -Force
 Remove-Item "$env:TEMP\linear-cli.zip"
 ```
