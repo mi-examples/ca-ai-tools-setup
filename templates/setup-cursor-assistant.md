@@ -14,6 +14,8 @@ The developer may be on **macOS**, **Linux**, or **Windows**.
 
 **CI:** Some repositories still have no automated pipeline; that can be normal today, but **CI for build, lint, and tests** is the intended direction for maintained apps. If `.github/workflows/` (or equivalent) is absent, do not treat it as a setup failure. When CI exists or is added, ensure install steps (`npm ci`, etc.) and the Node version align with this repo and pp-dev.
 
+**Cursor integrated terminal:** After installing CLI tools or changing `PATH` (for example `~/bin` or `%USERPROFILE%\bin`), binaries such as **`gh`**, **`linear-cli`**, or even **`node`** may still be missing inside Cursor’s terminal until the user **fully quits and restarts Cursor** (closing the terminal tab is not enough). This behavior is **consistently reproducible on Windows and macOS**. If commands fail with “not found” right after a successful install, treat **restart Cursor** as the first remediation before concluding the install failed.
+
 First, detect the OS:
 
 ```bash
@@ -287,6 +289,8 @@ local environment details:
 
 ### Step 5: Final verification
 
+If **`gh`** / **`linear-cli`** / **`node`** are reported missing despite a finished install and PATH update, ask the developer to **fully restart Cursor**, then run the checks again (see **Cursor integrated terminal** above).
+
 Run:
 
 ```bash
@@ -303,4 +307,4 @@ OK / FAIL  linear-cli — authentication
 OK / FAIL  .linear-assistant-setup.md created
 ```
 
-If any check fails, suggest a concrete fix.
+If any check fails, suggest a concrete fix. For **command not found** immediately after install, suggest **restarting Cursor** before deeper troubleshooting.
