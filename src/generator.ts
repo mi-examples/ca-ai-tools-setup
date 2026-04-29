@@ -128,6 +128,10 @@ export function getGeneratedFiles(
       file: '.assistant-setup/page-workflow-context.md',
       generated: true,
     },
+    linearCliReference: {
+      file: 'LINEAR_CLI.md',
+      generated: true,
+    },
     generatedAt: new Date().toISOString(),
   };
 
@@ -144,6 +148,16 @@ export function getGeneratedFiles(
   files.push({
     path: '.assistant-setup/ca-ai-tools-setup.json',
     content: JSON.stringify(sharedMetadata, null, 2) + '\n',
+  });
+
+  files.push({
+    path: 'LINEAR_CLI.md',
+    content: readTemplate('LINEAR_CLI.md'),
+  });
+
+  files.push({
+    path: 'AGENTS.md',
+    content: readTemplate('AGENTS.md'),
   });
 
   return files;

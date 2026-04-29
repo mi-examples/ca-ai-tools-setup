@@ -28,13 +28,15 @@ uname -s
 
 Before asking the developer, read **`pp-dev.config`** in the repo root for the current dev setup (port, plugin options, and related settings).
 
+**If `/.dev-environment.md` exists in the repo root, read it next** — especially the **Authentication** section: local App URL, **`MI_ACCESS_TOKEN`** checks (`GET …/data/page/index/auth/info`), session-cookie login steps, and the **`.mi-credentials.local.env`** convention. Follow that file as the source of truth for this machine; align questions and commands with the recorded OS/shell.
+
 This workflow targets the **Portal Page / Custom App** dev server at **`http://localhost:<port>`**. The **default port is 3000**; if 3000 is already in use, the next free port is typically used (**3001**, **3002**, and so on). Resolve the actual port from **`pp-dev.config`**, the dev server output, or the URL in the browser once the server is up.
 
 The server **must be running** before access — usually **`npm run dev`**, **`npx pp-dev`**, or for **Next.js** projects the same commands or **`npx pp-dev next`** (the main tooling is **`@metricinsights/pp-dev`** on npm). If the repo is Next.js (e.g. `next` in `package.json` or a `next.config.*` file), prefer clarifying which dev command this project uses.
 
-Backend access normally uses an **API token** in **`.env`**. If `.env` is missing or the token is not configured yet, ask whether they will add it or treat it as pending.
+Backend access uses **`MI_ACCESS_TOKEN`** in **`.env`** for the **local dev proxy** (the server forwards to the real backend — no manual token wiring from outside). If `.env` is missing or the token is not configured yet, ask whether they will add it or treat it as pending. When validating, follow **`.dev-environment.md`**: GET **`/data/page/index/auth/info`** on **localhost**, successful JSON includes **`user`**.
 
-If the backend instance version is **old**, token-based access may fail; fall back to UI login at **`http://localhost:<port>/login`** and request **username** and **password**.
+If the backend instance version is **old** or token auth is unavailable, fall back to UI login at **`http://localhost:<port>/login`** and session-cookie flows described in **`.dev-environment.md`**. Prefer having the developer store **`MI_USERNAME`** / **`MI_PASSWORD`** in **`.mi-credentials.local.env`** (gitignored) rather than pasting secrets into chat.
 
 Ask the developer for all required details in a single message:
 
@@ -43,9 +45,9 @@ I need your details to configure the environment:
 
 1. Confirm the dev server is running (`npm run dev`, `npx pp-dev`, or for Next.js also `npx pp-dev next`). Local app URL: http://localhost:<port> — default 3000; if busy, often 3001, 3002, etc. Use the port from pp-dev.config, server logs, or the live URL.
 
-2. API token for backend access: is it already set in .env? If not, say "not configured yet" or describe how you'll add it.
+2. API token: is `MI_ACCESS_TOKEN` already set in .env? If not, say "not configured yet" or describe how you'll add it.
 
-3. If API token auth will not work (older backend): username and password for http://localhost:<port>/login
+3. If token auth will not work: confirm you've added MI_USERNAME and MI_PASSWORD to .mi-credentials.local.env (gitignored), or say you'll use browser login only — do not paste passwords into .dev-environment.md or this chat.
 ```
 
 ### Step 1.1: Build page working context
@@ -71,20 +73,27 @@ Important:
 - Real endpoints, field names, and validation rules can differ by Metric Insights instance version.
 - Always verify with a quick live check (token + 1-2 representative requests) before relying on a payload shape.
 
-Record any confirmed API differences in **`.linear-assistant-setup.md`** under a short
-`API Compatibility Notes` section.
+Record any confirmed API differences in **`.dev-environment.md`** under **API compatibility notes**
+(see the generated template section).
 
 ### Step 1.3: Claude project instructions and agents
 
-Before continuing with tooling setup, ensure this repository has Claude project instructions:
+The **`ca-ai-tools-setup`** installer writes **`AGENTS.md`** in the repository root on every run (shared with Cursor-only bootstraps). It writes **`CLAUDE.md`** when Claude is selected. Before continuing with tooling setup:
 
-- If **`CLAUDE.md`** is missing in the repository root, create it.
-- In **`CLAUDE.md`**, add a short section that tells Claude to use specialized agents from
-  **`.claude/agents/*.md`** when available.
-- If **`.claude/agents/figma-mcp.md`** exists, explicitly instruct Claude to use that agent
-  for Figma MCP design-to-code tasks instead of ad-hoc styling decisions.
-- Keep **`CLAUDE.md`** concise and repo-specific; avoid duplicating large setup instructions
-  already captured in this file.
+- If either file is missing (older clone or manual deletion), recreate them from the latest
+  **`ca-ai-tools-setup`** templates or copy from another MI repo that uses this bootstrapper.
+- **Bring them up to date:** Add repo-specific conventions to **`CLAUDE.md`** (tests, branching,
+  ownership). Keep **`AGENTS.md`** aligned with files under **`.claude/agents/`** (add/remove rows
+  in the table when agents change).
+- **Re-running setup:** A new installer run **does not overwrite** existing **`CLAUDE.md`** /
+  **`AGENTS.md`** unless you pass **`--force`**—to preserve local edits. To refresh from the latest
+  templates, merge manually or back up and run with **`--force`**.
+- In **`CLAUDE.md`**, ensure Claude is told to use specialized agents from **`.claude/agents/*.md`**
+  when available (the starter already does); extend as needed.
+- If **`.claude/agents/figma-mcp.md`** exists, ensure **`CLAUDE.md`** or **`AGENTS.md`** points at it
+  for Figma MCP design-to-code tasks instead of ad-hoc styling decisions (the starter includes this).
+- Keep **`CLAUDE.md`** concise and repo-specific; avoid duplicating large setup instructions already
+  captured in this file.
 
 ### Step 2: Install tools
 
@@ -278,32 +287,26 @@ If `linear-cli auth oauth` needs a browser or TTY outside this session, have the
 
 **PLAYWRIGHT_MCP_BLOCK**
 
-### Step 3: Create local setup summary
+### Step 3: Developer environment profile (finalize after setup)
 
-Create **`.linear-assistant-setup.md`** in the project root with:
-
-- Local app URL (`http://localhost:<port>` — default **3000**, otherwise next free port; record the actual port from `pp-dev.config` or the running server)
-- API token status in `.env` (`set` or `not configured yet`)
-- Login fallback (username noted if used for `/login`; omit password — never store passwords in this file)
-- API compatibility notes (confirmed endpoint/field differences for the current instance version)
-- Last verification date
-
-Do not include Docker or MySQL instructions.
-
-### Step 4: Developer environment profile (finalize after setup)
-
-After installing tools, update **`.dev-environment.md`** with the final
-local environment details:
+After installing tools, update **`.dev-environment.md`** with the complete local profile
+(generator metadata remains in **`.assistant-setup/ca-ai-tools-setup.json`**):
 
 - If the file is missing, create it from the generated template and fill in local details.
-- Record OS, architecture, and available shells (PowerShell, cmd, bash, zsh, etc.) so future
-  commands use the correct syntax for this machine.
+- **Local app URL** (`http://localhost:<port>` — default **3000**, otherwise next free port; record
+  the actual port from `pp-dev.config`, the running server, or the browser).
+- **Authentication** section: **`MI_ACCESS_TOKEN`** status, validation notes (`/data/page/index/auth/info`), session vs token, and **Credentials** line — **usernames only** in **`.dev-environment.md`**; passwords belong in **`.mi-credentials.local.env`** (add **`/.mi-credentials.local.env`** to **`.gitignore`**).
+- **API compatibility notes** for your Metric Insights instance (confirmed endpoint/field differences;
+  see Step 1.2).
+- **Last verification date** for this profile (when URL, auth, and API checks were last confirmed).
+- **OS, architecture, and shells** (PowerShell, cmd, bash, zsh, etc.) so future commands use the
+  correct syntax.
 - Keep shell notes explicit (for example: "primary shell is PowerShell; avoid `&&` and Bash
   heredocs").
 - Add **`.dev-environment.md`** to **`.gitignore`** if not already present (this file is personal
   and should not be committed).
 
-### Step 5: Final verification
+### Step 4: Final verification
 
 Run:
 
@@ -318,7 +321,7 @@ Return:
 ```
 OK / FAIL  GitHub CLI — authentication
 OK / FAIL  linear-cli — authentication
-OK / FAIL  .linear-assistant-setup.md created
+OK / FAIL  .dev-environment.md profile complete
 ```
 
 If any check fails, suggest a concrete fix.

@@ -72,6 +72,10 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
       content: setupCursorContent,
     },
     {
+      path: '.cursorrules',
+      content: readTemplate('cursor/cursorrules'),
+    },
+    {
       path: '.cursor/rules/linear-cli.mdc',
       content: readTemplate('cursor/rules/linear-cli.mdc'),
     },

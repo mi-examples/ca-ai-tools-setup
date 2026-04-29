@@ -70,6 +70,10 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
       path: 'setup-claude-assistant.md',
       content: setupClaudeContent,
     },
+    {
+      path: 'CLAUDE.md',
+      content: readTemplate('claude/CLAUDE.md'),
+    },
   ];
 
   if (options.includePlaywrightMcp || options.includeFigmaMcp) {

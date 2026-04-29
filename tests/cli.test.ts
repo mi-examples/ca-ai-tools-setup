@@ -24,4 +24,5 @@ test('cli --dry-run does not write generated files', () => {
   assert.equal(fs.existsSync(path.join(targetDir, '.dev-environment.md')), false);
   assert.equal(fs.existsSync(path.join(targetDir, '.assistant-setup/page-workflow-context.md')), false);
   assert.equal(fs.existsSync(path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json')), false);
+  assert.equal(fs.existsSync(path.join(targetDir, 'LINEAR_CLI.md')), false);
 });

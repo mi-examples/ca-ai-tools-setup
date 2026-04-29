@@ -25,7 +25,48 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
   assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/page-workflow-context.md')));
+  assert.ok(result.created.includes('LINEAR_CLI.md'));
+  assert.ok(fs.existsSync(path.join(dir, 'LINEAR_CLI.md')));
+  assert.ok(fs.readFileSync(path.join(dir, 'LINEAR_CLI.md'), 'utf8').includes('Linear CLI Reference'));
+  assert.ok(fs.existsSync(path.join(dir, '.cursorrules')));
+  assert.ok(fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8').includes('AGENTS.md'));
+  assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
+  assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
   assert.ok(!fs.existsSync(path.join(dir, 'setup-claude-assistant.md')));
+});
+
+test('generateSetup skips .cursorrules on second Cursor run unless force', () => {
+  const dir = makeTempDir();
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  const second = generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  assert.ok(second.skipped.includes('.cursorrules'));
+  assert.ok(second.skipped.includes('AGENTS.md'));
+
+  const forced = generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: true,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  assert.ok(forced.overwritten.includes('.cursorrules'));
+  assert.ok(forced.overwritten.includes('AGENTS.md'));
 });
 
 test('generateSetup omits .cursor/mcp.json when Playwright MCP is declined', () => {
@@ -80,7 +121,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
-  assert.equal(meta.version, 3);
+  assert.equal(meta.version, 4);
   assert.deepEqual(meta.devEnvironment, {
     file: '.dev-environment.md',
     generated: true,
@@ -89,11 +130,19 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
   });
+  assert.deepEqual(meta.linearCliReference, {
+    file: 'LINEAR_CLI.md',
+    generated: true,
+  });
 
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
 
   assert.ok(md.includes('bootstrapped **with**'));
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
+  assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')));
+  assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('ca-ai-tools-setup'));
+  assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
 });
 
 test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', () => {
@@ -134,9 +183,12 @@ test('generateSetup always overwrites setup assistant files', () => {
   });
 
   assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
+  assert.ok(second.skipped.includes('CLAUDE.md'));
+  assert.ok(second.skipped.includes('AGENTS.md'));
   assert.ok(second.skipped.includes('.dev-environment.md'));
   assert.ok(second.skipped.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
+  assert.ok(second.skipped.includes('LINEAR_CLI.md'));
 
   const forced = generateSetup({
     targetDir: dir,
@@ -147,6 +199,8 @@ test('generateSetup always overwrites setup assistant files', () => {
   });
 
   assert.ok(forced.overwritten.includes('setup-claude-assistant.md'));
+  assert.ok(forced.overwritten.includes('CLAUDE.md'));
+  assert.ok(forced.overwritten.includes('AGENTS.md'));
 });
 
 test('generateSetup writes both MCP files when Cursor and Claude selected and MCP enabled', () => {
@@ -172,6 +226,10 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
   });
   assert.deepEqual(meta.pageWorkflowContext, {
     file: '.assistant-setup/page-workflow-context.md',
+    generated: true,
+  });
+  assert.deepEqual(meta.linearCliReference, {
+    file: 'LINEAR_CLI.md',
     generated: true,
   });
 });

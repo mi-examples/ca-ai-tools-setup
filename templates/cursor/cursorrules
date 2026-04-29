@@ -1,0 +1,13 @@
+# Cursor — project root notice
+
+**Primary project rules** live under **`.cursor/rules/`** (see **`README.md`** there). Prefer those **`.mdc`** files; they replace the older single-file workflow.
+
+This **`.cursorrules`** file is optional legacy wiring: Cursor still merges it with rules from **`.cursor/rules/`**. Keep this stub short; do not duplicate structured rules here.
+
+## `AGENTS.md`
+
+When **`AGENTS.md`** exists at the repository root, read it. It indexes **`.claude/agents/*.md`** (Claude Code–scoped task rules). Use it for shared-repo context when teammates use Claude Code, or to align Cursor work with documented agent boundaries.
+
+**Bootstrap:** **`ca-ai-tools-setup`** writes **`AGENTS.md`** on every run (shared with **`LINEAR_CLI.md`** and other repo-root stubs). If it is missing, re-run the installer or copy from another MI repo using this bootstrapper.
+
+Full onboarding: **`setup-cursor-assistant.md`**.

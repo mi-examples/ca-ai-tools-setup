@@ -4,4 +4,4 @@ export type Assistant = (typeof ASSISTANTS)[number];
 
 export const DEFAULT_ASSISTANTS: Assistant[] = ['cursor', 'claude'];
 
-export const METADATA_VERSION = 3;
+export const METADATA_VERSION = 4;
