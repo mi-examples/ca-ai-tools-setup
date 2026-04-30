@@ -77,7 +77,9 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
     '**What you need to do**',
     '',
     '- Confirm **`.mcp.json`** exists in the repository root and contains expected `mcpServers` entries.',
-    '- Confirm **`.claude/settings.json`** enables those servers (`enableAllProjectMcpServers`, `enabledMcpjsonServers`, `permissions.allow`); re-run the installer with **`--force`** if you replaced `.mcp.json` without refreshing settings.',
+    '- Confirm **`.claude/settings.json`** enables those servers (`enableAllProjectMcpServers`, ' +
+      '`enabledMcpjsonServers`, `permissions.allow`); re-run the installer with **`--force`** if you replaced ' +
+      '`.mcp.json` without refreshing settings.',
     '- If the file was removed, recreate it and merge with any existing `mcpServers` keys.',
     '- For **Figma MCP**, export **`FIGMA_API_KEY`** before server start, then reload MCP in Claude Code.',
     '- If Figma MCP is enabled, use the **`.claude/agents/figma-mcp.md`** agent rules for implementation.',

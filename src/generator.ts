@@ -1,6 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { METADATA_VERSION, SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
+import {
+  METADATA_VERSION,
+  QA_AI_RULES_PACKAGE,
+  SETUP_ASSISTANT_FILES,
+  type Assistant,
+} from './constants.js';
 import { generateCursorFiles } from './generators/cursor.js';
 import { generateClaudeFiles } from './generators/claude.js';
 import { isMergeablePath, mergeFile } from './mcp-json-merge.js';
@@ -24,6 +29,10 @@ export type GenerateOptions = {
    * Cursor → `.cursor/mcp.json`, Claude → `.mcp.json` at repo root.
    */
   figmaMcpInclude?: boolean;
+  /**
+   * When true, metadata records QA AI rules; the CLI also runs `qa-ai-rules init` after writes unless dry-run.
+   */
+  qaAiRulesInclude?: boolean;
   /**
    * When a file already exists and `force` is false, per-path action.
    * Only `.cursor/mcp.json` and `.mcp.json` support `merge` (JSON `mcpServers` union).
@@ -93,6 +102,7 @@ export function getGeneratedFiles(
   assistants: Assistant[],
   playwrightMcpInclude: boolean,
   figmaMcpInclude = false,
+  qaAiRulesInclude = false,
 ): GeneratedFile[] {
   const files: GeneratedFile[] = [];
   const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
@@ -132,6 +142,10 @@ export function getGeneratedFiles(
     linearCliReference: {
       file: 'LINEAR_CLI.md',
       generated: true,
+    },
+    qaAiRules: {
+      enabled: qaAiRulesInclude,
+      package: QA_AI_RULES_PACKAGE,
     },
     generatedAt: new Date().toISOString(),
   };
@@ -254,7 +268,8 @@ function writeOneFile(
     if (action === 'merge') {
       if (!isMergeablePath(file.path)) {
         throw new Error(
-          `Merge is not supported for "${file.path}". Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md.`,
+          `Merge is not supported for "${file.path}". ` +
+            'Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md.',
         );
       }
 
@@ -298,7 +313,12 @@ function writeOneFile(
 export function generateSetup(options: GenerateOptions): GenerateResult {
   const files =
     options.files ??
-    getGeneratedFiles(options.assistants, options.playwrightMcpInclude, Boolean(options.figmaMcpInclude));
+    getGeneratedFiles(
+      options.assistants,
+      options.playwrightMcpInclude,
+      Boolean(options.figmaMcpInclude),
+      Boolean(options.qaAiRulesInclude),
+    );
 
   if (!options.dryRun) {
     fs.mkdirSync(options.targetDir, { recursive: true });

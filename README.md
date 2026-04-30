@@ -33,32 +33,152 @@ The **`prepare`** script runs **`npm run build`** after **`npm install`** (inclu
 
 ## Usage
 
-### Interactive (multi-select assistants)
+Binary name: **`ca-ai-tools-setup`**. Package spec: **`github:mi-examples/ca-ai-tools-setup`** (optional pin: **`#main`**, **`#v0.1.0`**, commit hash). Below, **`TARGET`** is another repo path; omit **`--target`** to use the **current directory**.
+
+The subsections **Interactive** through **Local clone** show **`npx`** invocations; swap the **`npx -p github:… ca-ai-tools-setup`** prefix for **`pnpm --package=… exec`**, **`yarn dlx …`**, or **`bunx …`** as in **Fetching the CLI with pnpm, Yarn, or Bun** — all other flags stay the same.
+
+### Fetching the CLI with pnpm, Yarn, or Bun
+
+One-shot install + run from GitHub (equivalent to **`npx -p … ca-ai-tools-setup`**):
+
+```bash
+pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --assistants cursor,claude --yes
+```
+
+```bash
+yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes
+```
+
+```bash
+bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes
+```
+
+- **pnpm:** **`pnpm exec`** runs the **`bin`** from the temporary **`--package`** install; add **`--`** before **`ca-ai-tools-setup`** only if your shell swallows flags meant for the CLI.
+- **Yarn:** requires **Yarn 2+** (**`yarn dlx`**). **Yarn 1 (Classic)** has no equivalent — use **`npx`** or **`pnpm exec`** for GitHub one-shots.
+- **Bun:** **`bunx`** (same idea as **`npx`**). You can also try **`bun x …`** if you standardize on Bun’s CLI.
+
+### Interactive (prompts for assistants, MCP, QA rules)
 
 ```bash
 npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup
 ```
 
-The CLI prompts with a multi-select for assistants (Cursor and Claude), defaulting to both.
+```bash
+pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup
+```
 
-### Non-interactive
+```bash
+yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup
+```
+
+```bash
+bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup
+```
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app
+```
+
+```bash
+pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --target ../my-app
+```
+
+```bash
+yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app
+```
+
+```bash
+bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app
+```
+
+### Non-interactive — defaults (`--yes`)
+
+**Selects** both assistants, Playwright MCP **on**, Figma MCP **off**, QA AI rules **off**. Emits **`.cursor/mcp.json`** / **`.mcp.json`** when MCP is enabled for the selected assistants.
+
+**npm:**
 
 ```bash
 npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes
 ```
 
-With **`--yes`**, Playwright MCP defaults to **on** and Figma MCP defaults to **off**. It writes **`.cursor/mcp.json`** if Cursor is selected and **`.mcp.json`** in the repo root if Claude is selected when at least one MCP server is enabled.
+**pnpm / Yarn / Bun:** use the same shape as in **Fetching the CLI with pnpm, Yarn, or Bun** (same flags: **`--assistants cursor,claude --yes`**). Example with **`--target`:**
 
-Turn both off non-interactively:
+```bash
+pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+```
+
+```bash
+yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+```
+
+```bash
+bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+```
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+```
+
+### Preview only (`--dry-run`)
+
+No files written; QA AI rules init is **not** executed.
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
+```
+
+```bash
+pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
+```
+
+### One assistant only
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor --yes
+```
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants claude --yes
+```
+
+### MCP — disable Playwright or enable Figma
+
+Disable Playwright MCP (no **`.cursor/mcp.json`** / **`.mcp.json`** from this run unless Figma is on):
 
 ```bash
 npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
 ```
 
-Enable both Playwright and Figma MCP non-interactively:
+Enable **both** Playwright and Figma MCP (requires **`FIGMA_API_KEY`** where Figma is used):
 
 ```bash
 npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
+```
+
+### QA AI rules (`@metricinsights/qa-ai-rules`)
+
+After generating files, runs **`init`** for the package using the detected runner (**`pnpm dlx`**, **`yarn dlx`**, **`bunx`**, or **`npx`**) with **`--cursor`** / **`--claude`** aligned to **`--assistants`**. Needs **`package.json`** in the target repo.
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --qa-ai-rules yes
+```
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor --yes --qa-ai-rules yes
+```
+
+### Overwrite existing generated files
+
+```bash
+npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --force
+```
+
+### Local clone (development)
+
+From this repository after **`npm install`**:
+
+```bash
+node dist/cli.js --target ../my-app --assistants cursor,claude --dry-run
 ```
 
 ## Options
@@ -70,6 +190,7 @@ npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants curso
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
 - `--mcp-figma <yes|no>`: add or skip Figma MCP files for the assistants you selected (`yes` / `true` / `1` / `figma` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **no** (requires `FIGMA_API_KEY`)
+- `--qa-ai-rules <yes|no>`: after generating files, run **`@metricinsights/qa-ai-rules`** setup in the target repo (`yes` / `true` / `1` / `on` vs `none` / `no` / `false` / `0` / `off`). Uses **`--cursor`** / **`--claude`** flags aligned with **`--assistants`**. The CLI picks a one-shot runner from **`package.json`** **`packageManager`** (Corepack) and lockfiles: **`pnpm dlx`** when pnpm, **`yarn dlx`** for Yarn 2+ / Berry layout, **`bunx`** when Bun, otherwise **`npx`**. Skipped when **`--dry-run`** is set. If there is no **`package.json`** in the target, the CLI skips with a warning (you can run **`npx`** / **`pnpm dlx`** / **`yarn dlx`** / **`bunx`** manually). With **`--yes`** and no flag, defaults to **no**
 
 ## Page Workflow Context
 

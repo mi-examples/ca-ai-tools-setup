@@ -32,7 +32,7 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 
 ## Architecture
 
-**Data flow:** `src/cli.ts` → parses args/prompts → `src/generator.ts:generateSetup()` → assistant-specific generators → writes files to target directory.
+**Data flow:** `src/cli.ts` → parses args/prompts → `src/generator.ts:generateSetup()` → assistant-specific generators → writes files to target directory; optionally `src/qa-ai-rules-setup.ts` runs `npx @metricinsights/qa-ai-rules init` after writes when `--qa-ai-rules` is enabled (not in `--dry-run`).
 
 **Key source files:**
 
@@ -42,7 +42,9 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 - `src/generators/cursor.ts` — builds `GeneratedFile` array for Cursor (.cursorrules, .cursor/rules/\*, .cursor/mcp.json, .cursor/skills/ui-check/SKILL.md)
 - `src/generators/mcp.ts` — constructs MCP JSON config objects
 - `src/mcp-json-merge.ts` — union-merges existing `.mcp.json` / `.cursor/mcp.json` with generated config (generated names win on conflict)
-- `src/previous-setup.ts` — reads `.cursor/ca-ai-tools-setup.json` or `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs
+- `src/previous-setup.ts` — reads `.cursor/ca-ai-tools-setup.json` or `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)
+- `src/qa-ai-rules-setup.ts` / `src/qa-ai-rules-choice.ts` — optional `@metricinsights/qa-ai-rules` post-setup in the target repo
+- `src/package-manager.ts` — detects npm / pnpm / Yarn (Berry vs classic) / Bun to choose `npx`, `pnpm dlx`, `yarn dlx`, or `bunx`
 - `templates/` — all markdown and JSON templates; read at runtime by `src/templates.ts` (including `readUiCheckSkillTemplate()` for `.cursor` vs `.claude` skill paths)
 
 **File overwrite policy (generator.ts):**

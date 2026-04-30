@@ -149,12 +149,14 @@ export function mergeAgentsMd(existingContent: string, incomingContent: string):
   const existingFiles = new Set(
     existingLines.flatMap((line) => {
       const m = dataRowPattern.exec(line);
+
       return m ? [m[1]] : [];
     }),
   );
 
   const newRows = incomingLines.filter((line) => {
     const m = dataRowPattern.exec(line);
+
     return m !== null && !existingFiles.has(m[1]);
   });
 
@@ -177,7 +179,9 @@ export function mergeAgentsMd(existingContent: string, incomingContent: string):
   }
 
   const result = [...existingLines];
+
   result.splice(insertAt, 0, ...newRows);
+
   return result.join('\n');
 }
 
@@ -200,6 +204,7 @@ export function mergeFile(relativePath: string, existingContent: string, incomin
   }
 
   throw new Error(
-    `Merge is not supported for "${relativePath}". Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md.`,
+    `Merge is not supported for "${relativePath}". ` +
+      'Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md.',
   );
 }

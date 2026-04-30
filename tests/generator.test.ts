@@ -4,11 +4,21 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buildClaudeSettingsJson } from '../src/generators/claude.js';
-import { generateSetup } from '../src/generator.js';
+import { generateSetup, getGeneratedFiles } from '../src/generator.js';
 
 function makeTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'linear-assistant-setup-'));
 }
+
+test('getGeneratedFiles records qaAiRules in metadata when enabled', () => {
+  const files = getGeneratedFiles(['cursor'], false, false, true);
+  const metaFile = files.find((f) => f.path === '.assistant-setup/ca-ai-tools-setup.json');
+
+  assert.ok(metaFile);
+  const meta = JSON.parse(metaFile!.content) as { qaAiRules: { enabled: boolean; package: string } };
+
+  assert.deepEqual(meta.qaAiRules, { enabled: true, package: '@metricinsights/qa-ai-rules' });
+});
 
 test('generateSetup creates files for selected assistants', () => {
   const dir = makeTempDir();
@@ -134,7 +144,8 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
-  assert.equal(meta.version, 4);
+  assert.equal(meta.version, 5);
+  assert.deepEqual(meta.qaAiRules, { enabled: false, package: '@metricinsights/qa-ai-rules' });
   assert.deepEqual(meta.devEnvironment, {
     file: '.dev-environment.md',
     generated: true,

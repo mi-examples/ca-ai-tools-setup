@@ -6,6 +6,7 @@ export type InteractiveDefaults = {
   assistants: Assistant[];
   playwrightMcpInclude: boolean;
   figmaMcpInclude: boolean;
+  qaAiRulesInclude: boolean;
 };
 
 const METADATA_PATH = '.assistant-setup/ca-ai-tools-setup.json';
@@ -26,6 +27,18 @@ function parseAssistants(meta: Record<string, unknown>): Assistant[] | null {
   }
 
   return null;
+}
+
+function parseQaAiRulesInclude(meta: Record<string, unknown>): boolean | null {
+  const block = meta.qaAiRules;
+
+  if (!block || typeof block !== 'object') {
+    return null;
+  }
+
+  const enabled = (block as Record<string, unknown>).enabled;
+
+  return typeof enabled === 'boolean' ? enabled : null;
 }
 
 function parseMcpInclude(meta: Record<string, unknown>, key: 'playwrightMcp' | 'figmaMcp'): boolean | null {
@@ -68,10 +81,12 @@ export function loadPreviousInteractiveDefaults(targetDir: string): InteractiveD
 
   const playwright = parseMcpInclude(meta, 'playwrightMcp');
   const figma = parseMcpInclude(meta, 'figmaMcp');
+  const qa = parseQaAiRulesInclude(meta);
 
   return {
     assistants,
     playwrightMcpInclude: playwright ?? true,
     figmaMcpInclude: figma ?? false,
+    qaAiRulesInclude: qa ?? false,
   };
 }

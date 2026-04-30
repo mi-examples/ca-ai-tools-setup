@@ -29,10 +29,11 @@ test('loadPreviousInteractiveDefaults parses assistants and MCP flags', () => {
     fs.writeFileSync(
       path.join(assistantSetup, 'ca-ai-tools-setup.json'),
       JSON.stringify({
-        version: 4,
+        version: 5,
         assistants: ['claude'],
         playwrightMcp: { cursorFile: false, projectRootFile: true },
         figmaMcp: { cursorFile: false, projectRootFile: true },
+        qaAiRules: { enabled: true, package: '@metricinsights/qa-ai-rules' },
       }),
       'utf8',
     );
@@ -43,6 +44,7 @@ test('loadPreviousInteractiveDefaults parses assistants and MCP flags', () => {
     assert.deepEqual(d!.assistants, ['claude']);
     assert.equal(d!.playwrightMcpInclude, true);
     assert.equal(d!.figmaMcpInclude, true);
+    assert.equal(d!.qaAiRulesInclude, true);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -68,6 +70,7 @@ test('loadPreviousInteractiveDefaults uses defaults when MCP blocks are absent',
     assert.ok(d);
     assert.equal(d!.playwrightMcpInclude, true);
     assert.equal(d!.figmaMcpInclude, false);
+    assert.equal(d!.qaAiRulesInclude, false);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

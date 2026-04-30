@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import minimist from 'minimist';
 import * as p from '@clack/prompts';
-import { DEFAULT_ASSISTANTS, SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
+import {
+  DEFAULT_ASSISTANTS,
+  QA_AI_RULES_PACKAGE,
+  SETUP_ASSISTANT_FILES,
+  type Assistant,
+} from './constants.js';
 import { parseAssistantsArg } from './assistants.js';
 import {
   generateSetup,
@@ -15,6 +20,8 @@ import {
 import { isMergeablePath } from './mcp-json-merge.js';
 import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
 import { parseFigmaMcpArg } from './figma-mcp-choice.js';
+import { parseQaAiRulesArg } from './qa-ai-rules-choice.js';
+import { runQaAiRulesSetup } from './qa-ai-rules-setup.js';
 import { resolveCliRepoRoot } from './path-policy.js';
 import { loadPreviousInteractiveDefaults, type InteractiveDefaults } from './previous-setup.js';
 
@@ -28,11 +35,12 @@ type CliArgs = {
   force?: boolean;
   'mcp-playwright'?: string;
   'mcp-figma'?: string;
+  'qa-ai-rules'?: string;
 };
 
 function parseArgs(): CliArgs {
   return minimist(process.argv.slice(2), {
-    string: ['target', 'assistants', 'mcp-playwright', 'mcp-figma', '_'],
+    string: ['target', 'assistants', 'mcp-playwright', 'mcp-figma', 'qa-ai-rules', '_'],
     boolean: ['yes', 'dry-run', 'dryRun', 'force'],
     alias: {
       y: 'yes',
@@ -49,6 +57,12 @@ function mcpPlaywrightCliRaw(args: CliArgs): string | undefined {
 
 function mcpFigmaCliRaw(args: CliArgs): string | undefined {
   const v = args['mcp-figma'];
+
+  return typeof v === 'string' ? v : undefined;
+}
+
+function qaAiRulesCliRaw(args: CliArgs): string | undefined {
+  const v = args['qa-ai-rules'];
 
   return typeof v === 'string' ? v : undefined;
 }
@@ -179,6 +193,32 @@ async function pickFigmaMcpInclude(args: CliArgs, previous: InteractiveDefaults 
   return answer;
 }
 
+async function pickQaAiRulesInclude(args: CliArgs, previous: InteractiveDefaults | null): Promise<boolean> {
+  const fromFlag = parseQaAiRulesArg(qaAiRulesCliRaw(args));
+
+  if (fromFlag !== undefined) {
+    return fromFlag;
+  }
+
+  if (args.yes) {
+    return false;
+  }
+
+  const answer = await p.confirm({
+    message:
+      `Install QA AI rules (${QA_AI_RULES_PACKAGE})? ` +
+      'Adds the package, qa-ai-rules.config.json, and test rule files for the selected IDE(s)',
+    initialValue: previous?.qaAiRulesInclude ?? false,
+  });
+
+  if (p.isCancel(answer)) {
+    p.cancel('Operation cancelled.');
+    process.exit(0);
+  }
+
+  return answer;
+}
+
 async function promptExistingMcpActions(
   args: CliArgs,
   targetDir: string,
@@ -229,11 +269,16 @@ async function promptExistingMcpActions(
   return actions;
 }
 
+type QaAiRulesSummaryHook = 'inactive' | 'dry-run' | 'success' | 'skipped-no-package-json';
+
 function printSummary(
   targetDir: string,
   assistants: Assistant[],
   playwrightMcpInclude: boolean,
   figmaMcpInclude: boolean,
+  qaAiRulesInclude: boolean,
+  qaAiRulesHook: QaAiRulesSummaryHook,
+  qaAiRulesRunnerLabel: string | undefined,
   result: ReturnType<typeof generateSetup>,
   dryRun: boolean,
 ) {
@@ -281,6 +326,20 @@ function printSummary(
     console.log(`Figma MCP: yes — ${parts.join(', ')}`);
   } else {
     console.log('Figma MCP: no');
+  }
+
+  if (!qaAiRulesInclude) {
+    console.log(`QA AI rules (${QA_AI_RULES_PACKAGE}): no`);
+  } else if (qaAiRulesHook === 'dry-run') {
+    console.log(
+      `QA AI rules (${QA_AI_RULES_PACKAGE}): skipped — dry run (no one-shot package runner, e.g. npx / pnpm dlx)`,
+    );
+  } else if (qaAiRulesHook === 'success') {
+    const via = qaAiRulesRunnerLabel ? ` (${qaAiRulesRunnerLabel})` : '';
+
+    console.log(`QA AI rules (${QA_AI_RULES_PACKAGE}): init completed in target repo${via}`);
+  } else if (qaAiRulesHook === 'skipped-no-package-json') {
+    console.log(`QA AI rules (${QA_AI_RULES_PACKAGE}): skipped — no package.json in target`);
   }
 
   console.log('');
@@ -363,7 +422,8 @@ function printSummary(
     console.log('');
     console.log('Skipped existing files:');
     console.log(
-      '  - Mergeable files (.cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md): run without --yes to choose skip/merge/overwrite',
+      '  - Mergeable files (.cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md): ' +
+        'run without --yes to choose skip/merge/overwrite',
     );
     console.log('  - Any existing generated file: use --force to overwrite');
 
@@ -401,7 +461,8 @@ async function run(): Promise<void> {
   const assistants = await pickAssistants(args, previousDefaults);
   const playwrightMcpInclude = await pickPlaywrightMcpInclude(args, previousDefaults);
   const figmaMcpInclude = await pickFigmaMcpInclude(args, previousDefaults);
-  const files = getGeneratedFiles(assistants, playwrightMcpInclude, figmaMcpInclude);
+  const qaAiRulesInclude = await pickQaAiRulesInclude(args, previousDefaults);
+  const files = getGeneratedFiles(assistants, playwrightMcpInclude, figmaMcpInclude, qaAiRulesInclude);
   const existingFileActions = await promptExistingMcpActions(args, targetDir, files);
 
   const result = generateSetup({
@@ -411,11 +472,55 @@ async function run(): Promise<void> {
     dryRun: Boolean(args.dryRun),
     playwrightMcpInclude,
     figmaMcpInclude,
+    qaAiRulesInclude,
     existingFileActions,
     files,
   });
 
-  printSummary(targetDir, assistants, playwrightMcpInclude, figmaMcpInclude, result, Boolean(args.dryRun));
+  let qaAiRulesHook: QaAiRulesSummaryHook = 'inactive';
+  let qaAiRulesRunnerLabel: string | undefined;
+
+  if (qaAiRulesInclude) {
+    if (args.dryRun) {
+      qaAiRulesHook = 'dry-run';
+    } else {
+      const qaResult = runQaAiRulesSetup(targetDir, assistants);
+
+      if (qaResult.ok) {
+        qaAiRulesHook = 'success';
+        qaAiRulesRunnerLabel = qaResult.runnerLabel;
+      } else if (qaResult.reason === 'no-package-json') {
+        qaAiRulesHook = 'skipped-no-package-json';
+        console.warn(
+          `[ca-ai-tools-setup] Skipped ${QA_AI_RULES_PACKAGE}: add package.json to the target repo, then e.g.:\n` +
+            `  npx ${QA_AI_RULES_PACKAGE} init\n` +
+            `  pnpm dlx ${QA_AI_RULES_PACKAGE} init\n` +
+            `  yarn dlx ${QA_AI_RULES_PACKAGE} init\n` +
+            `  bunx ${QA_AI_RULES_PACKAGE} init`,
+        );
+      } else {
+        throw new Error(
+          qaResult.reason === 'run-failed'
+            ? `${QA_AI_RULES_PACKAGE} init failed (${qaResult.runnerLabel ?? 'runner'})${
+                qaResult.detail ? `: ${qaResult.detail}` : ''
+              }`
+            : 'QA AI rules setup failed',
+        );
+      }
+    }
+  }
+
+  printSummary(
+    targetDir,
+    assistants,
+    playwrightMcpInclude,
+    figmaMcpInclude,
+    qaAiRulesInclude,
+    qaAiRulesHook,
+    qaAiRulesRunnerLabel,
+    result,
+    Boolean(args.dryRun),
+  );
 }
 
 run().catch((error: unknown) => {

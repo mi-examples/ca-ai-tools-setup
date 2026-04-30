@@ -7,7 +7,7 @@ description: Verifies or fixes Portal Page UI against a Linear issue—npm run d
 
 Use when **verifying or fixing UI** for a Portal Page / custom app.
 
-This file is written into the repo by **`ca-ai-tools-setup`** **BOOTSTRAP_NOTE** Re-run the installer with **`--force`** to refresh after upgrading the bootstrap package.
+This file is written into the repo by **`ca-ai-tools-setup`** __BOOTSTRAP_NOTE__ Re-run the installer with **`--force`** to refresh after upgrading the bootstrap package.
 
 ## Task context
 
@@ -18,7 +18,7 @@ The issue is **only** the one from the **current** message:
 - **`<Task link>`** — full Linear URL or bare **`<ISSUE_KEY>`** (e.g. `PP-3388`).
 - **`<ISSUE_KEY>`** — segment after `/issue/` in the URL, or the pasted key. Do not use example keys from docs.
 
-**Linear CLI** (fetch, start, status, comment): ****LINEAR_WORKFLOW_SKILL_PATH****.
+**Linear CLI** (fetch, start, status, comment): **__LINEAR_WORKFLOW_SKILL_PATH__**.
 
 ## Stack
 
