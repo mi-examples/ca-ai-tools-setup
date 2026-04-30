@@ -362,7 +362,9 @@ function printSummary(
   if (result.skipped.length > 0) {
     console.log('');
     console.log('Skipped existing files:');
-    console.log('  - Mergeable files (.cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md): run without --yes to choose skip/merge/overwrite');
+    console.log(
+      '  - Mergeable files (.cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md): run without --yes to choose skip/merge/overwrite',
+    );
     console.log('  - Any existing generated file: use --force to overwrite');
 
     for (const file of result.skipped) {

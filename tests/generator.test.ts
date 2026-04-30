@@ -23,6 +23,15 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')));
+  assert.ok(
+    fs.readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8').includes('UI check and verification'),
+  );
+  assert.ok(
+    fs
+      .readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8')
+      .includes('`.cursor/skills/linear-workflow/SKILL.md`'),
+  );
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
   assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/page-workflow-context.md')));
@@ -57,6 +66,7 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
   });
 
   assert.ok(second.skipped.includes('.cursorrules'));
+  assert.ok(second.skipped.includes('.cursor/skills/ui-check/SKILL.md'));
   assert.ok(second.skipped.includes('AGENTS.md'));
 
   const forced = generateSetup({
@@ -68,6 +78,7 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
   });
 
   assert.ok(forced.overwritten.includes('.cursorrules'));
+  assert.ok(forced.overwritten.includes('.cursor/skills/ui-check/SKILL.md'));
   assert.ok(forced.overwritten.includes('AGENTS.md'));
 });
 
@@ -142,6 +153,12 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(md.includes('bootstrapped **with**'));
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
   assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')));
+  assert.ok(
+    fs
+      .readFileSync(path.join(dir, '.claude/skills/ui-check/SKILL.md'), 'utf8')
+      .includes('`.claude/skills/linear-workflow/SKILL.md`'),
+  );
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('ca-ai-tools-setup'));
   assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
@@ -212,6 +229,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(second.skipped.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
   assert.ok(second.skipped.includes('LINEAR_CLI.md'));
+  assert.ok(second.skipped.includes('.claude/skills/ui-check/SKILL.md'));
 
   const forced = generateSetup({
     targetDir: dir,
@@ -225,6 +243,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(forced.overwritten.includes('CLAUDE.md'));
   assert.ok(forced.overwritten.includes('.claude/settings.json'));
   assert.ok(forced.overwritten.includes('AGENTS.md'));
+  assert.ok(forced.overwritten.includes('.claude/skills/ui-check/SKILL.md'));
 });
 
 test('generateSetup writes both MCP files when Cursor and Claude selected and MCP enabled', () => {
@@ -256,6 +275,19 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
     file: 'LINEAR_CLI.md',
     generated: true,
   });
+
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')));
+  assert.ok(
+    fs
+      .readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8')
+      .includes('`.cursor/skills/linear-workflow/SKILL.md`'),
+  );
+  assert.ok(
+    fs
+      .readFileSync(path.join(dir, '.claude/skills/ui-check/SKILL.md'), 'utf8')
+      .includes('`.claude/skills/linear-workflow/SKILL.md`'),
+  );
 });
 
 test('generateSetup writes figma MCP only when requested', () => {
@@ -313,9 +345,7 @@ test('generateSetup omits .cursor/rules/figma-mcp.mdc when Figma MCP not selecte
 });
 
 test('buildClaudeSettingsJson enables both MCP servers when selected', () => {
-  const doc = JSON.parse(
-    buildClaudeSettingsJson({ includePlaywrightMcp: true, includeFigmaMcp: true }),
-  ) as {
+  const doc = JSON.parse(buildClaudeSettingsJson({ includePlaywrightMcp: true, includeFigmaMcp: true })) as {
     enableAllProjectMcpServers?: boolean;
     enabledMcpjsonServers?: string[];
     enabledPlugins?: Record<string, boolean>;
@@ -330,9 +360,10 @@ test('buildClaudeSettingsJson enables both MCP servers when selected', () => {
 });
 
 test('buildClaudeSettingsJson omits MCP keys when no MCP selected', () => {
-  const doc = JSON.parse(
-    buildClaudeSettingsJson({ includePlaywrightMcp: false, includeFigmaMcp: false }),
-  ) as Record<string, unknown>;
+  const doc = JSON.parse(buildClaudeSettingsJson({ includePlaywrightMcp: false, includeFigmaMcp: false })) as Record<
+    string,
+    unknown
+  >;
 
   assert.ok(doc.$schema);
   assert.equal(doc.enableAllProjectMcpServers, undefined);

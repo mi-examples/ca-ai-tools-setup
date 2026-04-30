@@ -1,4 +1,4 @@
-import { readTemplate } from '../templates.js';
+import { readTemplate, readUiCheckSkillTemplate } from '../templates.js';
 import type { GeneratedFile } from './types.js';
 import { buildMcpJson } from './mcp.js';
 
@@ -109,6 +109,10 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     {
       path: '.claude/settings.json',
       content: buildClaudeSettingsJson(options),
+    },
+    {
+      path: '.claude/skills/ui-check/SKILL.md',
+      content: readUiCheckSkillTemplate('claude'),
     },
   ];
 

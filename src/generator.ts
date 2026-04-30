@@ -297,7 +297,8 @@ function writeOneFile(
 
 export function generateSetup(options: GenerateOptions): GenerateResult {
   const files =
-    options.files ?? getGeneratedFiles(options.assistants, options.playwrightMcpInclude, Boolean(options.figmaMcpInclude));
+    options.files ??
+    getGeneratedFiles(options.assistants, options.playwrightMcpInclude, Boolean(options.figmaMcpInclude));
 
   if (!options.dryRun) {
     fs.mkdirSync(options.targetDir, { recursive: true });

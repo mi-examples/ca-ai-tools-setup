@@ -103,7 +103,11 @@ test('mergeClaudeSettingsJson unions permissions.allow', () => {
 });
 
 test('mergeClaudeSettingsJson preserves existing $schema', () => {
-  const existing = JSON.stringify({ $schema: 'https://existing.schema', enabledMcpjsonServers: ['playwright'] }, null, 2);
+  const existing = JSON.stringify(
+    { $schema: 'https://existing.schema', enabledMcpjsonServers: ['playwright'] },
+    null,
+    2,
+  );
   const incoming = JSON.stringify({ $schema: 'https://incoming.schema', enabledMcpjsonServers: ['figma'] }, null, 2);
   const parsed = JSON.parse(mergeClaudeSettingsJson(existing, incoming)) as { $schema: string };
 
@@ -166,11 +170,7 @@ test('mergeAgentsMd appends new agent rows not in existing', () => {
 });
 
 test('mergeAgentsMd does not duplicate existing rows', () => {
-  const existing = [
-    '| File | Purpose |',
-    '|------|---------|',
-    '| `figma-mcp.md` | Figma MCP. |',
-  ].join('\n');
+  const existing = ['| File | Purpose |', '|------|---------|', '| `figma-mcp.md` | Figma MCP. |'].join('\n');
 
   const incoming = [
     '| File | Purpose |',

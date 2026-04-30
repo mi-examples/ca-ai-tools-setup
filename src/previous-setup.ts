@@ -28,10 +28,7 @@ function parseAssistants(meta: Record<string, unknown>): Assistant[] | null {
   return null;
 }
 
-function parseMcpInclude(
-  meta: Record<string, unknown>,
-  key: 'playwrightMcp' | 'figmaMcp',
-): boolean | null {
+function parseMcpInclude(meta: Record<string, unknown>, key: 'playwrightMcp' | 'figmaMcp'): boolean | null {
   const block = meta[key];
 
   if (!block || typeof block !== 'object') {

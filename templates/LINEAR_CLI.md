@@ -11,26 +11,26 @@ linear-cli auth oauth                      # OAuth (browser, auto-refresh)
 
 ## Command Aliases
 
-| Alias | Full | Domain |
-|-------|------|--------|
-| `i` | `issues` | Issues |
-| `p` | `projects` | Projects |
-| `t` | `teams` | Teams |
-| `c` | `cycles` | Cycles/Sprints |
-| `l` | `labels` | Labels |
-| `cm` | `comments` | Comments |
-| `d` | `documents` | Documents |
-| `g` | `git` | Git integration |
-| `j` | `jj` | Jujutsu integration |
-| `s` | `search` | Search |
-| `b` | `bulk` | Bulk operations |
-| `u` | `users` | Users |
-| `st` | `statuses` | Workflow states |
-| `tpl` | `templates` | Templates |
-| `up` | `uploads` | Uploads/Attachments |
-| `ws` | `workspaces` | Workspaces |
-| `sy` | `sync` | Sync local folders |
-| `ctx` | `context` | Current issue from branch |
+| Alias | Full         | Domain                    |
+| ----- | ------------ | ------------------------- |
+| `i`   | `issues`     | Issues                    |
+| `p`   | `projects`   | Projects                  |
+| `t`   | `teams`      | Teams                     |
+| `c`   | `cycles`     | Cycles/Sprints            |
+| `l`   | `labels`     | Labels                    |
+| `cm`  | `comments`   | Comments                  |
+| `d`   | `documents`  | Documents                 |
+| `g`   | `git`        | Git integration           |
+| `j`   | `jj`         | Jujutsu integration       |
+| `s`   | `search`     | Search                    |
+| `b`   | `bulk`       | Bulk operations           |
+| `u`   | `users`      | Users                     |
+| `st`  | `statuses`   | Workflow states           |
+| `tpl` | `templates`  | Templates                 |
+| `up`  | `uploads`    | Uploads/Attachments       |
+| `ws`  | `workspaces` | Workspaces                |
+| `sy`  | `sync`       | Sync local folders        |
+| `ctx` | `context`    | Current issue from branch |
 
 ## Issues
 
@@ -216,37 +216,37 @@ linear-cli agent                               # Agent-focused summary
 
 ## Agent-Optimized Flags
 
-| Flag | Purpose |
-|------|---------|
-| `--output json` | Machine-readable JSON |
-| `--compact` | No pretty-print JSON |
-| `--fields a,b,c` | Limit fields (supports dot paths) |
-| `--sort field` | Sort by field |
-| `--order asc\|desc` | Sort direction |
-| `--quiet` / `-q` | Suppress decorative output |
-| `--id-only` | Output only created/updated ID |
-| `--api-key KEY` | Override API key |
-| `--dry-run` | Preview without executing |
-| `--no-color` | Disable color output |
-| `--width N` | Table width |
-| `--no-truncate` | Don't truncate table columns |
-| `-d -` / `--data -` | Read from stdin |
+| Flag                | Purpose                           |
+| ------------------- | --------------------------------- |
+| `--output json`     | Machine-readable JSON             |
+| `--compact`         | No pretty-print JSON              |
+| `--fields a,b,c`    | Limit fields (supports dot paths) |
+| `--sort field`      | Sort by field                     |
+| `--order asc\|desc` | Sort direction                    |
+| `--quiet` / `-q`    | Suppress decorative output        |
+| `--id-only`         | Output only created/updated ID    |
+| `--api-key KEY`     | Override API key                  |
+| `--dry-run`         | Preview without executing         |
+| `--no-color`        | Disable color output              |
+| `--width N`         | Table width                       |
+| `--no-truncate`     | Don't truncate table columns      |
+| `-d -` / `--data -` | Read from stdin                   |
 
 ## Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
+| Variable                 | Purpose                    |
+| ------------------------ | -------------------------- |
 | `LINEAR_CLI_OUTPUT=json` | Default all output to JSON |
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| `0` | Success |
-| `1` | General error |
-| `2` | Not found |
-| `3` | Auth error |
-| `4` | Rate limited |
+| Code | Meaning       |
+| ---- | ------------- |
+| `0`  | Success       |
+| `1`  | General error |
+| `2`  | Not found     |
+| `3`  | Auth error    |
+| `4`  | Rate limited  |
 
 ## JSON Error Shape
 

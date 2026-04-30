@@ -160,7 +160,7 @@ Then run the curl flows above; **`MI_USERNAME`** / **`MI_PASSWORD`** will be ava
 
 ### Credentials (reference — secrets only in `.mi-credentials.local.env`)
 
-- App login: `<USERNAME> / <PASSWORD>` *(fill values only in **`.mi-credentials.local.env`**, not in this file)*
+- App login: `<USERNAME> / <PASSWORD>` _(fill values only in **`.mi-credentials.local.env`**, not in this file)_
 
 ## API compatibility notes
 

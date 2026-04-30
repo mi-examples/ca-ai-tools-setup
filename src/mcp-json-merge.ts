@@ -79,8 +79,7 @@ export function mergeClaudeSettingsJson(existingContent: string, incomingContent
   const toStringArray = (v: unknown): string[] =>
     Array.isArray(v) ? (v as unknown[]).filter((x): x is string => typeof x === 'string') : [];
 
-  const unionArr = (a: unknown, b: unknown): string[] =>
-    [...new Set([...toStringArray(a), ...toStringArray(b)])];
+  const unionArr = (a: unknown, b: unknown): string[] => [...new Set([...toStringArray(a), ...toStringArray(b)])];
 
   const toObjMap = (v: unknown): Record<string, unknown> =>
     v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
@@ -148,13 +147,13 @@ export function mergeAgentsMd(existingContent: string, incomingContent: string):
   const incomingLines = incomingContent.split('\n');
 
   const existingFiles = new Set(
-    existingLines.flatMap(line => {
+    existingLines.flatMap((line) => {
       const m = dataRowPattern.exec(line);
       return m ? [m[1]] : [];
     }),
   );
 
-  const newRows = incomingLines.filter(line => {
+  const newRows = incomingLines.filter((line) => {
     const m = dataRowPattern.exec(line);
     return m !== null && !existingFiles.has(m[1]);
   });

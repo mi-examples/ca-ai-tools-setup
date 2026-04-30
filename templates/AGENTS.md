@@ -4,9 +4,9 @@ Markdown files under **`.claude/agents/`** define **specialized rules** Claude s
 
 ## Registered agents
 
-| File | Purpose |
-|------|---------|
-| `figma-mcp.md` | Figma MCP: structure-first implementation, tokens, Code Connect, layout fidelity. *(Present only if this repo was bootstrapped with Figma MCP for Claude.)* |
+| File           | Purpose                                                                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `figma-mcp.md` | Figma MCP: structure-first implementation, tokens, Code Connect, layout fidelity. _(Present only if this repo was bootstrapped with Figma MCP for Claude.)_ |
 
 Add a row when you introduce a new **`.claude/agents/<name>.md`** file.
 

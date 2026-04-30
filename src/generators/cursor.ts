@@ -1,4 +1,4 @@
-import { readTemplate } from '../templates.js';
+import { readTemplate, readUiCheckSkillTemplate } from '../templates.js';
 import type { GeneratedFile } from './types.js';
 import { buildMcpJson } from './mcp.js';
 
@@ -86,6 +86,10 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
     {
       path: '.cursor/ca-ai-tools-setup.json',
       content: readTemplate('cursor/ca-ai-tools-setup.json'),
+    },
+    {
+      path: '.cursor/skills/ui-check/SKILL.md',
+      content: readUiCheckSkillTemplate('cursor'),
     },
   ];
 
