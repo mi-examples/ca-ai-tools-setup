@@ -13,6 +13,26 @@ export type QaAiRulesSetupResult =
       runnerLabel?: string;
     };
 
+type QaAiRulesSetupDeps = {
+  existsSync: typeof fs.existsSync;
+  detectPackageRunner: typeof detectPackageRunner;
+  buildPackageRunInvocation: typeof buildPackageRunInvocation;
+  spawnSync: (
+    command: string,
+    args?: readonly string[],
+    options?: { cwd?: string; stdio?: 'inherit'; shell?: true; env?: NodeJS.ProcessEnv },
+  ) => { error?: Error; status?: number | null };
+  env: NodeJS.ProcessEnv;
+};
+
+const DEFAULT_DEPS: QaAiRulesSetupDeps = {
+  existsSync: fs.existsSync,
+  detectPackageRunner,
+  buildPackageRunInvocation,
+  spawnSync,
+  env: process.env,
+};
+
 /** Flags passed to `qa-ai-rules init` (must match selected assistants). */
 export function buildQaAiRulesInitArgs(assistants: Assistant[]): string[] {
   const args: string[] = [];
@@ -33,9 +53,17 @@ export function buildQaAiRulesInitArgs(assistants: Assistant[]): string[] {
  * (`npx` / `pnpm dlx` / `yarn dlx` / `bunx`) so it matches pnpm, Yarn Berry, Bun, or npm projects.
  */
 export function runQaAiRulesSetup(targetDir: string, assistants: Assistant[]): QaAiRulesSetupResult {
+  return runQaAiRulesSetupWithDeps(targetDir, assistants, DEFAULT_DEPS);
+}
+
+export function runQaAiRulesSetupWithDeps(
+  targetDir: string,
+  assistants: Assistant[],
+  deps: QaAiRulesSetupDeps,
+): QaAiRulesSetupResult {
   const pkgPath = path.join(targetDir, 'package.json');
 
-  if (!fs.existsSync(pkgPath)) {
+  if (!deps.existsSync(pkgPath)) {
     return { ok: false, reason: 'no-package-json' };
   }
 
@@ -45,14 +73,14 @@ export function runQaAiRulesSetup(targetDir: string, assistants: Assistant[]): Q
     return { ok: false, reason: 'no-assistant-for-rules' };
   }
 
-  const runnerId = detectPackageRunner(targetDir);
-  const { argv, label } = buildPackageRunInvocation(runnerId, QA_AI_RULES_PACKAGE, ['init', ...toolFlags]);
+  const runnerId = deps.detectPackageRunner(targetDir);
+  const { argv, label } = deps.buildPackageRunInvocation(runnerId, QA_AI_RULES_PACKAGE, ['init', ...toolFlags]);
 
-  const result = spawnSync(argv[0], argv.slice(1), {
+  const result = deps.spawnSync(argv[0], argv.slice(1), {
     cwd: targetDir,
     stdio: 'inherit',
     shell: true,
-    env: { ...process.env },
+    env: { ...deps.env },
   });
 
   if (result.error) {
