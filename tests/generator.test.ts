@@ -450,6 +450,43 @@ test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () 
   assert.ok(parsed.mcpServers.playwright);
 });
 
+test('generateSetup merge keeps existing FIGMA_API_KEY token when template has placeholder', () => {
+  const dir = makeTempDir();
+
+  fs.mkdirSync(path.join(dir, '.cursor'), { recursive: true });
+  const prior = {
+    mcpServers: {
+      figma: {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', 'figma-developer-mcp', '--stdio'],
+        env: {
+          FIGMA_API_KEY: 'existing-user-token',
+        },
+      },
+    },
+  };
+
+  fs.writeFileSync(path.join(dir, '.cursor/mcp.json'), `${JSON.stringify(prior, null, 2)}\n`, 'utf8');
+
+  const result = generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+    figmaMcpInclude: true,
+    existingFileActions: { '.cursor/mcp.json': 'merge' },
+  });
+
+  assert.ok(result.merged.includes('.cursor/mcp.json'));
+  const parsed = JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf8')) as {
+    mcpServers: { figma: { env: { FIGMA_API_KEY: string } } };
+  };
+
+  assert.equal(parsed.mcpServers.figma.env.FIGMA_API_KEY, 'existing-user-token');
+});
+
 test('generateSetup merge combines MCP servers in existing .claude/settings.json', () => {
   const dir = makeTempDir();
 

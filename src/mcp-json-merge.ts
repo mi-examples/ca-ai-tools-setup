@@ -17,9 +17,46 @@ function asServerMap(value: unknown): Record<string, unknown> {
   return {};
 }
 
+function isPlaceholderToken(value: unknown): value is string {
+  return typeof value === 'string' && /^\$\{[A-Z0-9_]+\}$/.test(value);
+}
+
+function mergeServerConfig(existingServer: unknown, incomingServer: unknown): Record<string, unknown> {
+  const existing = asServerMap(existingServer);
+  const incoming = asServerMap(incomingServer);
+  const out: Record<string, unknown> = { ...existing, ...incoming };
+
+  const existingEnv = asServerMap(existing.env);
+  const incomingEnv = asServerMap(incoming.env);
+  const mergedEnv: Record<string, unknown> = { ...existingEnv, ...incomingEnv };
+
+  for (const [envKey, incomingValue] of Object.entries(incomingEnv)) {
+    const existingValue = existingEnv[envKey];
+    const preserveExisting =
+      isPlaceholderToken(incomingValue) &&
+      typeof existingValue === 'string' &&
+      existingValue.length > 0 &&
+      !isPlaceholderToken(existingValue);
+
+    if (preserveExisting) {
+      mergedEnv[envKey] = existingValue;
+    }
+  }
+
+  if (Object.keys(mergedEnv).length > 0) {
+    out.env = mergedEnv;
+  }
+
+  return out;
+}
+
 /**
  * Deep-merge `mcpServers`: existing keys stay; incoming keys override on collision.
  * Other top-level keys: incoming wins where defined, then `mcpServers` is the merged map.
+ *
+ * Token safety rule:
+ * - if incoming `env` value is a placeholder (for example `${FIGMA_API_KEY}`)
+ *   and existing value is a non-placeholder string token, preserve the existing token.
  */
 export function mergeMcpJson(existingContent: string, incomingContent: string): string {
   let existing: Record<string, unknown>;
@@ -37,10 +74,20 @@ export function mergeMcpJson(existingContent: string, incomingContent: string): 
     throw new Error('Template MCP JSON is invalid (internal error).');
   }
 
-  const mergedServers = {
-    ...asServerMap(existing.mcpServers),
-    ...asServerMap(incoming.mcpServers),
-  };
+  const existingServers = asServerMap(existing.mcpServers);
+  const incomingServers = asServerMap(incoming.mcpServers);
+  const mergedServers: Record<string, unknown> = { ...existingServers };
+
+  for (const [name, incomingServer] of Object.entries(incomingServers)) {
+    const existingServer = existingServers[name];
+
+    if (existingServer === undefined) {
+      mergedServers[name] = incomingServer;
+      continue;
+    }
+
+    mergedServers[name] = mergeServerConfig(existingServer, incomingServer);
+  }
 
   const out: Record<string, unknown> = {
     ...existing,

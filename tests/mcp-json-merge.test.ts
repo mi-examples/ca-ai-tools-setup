@@ -55,6 +55,82 @@ test('mergeMcpJson incoming server wins on name collision', () => {
   assert.equal(parsed.mcpServers.playwright.command, 'new');
 });
 
+test('mergeMcpJson preserves existing concrete token when incoming uses placeholder', () => {
+  const existing = JSON.stringify(
+    {
+      mcpServers: {
+        figma: {
+          command: 'npx',
+          env: {
+            FIGMA_API_KEY: 'token-from-existing-config',
+          },
+        },
+      },
+    },
+    null,
+    2,
+  );
+  const incoming = JSON.stringify(
+    {
+      mcpServers: {
+        figma: {
+          command: 'npx',
+          args: ['-y', 'figma-developer-mcp', '--stdio'],
+          env: {
+            FIGMA_API_KEY: '${FIGMA_API_KEY}',
+          },
+        },
+      },
+    },
+    null,
+    2,
+  );
+  const parsed = JSON.parse(mergeMcpJson(existing, incoming)) as {
+    mcpServers: { figma: { env: { FIGMA_API_KEY: string }; args: string[] } };
+  };
+
+  assert.equal(parsed.mcpServers.figma.env.FIGMA_API_KEY, 'token-from-existing-config');
+  assert.deepEqual(parsed.mcpServers.figma.args, ['-y', 'figma-developer-mcp', '--stdio']);
+});
+
+test('mergeMcpJson keeps placeholder when both existing and incoming use placeholders', () => {
+  const existing = JSON.stringify(
+    {
+      mcpServers: {
+        figma: {
+          command: 'npx',
+          env: {
+            FIGMA_API_KEY: '${FIGMA_API_KEY}',
+          },
+        },
+      },
+    },
+    null,
+    2,
+  );
+  const incoming = JSON.stringify(
+    {
+      mcpServers: {
+        figma: {
+          command: 'npx',
+          args: ['-y', 'figma-developer-mcp', '--stdio'],
+          env: {
+            FIGMA_API_KEY: '${FIGMA_API_KEY}',
+          },
+        },
+      },
+    },
+    null,
+    2,
+  );
+  const parsed = JSON.parse(mergeMcpJson(existing, incoming)) as {
+    mcpServers: { figma: { env: { FIGMA_API_KEY: string }; args: string[] } };
+  };
+
+  assert.equal(parsed.mcpServers.figma.env.FIGMA_API_KEY, '${FIGMA_API_KEY}');
+  assert.deepEqual(parsed.mcpServers.figma.args, ['-y', 'figma-developer-mcp', '--stdio']);
+});
+
 test('mergeMcpJson throws on invalid existing JSON', () => {
   assert.throws(() => mergeMcpJson('{', '{}'), /not valid JSON/);
 });
