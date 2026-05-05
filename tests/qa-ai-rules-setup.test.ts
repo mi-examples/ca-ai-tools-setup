@@ -45,16 +45,20 @@ function makeDeps(overrides: {
     detectPackageRunner: overrides.detectPackageRunner ?? (() => 'npm'),
     buildPackageRunInvocation:
       overrides.buildPackageRunInvocation ??
-      ((_runner: PackageRunnerId, _packageName: string, _forwardArgs: string[]) => ({
+      ((() => ({
         runner: 'npm',
         argv: ['npx', '--yes', '@metricinsights/qa-ai-rules', 'init', '--cursor'],
         label: 'npx',
-      })),
+      })) as (runner: PackageRunnerId, packageName: string, forwardArgs: string[]) => PackageRunInvocation),
     spawnSync:
       overrides.spawnSync ??
-      ((_command: string, _args?: readonly string[]) => ({
+      ((() => ({
         status: 0,
-      })),
+      })) as (
+        command: string,
+        args?: readonly string[],
+        options?: { cwd?: string; stdio?: 'inherit'; shell?: true; env?: NodeJS.ProcessEnv },
+      ) => { error?: Error; status?: number | null }),
     env: process.env,
   };
 }
