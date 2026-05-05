@@ -2,6 +2,10 @@
 
 This directory contains Metric Insights guidance for using Linear CLI inside Cursor.
 
+## Skills
+
+- `.cursor/skills/ui-check/SKILL.md` - UI verification/fix workflow against a Linear task in Portal Page/Custom App repos.
+
 ## Files
 
 - `linear-cli.mdc` - global rule set for Linear CLI usage behavior.
