@@ -14,6 +14,7 @@ import {
   promptExistingMcpActions,
 } from './cli-prompts.js';
 import { printSummary, type QaAiRulesSummaryHook } from './cli-summary.js';
+import { setupLogError } from './setup-log.js';
 
 async function run(): Promise<void> {
   const args = parseCliArgs();
@@ -63,13 +64,17 @@ async function run(): Promise<void> {
             `  bunx ${QA_AI_RULES_PACKAGE} init`,
         );
       } else {
-        throw new Error(
+        const msg =
           qaResult.reason === 'run-failed'
             ? `${QA_AI_RULES_PACKAGE} init failed (${qaResult.runnerLabel ?? 'runner'})${
                 qaResult.detail ? `: ${qaResult.detail}` : ''
               }`
-            : 'QA AI rules setup failed',
-        );
+            : 'QA AI rules setup failed';
+
+        setupLogError(msg);
+        setupLogError('See [ca-ai-tools-setup] lines above for argv, cwd, and spawn details.');
+
+        throw new Error(msg);
       }
     }
   }

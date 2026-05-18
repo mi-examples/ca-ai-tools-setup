@@ -26,11 +26,71 @@ export function buildWindowsCmdCommandLine(argv: readonly string[]): string {
   return argv.map(quoteWindowsCmdArgument).join(' ');
 }
 
+/** Wrap the full line for `cmd.exe /d /s /c` (outer quotes stripped by `/s`). */
+export function buildWindowsCmdSpawnArgument(argv: readonly string[]): string {
+  const line = buildWindowsCmdCommandLine(argv);
+
+  return `"${line.replace(/"/g, '""')}"`;
+}
+
+export type SpawnPackageArgvPlan = {
+  platform: NodeJS.Platform;
+  method: 'win32-cmd' | 'posix-spawn';
+  argv: readonly string[];
+  cwd: string;
+  /** Set when method is win32-cmd — value passed as the `/c` argument. */
+  windowsCmdArgument?: string;
+};
+
+export function describeSpawnPackageArgv(argv: readonly string[], cwd: string): SpawnPackageArgvPlan {
+  if (process.platform === 'win32') {
+    return {
+      platform: process.platform,
+      method: 'win32-cmd',
+      argv,
+      cwd,
+      windowsCmdArgument: buildWindowsCmdSpawnArgument(argv),
+    };
+  }
+
+  return {
+    platform: process.platform,
+    method: 'posix-spawn',
+    argv,
+    cwd,
+  };
+}
+
 export type SpawnPackageArgvOptions = {
   cwd: string;
   stdio: 'inherit';
   env: NodeJS.ProcessEnv;
+  /** When set, logs spawn plan and result via setupLog (used by QA AI rules setup). */
+  log?: (message: string) => void;
 };
+
+function logSpawnError(
+  log: ((message: string) => void) | undefined,
+  result: SpawnSyncReturns<Buffer | string>,
+): void {
+  if (!log) {
+    return;
+  }
+
+  if (result.error) {
+    const err = result.error as NodeJS.ErrnoException;
+
+    log(
+      `spawn error: ${err.message}` +
+        (err.code ? ` (code=${err.code})` : '') +
+        (err.errno !== undefined ? ` errno=${err.errno}` : '') +
+        (err.syscall ? ` syscall=${err.syscall}` : '') +
+        (err.path ? ` path=${err.path}` : ''),
+    );
+  } else if (result.status !== 0) {
+    log(`spawn exit status=${result.status ?? 'unknown'}${result.signal ? ` signal=${result.signal}` : ''}`);
+  }
+}
 
 /**
  * Run a one-shot package-manager command (`npx`, `pnpm dlx`, …).
@@ -40,21 +100,35 @@ export function spawnPackageArgv(
   argv: readonly string[],
   options: SpawnPackageArgvOptions,
 ): SpawnSyncReturns<Buffer | string> {
+  const plan = describeSpawnPackageArgv(argv, options.cwd);
+  const log = options.log;
+
+  log?.(
+    `spawn ${plan.method} platform=${plan.platform} cwd=${plan.cwd}` +
+      (plan.windowsCmdArgument ? ` cmd=/c ${plan.windowsCmdArgument}` : ` argv=${JSON.stringify([...argv])}`),
+  );
+
+  let result: SpawnSyncReturns<Buffer | string>;
+
   if (process.platform === 'win32') {
-    return spawnSync('cmd.exe', ['/d', '/s', '/c', buildWindowsCmdCommandLine(argv)], {
+    result = spawnSync('cmd.exe', ['/d', '/s', '/c', buildWindowsCmdSpawnArgument(argv)], {
       cwd: options.cwd,
       stdio: options.stdio,
       env: options.env,
       windowsVerbatimArguments: true,
     });
+  } else {
+    result = spawnSync(argv[0], argv.slice(1), {
+      cwd: options.cwd,
+      stdio: options.stdio,
+      env: options.env,
+      shell: false,
+    });
   }
 
-  return spawnSync(argv[0], argv.slice(1), {
-    cwd: options.cwd,
-    stdio: options.stdio,
-    env: options.env,
-    shell: false,
-  });
+  logSpawnError(log, result);
+
+  return result;
 }
 
 function readPackageJsonPackageManager(targetDir: string): string | null {

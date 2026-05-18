@@ -1,12 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   buildPackageRunInvocation,
+  describeSpawnPackageArgv,
   detectPackageRunner,
   spawnPackageArgv,
   type SpawnPackageArgvOptions,
 } from './package-manager.js';
 import { QA_AI_RULES_PACKAGE, type Assistant } from './constants.js';
+import { getCliPackageVersion, setupLog, setupLogError } from './setup-log.js';
 
 export type QaAiRulesSetupResult =
   | { ok: true; runnerLabel: string }
@@ -33,7 +36,7 @@ const DEFAULT_DEPS: QaAiRulesSetupDeps = {
   detectPackageRunner,
   buildPackageRunInvocation,
   spawnPackageArgv: (argv, options) => {
-    const result = spawnPackageArgv(argv, options);
+    const result = spawnPackageArgv(argv, { ...options, log: setupLog });
 
     return { error: result.error, status: result.status };
   },
@@ -82,14 +85,30 @@ export function runQaAiRulesSetupWithDeps(
 
   const runnerId = deps.detectPackageRunner(targetDir);
   const { argv, label } = deps.buildPackageRunInvocation(runnerId, QA_AI_RULES_PACKAGE, ['init', ...toolFlags]);
+  const targetAbs = path.resolve(targetDir);
+  const spawnPlan = describeSpawnPackageArgv(argv, targetAbs);
+
+  setupLog(
+    `QA AI rules: v${getCliPackageVersion()} node=${process.version} module=${fileURLToPath(import.meta.url)}`,
+  );
+  setupLog(`QA AI rules: target=${targetAbs} runner=${runnerId} (${label}) package=${QA_AI_RULES_PACKAGE}`);
+  setupLog(`QA AI rules: init flags=${toolFlags.join(' ') || '(none)'}`);
+  setupLog(`QA AI rules: argv=${JSON.stringify(argv)}`);
+
+  if (spawnPlan.windowsCmdArgument) {
+    setupLog(`QA AI rules: windows cmd /c argument=${spawnPlan.windowsCmdArgument}`);
+  }
 
   const result = deps.spawnPackageArgv(argv, {
-    cwd: targetDir,
+    cwd: targetAbs,
     stdio: 'inherit',
     env: { ...deps.env },
   });
 
   if (result.error) {
+    setupLogError(`QA AI rules: failed to start ${label} — ${result.error.message}`);
+    setupLogError('QA AI rules: if the error mentions "metricinsights", cmd may have parsed @scope without quotes.');
+
     return {
       ok: false,
       reason: 'run-failed',
@@ -99,6 +118,9 @@ export function runQaAiRulesSetupWithDeps(
   }
 
   if (result.status !== 0) {
+    setupLogError(`QA AI rules: ${label} exited with code ${result.status ?? 'unknown'}`);
+    setupLogError(`QA AI rules: re-run manually in the target repo: ${argv.join(' ')}`);
+
     return {
       ok: false,
       reason: 'run-failed',
@@ -106,6 +128,8 @@ export function runQaAiRulesSetupWithDeps(
       detail: `exit code ${result.status ?? 'unknown'}`,
     };
   }
+
+  setupLog(`QA AI rules: ${label} completed successfully`);
 
   return { ok: true, runnerLabel: label };
 }

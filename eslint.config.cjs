@@ -151,7 +151,7 @@ module.exports = defineConfig([
     },
   },
   {
-    files: ["src/cli.ts"],
+    files: ["src/cli.ts", "src/setup-log.ts"],
     rules: {
       "no-console": "off",
     },

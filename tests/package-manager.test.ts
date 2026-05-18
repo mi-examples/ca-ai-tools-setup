@@ -6,6 +6,8 @@ import path from 'node:path';
 import {
   buildPackageRunInvocation,
   buildWindowsCmdCommandLine,
+  buildWindowsCmdSpawnArgument,
+  describeSpawnPackageArgv,
   detectPackageRunner,
   quoteWindowsCmdArgument,
   type PackageRunnerId,
@@ -151,4 +153,25 @@ test('buildWindowsCmdCommandLine quotes scoped package in npx argv', () => {
   ]);
 
   assert.equal(line, 'npx --yes "@metricinsights/qa-ai-rules" init --cursor');
+});
+
+test('buildWindowsCmdSpawnArgument wraps full command line for cmd /s /c', () => {
+  const arg = buildWindowsCmdSpawnArgument(['npx', '--yes', '@metricinsights/qa-ai-rules', 'init']);
+
+  assert.equal(arg, '"npx --yes ""@metricinsights/qa-ai-rules"" init"');
+});
+
+test('describeSpawnPackageArgv includes windows cmd argument on win32', () => {
+  const plan = describeSpawnPackageArgv(['npx', '--yes', '@scope/pkg', 'init'], '/tmp/app');
+
+  assert.equal(plan.cwd, '/tmp/app');
+  assert.deepEqual(plan.argv, ['npx', '--yes', '@scope/pkg', 'init']);
+
+  if (process.platform === 'win32') {
+    assert.equal(plan.method, 'win32-cmd');
+    assert.equal(plan.windowsCmdArgument, '"npx --yes ""@scope/pkg"" init"');
+  } else {
+    assert.equal(plan.method, 'posix-spawn');
+    assert.equal(plan.windowsCmdArgument, undefined);
+  }
 });
