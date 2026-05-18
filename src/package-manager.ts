@@ -34,14 +34,75 @@ export function buildWindowsCmdSpawnArgument(argv: readonly string[]): string {
   return `"${line.replace(/"/g, '""')}"`;
 }
 
+/** True when an argv element is a scoped package name (`@scope/pkg`) — unsafe for cmd unless quoted in a flag value. */
+export function hasBareScopedPackageArg(argv: readonly string[]): boolean {
+  return argv.some((arg) => arg.startsWith('@'));
+}
+
+/** argv safe for `shell: true` / cmd (no bare `@scope` tokens; use `npm exec --package=` instead of `npx @scope`). */
+export function isCmdSafeArgv(argv: readonly string[]): boolean {
+  return !hasBareScopedPackageArg(argv);
+}
+
+/**
+ * Resolve `npm` / `npx` / … to a concrete `.cmd` on Windows for `spawn` with `shell: false`.
+ * Node does not always apply PATHEXT when the command has no extension (ENOENT).
+ */
+export function resolveWindowsExecutable(command: string, env: NodeJS.ProcessEnv = process.env): string {
+  if (process.platform !== 'win32') {
+    return command;
+  }
+
+  if (path.isAbsolute(command) || path.extname(command)) {
+    return command;
+  }
+
+  const pathVar = env.PATH ?? env.Path ?? '';
+  const pathExt = (env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD;').split(';').filter((ext) => ext.length > 0);
+
+  for (const dir of pathVar.split(path.delimiter)) {
+    if (!dir) {
+      continue;
+    }
+
+    const base = path.join(dir, command);
+
+    if (fs.existsSync(base)) {
+      return base;
+    }
+
+    for (const ext of pathExt) {
+      const candidate = base + ext;
+
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return command;
+}
+
 export type SpawnPackageArgvPlan = {
   platform: NodeJS.Platform;
-  method: 'win32-direct' | 'posix-spawn';
+  method: 'win32-shell-safe' | 'win32-direct' | 'posix-spawn';
   argv: readonly string[];
   cwd: string;
+  /** Present when method is win32-shell-safe. */
+  shellCommandLine?: string;
 };
 
 export function describeSpawnPackageArgv(argv: readonly string[], cwd: string): SpawnPackageArgvPlan {
+  if (process.platform === 'win32' && isCmdSafeArgv(argv)) {
+    return {
+      platform: process.platform,
+      method: 'win32-shell-safe',
+      argv,
+      cwd,
+      shellCommandLine: buildWindowsCmdCommandLine(argv),
+    };
+  }
+
   return {
     platform: process.platform,
     method: process.platform === 'win32' ? 'win32-direct' : 'posix-spawn',
@@ -52,6 +113,14 @@ export function describeSpawnPackageArgv(argv: readonly string[], cwd: string): 
 
 function isWindowsSpawnEinval(error: Error | undefined): boolean {
   return (error as NodeJS.ErrnoException | undefined)?.code === 'EINVAL';
+}
+
+function isWindowsSpawnEnoent(error: Error | undefined): boolean {
+  return (error as NodeJS.ErrnoException | undefined)?.code === 'ENOENT';
+}
+
+export function isNpmExecArgv(argv: readonly string[]): boolean {
+  return argv[0] === 'npm' && argv[1] === 'exec';
 }
 
 /**
@@ -102,9 +171,39 @@ function logSpawnError(
   }
 }
 
+function spawnWindowsShellSafe(
+  argv: readonly string[],
+  options: SpawnPackageArgvOptions,
+): SpawnSyncReturns<Buffer | string> {
+  const line = buildWindowsCmdCommandLine(argv);
+
+  return spawnSync(line, {
+    cwd: options.cwd,
+    stdio: options.stdio,
+    env: options.env,
+    shell: true,
+    windowsHide: true,
+  });
+}
+
+function spawnWindowsDirect(
+  argv: readonly string[],
+  options: SpawnPackageArgvOptions,
+): SpawnSyncReturns<Buffer | string> {
+  const command = resolveWindowsExecutable(argv[0], options.env);
+
+  return spawnSync(command, argv.slice(1), {
+    cwd: options.cwd,
+    stdio: options.stdio,
+    env: options.env,
+    shell: false,
+    windowsHide: true,
+  });
+}
+
 /**
  * Run a one-shot package-manager command (`npx`, `pnpm dlx`, …).
- * On Windows spawns with `shell: false` so `@scope/pkg` is not parsed by cmd.exe.
+ * On Windows: `npm exec --package=` uses shell (cmd-safe, finds `npm` in PATH); bare `@scope` uses direct spawn with resolved `.cmd`.
  */
 export function spawnPackageArgv(
   argv: readonly string[],
@@ -113,25 +212,47 @@ export function spawnPackageArgv(
   const plan = describeSpawnPackageArgv(argv, options.cwd);
   const log = options.log;
 
-  log?.(`spawn ${plan.method} platform=${plan.platform} cwd=${plan.cwd} argv=${JSON.stringify([...argv])}`);
+  log?.(
+    `spawn ${plan.method} platform=${plan.platform} cwd=${plan.cwd}` +
+      (plan.shellCommandLine ? ` line=${plan.shellCommandLine}` : ` argv=${JSON.stringify([...argv])}`),
+  );
 
-  const spawnDirect = (runArgv: readonly string[]) =>
-    spawnSync(runArgv[0], runArgv.slice(1), {
+  if (process.platform !== 'win32') {
+    const result = spawnSync(argv[0], argv.slice(1), {
       cwd: options.cwd,
       stdio: options.stdio,
       env: options.env,
       shell: false,
-      windowsHide: true,
     });
 
-  let result = spawnDirect(argv);
+    logSpawnError(log, result);
 
-  if (process.platform === 'win32' && isWindowsSpawnEinval(result.error)) {
-    const npmExecArgv = npxArgvToNpmExecArgv(argv);
+    return result;
+  }
 
-    if (npmExecArgv) {
-      log?.(`spawn win32-direct EINVAL; retry npm exec argv=${JSON.stringify(npmExecArgv)}`);
-      result = spawnDirect(npmExecArgv);
+  let result: SpawnSyncReturns<Buffer | string>;
+
+  if (isCmdSafeArgv(argv)) {
+    result = spawnWindowsShellSafe(argv, options);
+
+    if (!isWindowsSpawnEnoent(result.error) && !isWindowsSpawnEinval(result.error)) {
+      logSpawnError(log, result);
+
+      return result;
+    }
+
+    log?.('spawn win32-shell-safe failed; retry win32-direct with resolved .cmd');
+    result = spawnWindowsDirect(argv, options);
+  } else {
+    result = spawnWindowsDirect(argv, options);
+
+    if (isWindowsSpawnEinval(result.error) || isWindowsSpawnEnoent(result.error)) {
+      const npmExecArgv = npxArgvToNpmExecArgv(argv);
+
+      if (npmExecArgv) {
+        log?.(`spawn win32-direct failed; retry win32-shell-safe npm exec`);
+        result = spawnWindowsShellSafe(npmExecArgv, options);
+      }
     }
   }
 

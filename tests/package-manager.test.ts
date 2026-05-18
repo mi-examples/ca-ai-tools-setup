@@ -10,6 +10,9 @@ import {
   buildWindowsNpmExecArgv,
   describeSpawnPackageArgv,
   detectPackageRunner,
+  hasBareScopedPackageArg,
+  isCmdSafeArgv,
+  isNpmExecArgv,
   npxArgvToNpmExecArgv,
   quoteWindowsCmdArgument,
   type PackageRunnerId,
@@ -173,11 +176,32 @@ test('buildWindowsCmdSpawnArgument wraps full command line for cmd /s /c', () =>
   assert.equal(arg, '"npx --yes ""@metricinsights/qa-ai-rules"" init"');
 });
 
-test('describeSpawnPackageArgv uses win32-direct on Windows', () => {
-  const plan = describeSpawnPackageArgv(['npm', 'exec', '--yes', '--package=@scope/pkg', '--', 'tool', 'init'], '/tmp/app');
+test('hasBareScopedPackageArg detects bare scoped package argv', () => {
+  assert.equal(hasBareScopedPackageArg(['npx', '--yes', '@scope/pkg', 'init']), true);
+  assert.equal(isCmdSafeArgv(buildWindowsNpmExecArgv('@scope/pkg', ['init'])), true);
+  assert.equal(isNpmExecArgv(buildWindowsNpmExecArgv('@scope/pkg', ['init'])), true);
+});
+
+test('describeSpawnPackageArgv uses shell-safe npm exec on Windows', () => {
+  const argv = buildWindowsNpmExecArgv('@scope/pkg', ['init']);
+  const plan = describeSpawnPackageArgv(argv, '/tmp/app');
 
   assert.equal(plan.cwd, '/tmp/app');
+
+  if (process.platform === 'win32') {
+    assert.equal(plan.method, 'win32-shell-safe');
+    assert.equal(plan.shellCommandLine, buildWindowsCmdCommandLine(argv));
+  } else {
+    assert.equal(plan.method, 'posix-spawn');
+  }
+});
+
+test('describeSpawnPackageArgv uses win32-direct for bare scoped package argv', () => {
+  const argv = ['pnpm', 'dlx', '@scope/pkg', 'init'];
+  const plan = describeSpawnPackageArgv(argv, '/tmp/app');
+
   assert.equal(plan.method, process.platform === 'win32' ? 'win32-direct' : 'posix-spawn');
+  assert.equal(plan.shellCommandLine, undefined);
 });
 
 test('buildWindowsNpmExecArgv uses --package= and CLI name', () => {

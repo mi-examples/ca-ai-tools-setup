@@ -88,12 +88,14 @@ export function runQaAiRulesSetupWithDeps(
   const targetAbs = path.resolve(targetDir);
   const spawnPlan = describeSpawnPackageArgv(argv, targetAbs);
 
-  setupLog(
-    `QA AI rules: v${getCliPackageVersion()} node=${process.version} module=${fileURLToPath(import.meta.url)}`,
-  );
+  setupLog(`QA AI rules: v${getCliPackageVersion()} node=${process.version} module=${fileURLToPath(import.meta.url)}`);
   setupLog(`QA AI rules: target=${targetAbs} runner=${runnerId} (${label}) package=${QA_AI_RULES_PACKAGE}`);
   setupLog(`QA AI rules: init flags=${toolFlags.join(' ') || '(none)'}`);
   setupLog(`QA AI rules: argv=${JSON.stringify(argv)} spawn=${spawnPlan.method}`);
+
+  if (spawnPlan.shellCommandLine) {
+    setupLog(`QA AI rules: shell command line=${spawnPlan.shellCommandLine}`);
+  }
 
   const result = deps.spawnPackageArgv(argv, {
     cwd: targetAbs,
@@ -104,7 +106,10 @@ export function runQaAiRulesSetupWithDeps(
   if (result.error) {
     setupLogError(`QA AI rules: failed to start ${label} — ${result.error.message}`);
     setupLogError(
-      'QA AI rules: if the error mentions "metricinsights", Windows parsed @scope incorrectly — use npm exec --package=…',
+      'QA AI rules: ENOENT often means npm/npx is not on PATH for direct spawn; shell-safe npm exec should be used on Windows.',
+    );
+    setupLogError(
+      'QA AI rules: if the error mentions "metricinsights", Windows parsed a bare @scope token — use npm exec --package=…',
     );
 
     return {
