@@ -14,7 +14,6 @@ import {
   promptExistingMcpActions,
 } from './cli-prompts.js';
 import { printSummary, type QaAiRulesSummaryHook } from './cli-summary.js';
-import { setupLogError } from './setup-log.js';
 
 async function run(): Promise<void> {
   const args = parseCliArgs();
@@ -72,9 +71,6 @@ async function run(): Promise<void> {
                 qaResult.detail ? `: ${qaResult.detail}` : ''
               }`
             : 'QA AI rules setup failed';
-
-        setupLogError(msg);
-        setupLogError('See [ca-ai-tools-setup] lines above for argv, cwd, and spawn details.');
 
         throw new Error(msg);
       }

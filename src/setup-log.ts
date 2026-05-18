@@ -4,13 +4,56 @@ import { fileURLToPath } from 'node:url';
 
 const LOG_PREFIX = '[ca-ai-tools-setup]';
 
-/** Diagnostic lines on stderr so they stay visible alongside @clack/prompts UI. */
-export function setupLog(message: string): void {
+const TRUTHY = new Set(['1', 'true', 'yes', 'on']);
+
+/** Enable verbose diagnostics (`setupLog`, spawn traces). */
+export function isSetupDebugEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  const dedicated = env.CA_AI_TOOLS_SETUP_DEBUG?.trim().toLowerCase();
+
+  if (dedicated) {
+    if (TRUTHY.has(dedicated)) {
+      return true;
+    }
+
+    if (dedicated === '0' || dedicated === 'false' || dedicated === 'off') {
+      return false;
+    }
+  }
+
+  const debug = env.DEBUG?.trim();
+
+  if (!debug) {
+    return false;
+  }
+
+  if (debug === '*' || TRUTHY.has(debug.toLowerCase())) {
+    return true;
+  }
+
+  return debug.split(/[,\s]+/).some((part) => {
+    const token = part.trim();
+
+    return token === 'ca-ai-tools-setup' || token === '*';
+  });
+}
+
+/** Diagnostic lines on stderr (only when {@link isSetupDebugEnabled}). */
+export function setupLog(message: string, env: NodeJS.ProcessEnv = process.env): void {
+  if (!isSetupDebugEnabled(env)) {
+    return;
+  }
+
   console.warn(`${LOG_PREFIX} ${message}`);
 }
 
-export function setupLogError(message: string): void {
-  console.error(`${LOG_PREFIX} ${message}`);
+export function createSetupDebugLogger(
+  env: NodeJS.ProcessEnv = process.env,
+): ((message: string) => void) | undefined {
+  if (!isSetupDebugEnabled(env)) {
+    return undefined;
+  }
+
+  return (message) => setupLog(message, env);
 }
 
 let cachedVersion: string | undefined;
