@@ -1,3 +1,4 @@
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -6,11 +7,55 @@ export type PackageRunnerId = 'npm' | 'pnpm' | 'yarn-dlx' | 'bun';
 
 export type PackageRunInvocation = {
   runner: PackageRunnerId;
-  /** argv for spawn (command is argv[0] on Unix; with shell:true Windows resolves .cmd) */
+  /** argv for spawnPackageArgv (e.g. `npx`, `--yes`, package name, forwarded args) */
   argv: string[];
   /** Short label for logs, e.g. `pnpm dlx` */
   label: string;
 };
+
+/** Quote one argument for `cmd.exe /d /s /c` (`@` is special in cmd — breaks scoped package names). */
+export function quoteWindowsCmdArgument(arg: string): string {
+  if (/[\s"&|<>^()%]/.test(arg) || arg.startsWith('@')) {
+    return `"${arg.replace(/"/g, '""')}"`;
+  }
+
+  return arg;
+}
+
+export function buildWindowsCmdCommandLine(argv: readonly string[]): string {
+  return argv.map(quoteWindowsCmdArgument).join(' ');
+}
+
+export type SpawnPackageArgvOptions = {
+  cwd: string;
+  stdio: 'inherit';
+  env: NodeJS.ProcessEnv;
+};
+
+/**
+ * Run a one-shot package-manager command (`npx`, `pnpm dlx`, …).
+ * On Windows uses `cmd.exe` with a quoted command line so scoped packages are not parsed as `@cmd`.
+ */
+export function spawnPackageArgv(
+  argv: readonly string[],
+  options: SpawnPackageArgvOptions,
+): SpawnSyncReturns<Buffer | string> {
+  if (process.platform === 'win32') {
+    return spawnSync('cmd.exe', ['/d', '/s', '/c', buildWindowsCmdCommandLine(argv)], {
+      cwd: options.cwd,
+      stdio: options.stdio,
+      env: options.env,
+      windowsVerbatimArguments: true,
+    });
+  }
+
+  return spawnSync(argv[0], argv.slice(1), {
+    cwd: options.cwd,
+    stdio: options.stdio,
+    env: options.env,
+    shell: false,
+  });
+}
 
 function readPackageJsonPackageManager(targetDir: string): string | null {
   const pkgPath = path.join(targetDir, 'package.json');

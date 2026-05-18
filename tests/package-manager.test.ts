@@ -5,7 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   buildPackageRunInvocation,
+  buildWindowsCmdCommandLine,
   detectPackageRunner,
+  quoteWindowsCmdArgument,
   type PackageRunnerId,
 } from '../src/package-manager.js';
 
@@ -132,4 +134,21 @@ test('buildPackageRunInvocation argv by runner', () => {
   assertArgv('pnpm', ['pnpm', 'dlx']);
   assertArgv('yarn-dlx', ['yarn', 'dlx']);
   assertArgv('bun', ['bunx']);
+});
+
+test('quoteWindowsCmdArgument quotes scoped npm package names', () => {
+  assert.equal(quoteWindowsCmdArgument('@metricinsights/qa-ai-rules'), '"@metricinsights/qa-ai-rules"');
+  assert.equal(quoteWindowsCmdArgument('init'), 'init');
+});
+
+test('buildWindowsCmdCommandLine quotes scoped package in npx argv', () => {
+  const line = buildWindowsCmdCommandLine([
+    'npx',
+    '--yes',
+    '@metricinsights/qa-ai-rules',
+    'init',
+    '--cursor',
+  ]);
+
+  assert.equal(line, 'npx --yes "@metricinsights/qa-ai-rules" init --cursor');
 });

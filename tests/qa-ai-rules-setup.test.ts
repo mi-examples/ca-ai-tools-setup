@@ -34,10 +34,9 @@ function makeDeps(overrides: {
     packageName: string,
     forwardArgs: string[],
   ) => PackageRunInvocation;
-  spawnSync?: (
-    command: string,
-    args?: readonly string[],
-    options?: { cwd?: string; stdio?: 'inherit'; shell?: true; env?: NodeJS.ProcessEnv },
+  spawnPackageArgv?: (
+    argv: readonly string[],
+    options?: { cwd?: string; stdio?: 'inherit'; env?: NodeJS.ProcessEnv },
   ) => { error?: Error; status?: number | null };
 } = {}) {
   return {
@@ -50,14 +49,13 @@ function makeDeps(overrides: {
         argv: ['npx', '--yes', '@metricinsights/qa-ai-rules', 'init', '--cursor'],
         label: 'npx',
       })) as (runner: PackageRunnerId, packageName: string, forwardArgs: string[]) => PackageRunInvocation),
-    spawnSync:
-      overrides.spawnSync ??
+    spawnPackageArgv:
+      overrides.spawnPackageArgv ??
       ((() => ({
         status: 0,
       })) as (
-        command: string,
-        args?: readonly string[],
-        options?: { cwd?: string; stdio?: 'inherit'; shell?: true; env?: NodeJS.ProcessEnv },
+        argv: readonly string[],
+        options?: { cwd?: string; stdio?: 'inherit'; env?: NodeJS.ProcessEnv },
       ) => { error?: Error; status?: number | null }),
     env: process.env,
   };
@@ -88,7 +86,7 @@ test('runQaAiRulesSetupWithDeps returns no-assistant-for-rules when assistants l
   }
 });
 
-test('runQaAiRulesSetupWithDeps returns run-failed when spawnSync throws error', () => {
+test('runQaAiRulesSetupWithDeps returns run-failed when spawnPackageArgv throws error', () => {
   const dir = makeTempDir();
 
   try {
@@ -103,7 +101,7 @@ test('runQaAiRulesSetupWithDeps returns run-failed when spawnSync throws error',
           argv: ['pnpm', 'dlx', '@metricinsights/qa-ai-rules', 'init', '--cursor'],
           label: 'pnpm dlx',
         }),
-        spawnSync: () => ({ error: new Error('spawn failed') }),
+        spawnPackageArgv: () => ({ error: new Error('spawn failed') }),
       }),
     );
 
@@ -131,7 +129,7 @@ test('runQaAiRulesSetupWithDeps returns run-failed when command exits non-zero',
           argv: ['bunx', '@metricinsights/qa-ai-rules', 'init', '--claude'],
           label: 'bunx',
         }),
-        spawnSync: () => ({ status: 2 }),
+        spawnPackageArgv: () => ({ status: 2 }),
       }),
     );
 
@@ -146,7 +144,7 @@ test('runQaAiRulesSetupWithDeps returns run-failed when command exits non-zero',
 
 test('runQaAiRulesSetupWithDeps returns success and forwards init args', () => {
   const dir = makeTempDir();
-  const calls: Array<{ command: string; args: string[]; cwd?: string }> = [];
+  const calls: Array<{ argv: string[]; cwd?: string }> = [];
   const invocations: Array<{ runner: PackageRunnerId; packageName: string; forwardArgs: string[] }> = [];
 
   try {
@@ -165,8 +163,8 @@ test('runQaAiRulesSetupWithDeps returns success and forwards init args', () => {
             label: 'yarn dlx',
           };
         },
-        spawnSync: (command, args, options) => {
-          calls.push({ command, args: [...(args ?? [])], cwd: options?.cwd });
+        spawnPackageArgv: (argv, options) => {
+          calls.push({ argv: [...argv], cwd: options?.cwd });
 
           return { status: 0 };
         },
@@ -182,8 +180,7 @@ test('runQaAiRulesSetupWithDeps returns success and forwards init args', () => {
     ]);
     assert.deepEqual(calls, [
       {
-        command: 'yarn',
-        args: ['dlx', '@metricinsights/qa-ai-rules', 'init', '--cursor', '--claude'],
+        argv: ['yarn', 'dlx', '@metricinsights/qa-ai-rules', 'init', '--cursor', '--claude'],
         cwd: dir,
       },
     ]);

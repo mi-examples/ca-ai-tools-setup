@@ -1,7 +1,11 @@
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildPackageRunInvocation, detectPackageRunner } from './package-manager.js';
+import {
+  buildPackageRunInvocation,
+  detectPackageRunner,
+  spawnPackageArgv,
+  type SpawnPackageArgvOptions,
+} from './package-manager.js';
 import { QA_AI_RULES_PACKAGE, type Assistant } from './constants.js';
 
 export type QaAiRulesSetupResult =
@@ -17,10 +21,9 @@ type QaAiRulesSetupDeps = {
   existsSync: typeof fs.existsSync;
   detectPackageRunner: typeof detectPackageRunner;
   buildPackageRunInvocation: typeof buildPackageRunInvocation;
-  spawnSync: (
-    command: string,
-    args?: readonly string[],
-    options?: { cwd?: string; stdio?: 'inherit'; shell?: true; env?: NodeJS.ProcessEnv },
+  spawnPackageArgv: (
+    argv: readonly string[],
+    options: SpawnPackageArgvOptions,
   ) => { error?: Error; status?: number | null };
   env: NodeJS.ProcessEnv;
 };
@@ -29,7 +32,11 @@ const DEFAULT_DEPS: QaAiRulesSetupDeps = {
   existsSync: fs.existsSync,
   detectPackageRunner,
   buildPackageRunInvocation,
-  spawnSync,
+  spawnPackageArgv: (argv, options) => {
+    const result = spawnPackageArgv(argv, options);
+
+    return { error: result.error, status: result.status };
+  },
   env: process.env,
 };
 
@@ -76,10 +83,9 @@ export function runQaAiRulesSetupWithDeps(
   const runnerId = deps.detectPackageRunner(targetDir);
   const { argv, label } = deps.buildPackageRunInvocation(runnerId, QA_AI_RULES_PACKAGE, ['init', ...toolFlags]);
 
-  const result = deps.spawnSync(argv[0], argv.slice(1), {
+  const result = deps.spawnPackageArgv(argv, {
     cwd: targetDir,
     stdio: 'inherit',
-    shell: true,
     env: { ...deps.env },
   });
 
