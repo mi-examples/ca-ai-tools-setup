@@ -7,11 +7,14 @@ import {
   buildPackageRunInvocation,
   buildWindowsCmdCommandLine,
   buildWindowsCmdSpawnArgument,
+  buildWindowsNpmExecArgv,
   describeSpawnPackageArgv,
   detectPackageRunner,
+  npxArgvToNpmExecArgv,
   quoteWindowsCmdArgument,
   type PackageRunnerId,
 } from '../src/package-manager.js';
+import { QA_AI_RULES_CLI, QA_AI_RULES_PACKAGE } from '../src/constants.js';
 
 function tmp(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ca-pm-'));
@@ -124,18 +127,27 @@ test('detectPackageRunner defaults to npm', () => {
   }
 });
 
-function assertArgv(runner: PackageRunnerId, expectedPrefix: string[]): void {
-  const inv = buildPackageRunInvocation(runner, '@metricinsights/qa-ai-rules', ['init', '--cursor']);
-  const want = [...expectedPrefix, '@metricinsights/qa-ai-rules', 'init', '--cursor'];
+function assertArgv(runner: PackageRunnerId, expectedPrefix: string[], expectedTail: string[]): void {
+  const inv = buildPackageRunInvocation(runner, QA_AI_RULES_PACKAGE, ['init', '--cursor']);
+  const want = [...expectedPrefix, ...expectedTail];
 
   assert.deepEqual(inv.argv, want);
 }
 
 test('buildPackageRunInvocation argv by runner', () => {
-  assertArgv('npm', ['npx', '--yes']);
-  assertArgv('pnpm', ['pnpm', 'dlx']);
-  assertArgv('yarn-dlx', ['yarn', 'dlx']);
-  assertArgv('bun', ['bunx']);
+  if (process.platform === 'win32') {
+    assertArgv(
+      'npm',
+      ['npm', 'exec', '--yes', `--package=${QA_AI_RULES_PACKAGE}`, '--', QA_AI_RULES_CLI],
+      ['init', '--cursor'],
+    );
+  } else {
+    assertArgv('npm', ['npx', '--yes'], [QA_AI_RULES_PACKAGE, 'init', '--cursor']);
+  }
+
+  assertArgv('pnpm', ['pnpm', 'dlx'], [QA_AI_RULES_PACKAGE, 'init', '--cursor']);
+  assertArgv('yarn-dlx', ['yarn', 'dlx'], [QA_AI_RULES_PACKAGE, 'init', '--cursor']);
+  assertArgv('bun', ['bunx'], [QA_AI_RULES_PACKAGE, 'init', '--cursor']);
 });
 
 test('quoteWindowsCmdArgument quotes scoped npm package names', () => {
@@ -161,17 +173,30 @@ test('buildWindowsCmdSpawnArgument wraps full command line for cmd /s /c', () =>
   assert.equal(arg, '"npx --yes ""@metricinsights/qa-ai-rules"" init"');
 });
 
-test('describeSpawnPackageArgv includes windows cmd argument on win32', () => {
-  const plan = describeSpawnPackageArgv(['npx', '--yes', '@scope/pkg', 'init'], '/tmp/app');
+test('describeSpawnPackageArgv uses win32-direct on Windows', () => {
+  const plan = describeSpawnPackageArgv(['npm', 'exec', '--yes', '--package=@scope/pkg', '--', 'tool', 'init'], '/tmp/app');
 
   assert.equal(plan.cwd, '/tmp/app');
-  assert.deepEqual(plan.argv, ['npx', '--yes', '@scope/pkg', 'init']);
+  assert.equal(plan.method, process.platform === 'win32' ? 'win32-direct' : 'posix-spawn');
+});
 
-  if (process.platform === 'win32') {
-    assert.equal(plan.method, 'win32-cmd');
-    assert.equal(plan.windowsCmdArgument, '"npx --yes ""@scope/pkg"" init"');
-  } else {
-    assert.equal(plan.method, 'posix-spawn');
-    assert.equal(plan.windowsCmdArgument, undefined);
-  }
+test('buildWindowsNpmExecArgv uses --package= and CLI name', () => {
+  assert.deepEqual(buildWindowsNpmExecArgv(QA_AI_RULES_PACKAGE, ['init', '--cursor']), [
+    'npm',
+    'exec',
+    '--yes',
+    `--package=${QA_AI_RULES_PACKAGE}`,
+    '--',
+    QA_AI_RULES_CLI,
+    'init',
+    '--cursor',
+  ]);
+});
+
+test('npxArgvToNpmExecArgv converts npx argv', () => {
+  assert.deepEqual(
+    npxArgvToNpmExecArgv(['npx', '--yes', QA_AI_RULES_PACKAGE, 'init', '--cursor']),
+    buildWindowsNpmExecArgv(QA_AI_RULES_PACKAGE, ['init', '--cursor']),
+  );
+  assert.equal(npxArgvToNpmExecArgv(['pnpm', 'dlx', QA_AI_RULES_PACKAGE, 'init']), null);
 });

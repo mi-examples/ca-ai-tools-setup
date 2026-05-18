@@ -1,6 +1,7 @@
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { QA_AI_RULES_CLI } from './constants.js';
 
 /** Tools we know how to invoke for one-shot package runs (`dlx` / `npx`-style). */
 export type PackageRunnerId = 'npm' | 'pnpm' | 'yarn-dlx' | 'bun';
@@ -35,30 +36,39 @@ export function buildWindowsCmdSpawnArgument(argv: readonly string[]): string {
 
 export type SpawnPackageArgvPlan = {
   platform: NodeJS.Platform;
-  method: 'win32-cmd' | 'posix-spawn';
+  method: 'win32-direct' | 'posix-spawn';
   argv: readonly string[];
   cwd: string;
-  /** Set when method is win32-cmd — value passed as the `/c` argument. */
-  windowsCmdArgument?: string;
 };
 
 export function describeSpawnPackageArgv(argv: readonly string[], cwd: string): SpawnPackageArgvPlan {
-  if (process.platform === 'win32') {
-    return {
-      platform: process.platform,
-      method: 'win32-cmd',
-      argv,
-      cwd,
-      windowsCmdArgument: buildWindowsCmdSpawnArgument(argv),
-    };
-  }
-
   return {
     platform: process.platform,
-    method: 'posix-spawn',
+    method: process.platform === 'win32' ? 'win32-direct' : 'posix-spawn',
     argv,
     cwd,
   };
+}
+
+function isWindowsSpawnEinval(error: Error | undefined): boolean {
+  return (error as NodeJS.ErrnoException | undefined)?.code === 'EINVAL';
+}
+
+/**
+ * When Node refuses to spawn `.cmd` shims directly (EINVAL), run via `npm exec` with
+ * `--package=` so `@scope` never appears as a bare cmd token.
+ */
+export function buildWindowsNpmExecArgv(packageName: string, forwardArgs: string[]): string[] {
+  return ['npm', 'exec', '--yes', `--package=${packageName}`, '--', QA_AI_RULES_CLI, ...forwardArgs];
+}
+
+/** Convert `npx --yes <pkg> …` argv into `npm exec --package=<pkg> -- qa-ai-rules …`. */
+export function npxArgvToNpmExecArgv(argv: readonly string[]): string[] | null {
+  if (argv[0] !== 'npx' || argv[1] !== '--yes' || typeof argv[2] !== 'string') {
+    return null;
+  }
+
+  return buildWindowsNpmExecArgv(argv[2], argv.slice(3));
 }
 
 export type SpawnPackageArgvOptions = {
@@ -94,7 +104,7 @@ function logSpawnError(
 
 /**
  * Run a one-shot package-manager command (`npx`, `pnpm dlx`, …).
- * On Windows uses `cmd.exe` with a quoted command line so scoped packages are not parsed as `@cmd`.
+ * On Windows spawns with `shell: false` so `@scope/pkg` is not parsed by cmd.exe.
  */
 export function spawnPackageArgv(
   argv: readonly string[],
@@ -103,27 +113,26 @@ export function spawnPackageArgv(
   const plan = describeSpawnPackageArgv(argv, options.cwd);
   const log = options.log;
 
-  log?.(
-    `spawn ${plan.method} platform=${plan.platform} cwd=${plan.cwd}` +
-      (plan.windowsCmdArgument ? ` cmd=/c ${plan.windowsCmdArgument}` : ` argv=${JSON.stringify([...argv])}`),
-  );
+  log?.(`spawn ${plan.method} platform=${plan.platform} cwd=${plan.cwd} argv=${JSON.stringify([...argv])}`);
 
-  let result: SpawnSyncReturns<Buffer | string>;
-
-  if (process.platform === 'win32') {
-    result = spawnSync('cmd.exe', ['/d', '/s', '/c', buildWindowsCmdSpawnArgument(argv)], {
-      cwd: options.cwd,
-      stdio: options.stdio,
-      env: options.env,
-      windowsVerbatimArguments: true,
-    });
-  } else {
-    result = spawnSync(argv[0], argv.slice(1), {
+  const spawnDirect = (runArgv: readonly string[]) =>
+    spawnSync(runArgv[0], runArgv.slice(1), {
       cwd: options.cwd,
       stdio: options.stdio,
       env: options.env,
       shell: false,
+      windowsHide: true,
     });
+
+  let result = spawnDirect(argv);
+
+  if (process.platform === 'win32' && isWindowsSpawnEinval(result.error)) {
+    const npmExecArgv = npxArgvToNpmExecArgv(argv);
+
+    if (npmExecArgv) {
+      log?.(`spawn win32-direct EINVAL; retry npm exec argv=${JSON.stringify(npmExecArgv)}`);
+      result = spawnDirect(npmExecArgv);
+    }
   }
 
   logSpawnError(log, result);
@@ -253,6 +262,14 @@ export function buildPackageRunInvocation(
       runner,
       argv: ['bunx', packageName, ...forwardArgs],
       label: 'bunx',
+    };
+  }
+
+  if (process.platform === 'win32') {
+    return {
+      runner,
+      argv: buildWindowsNpmExecArgv(packageName, forwardArgs),
+      label: 'npm exec',
     };
   }
 

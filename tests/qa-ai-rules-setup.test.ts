@@ -8,7 +8,8 @@ import {
   runQaAiRulesSetupWithDeps,
   type QaAiRulesSetupResult,
 } from '../src/qa-ai-rules-setup.js';
-import type { PackageRunnerId, PackageRunInvocation } from '../src/package-manager.js';
+import { buildPackageRunInvocation, type PackageRunnerId, type PackageRunInvocation } from '../src/package-manager.js';
+import { QA_AI_RULES_PACKAGE } from '../src/constants.js';
 
 test('buildQaAiRulesInitArgs adds --cursor and --claude for both assistants', () => {
   assert.deepEqual(buildQaAiRulesInitArgs(['cursor', 'claude']), ['--cursor', '--claude']);
@@ -44,11 +45,12 @@ function makeDeps(overrides: {
     detectPackageRunner: overrides.detectPackageRunner ?? (() => 'npm'),
     buildPackageRunInvocation:
       overrides.buildPackageRunInvocation ??
-      ((() => ({
-        runner: 'npm',
-        argv: ['npx', '--yes', '@metricinsights/qa-ai-rules', 'init', '--cursor'],
-        label: 'npx',
-      })) as (runner: PackageRunnerId, packageName: string, forwardArgs: string[]) => PackageRunInvocation),
+      ((runner, packageName, forwardArgs) =>
+        buildPackageRunInvocation(runner, packageName, forwardArgs)) as (
+        runner: PackageRunnerId,
+        packageName: string,
+        forwardArgs: string[],
+      ) => PackageRunInvocation,
     spawnPackageArgv:
       overrides.spawnPackageArgv ??
       ((() => ({
@@ -98,7 +100,7 @@ test('runQaAiRulesSetupWithDeps returns run-failed when spawnPackageArgv throws 
         detectPackageRunner: () => 'pnpm',
         buildPackageRunInvocation: () => ({
           runner: 'pnpm',
-          argv: ['pnpm', 'dlx', '@metricinsights/qa-ai-rules', 'init', '--cursor'],
+          argv: ['pnpm', 'dlx', QA_AI_RULES_PACKAGE, 'init', '--cursor'],
           label: 'pnpm dlx',
         }),
         spawnPackageArgv: () => ({ error: new Error('spawn failed') }),
@@ -126,7 +128,7 @@ test('runQaAiRulesSetupWithDeps returns run-failed when command exits non-zero',
         detectPackageRunner: () => 'bun',
         buildPackageRunInvocation: () => ({
           runner: 'bun',
-          argv: ['bunx', '@metricinsights/qa-ai-rules', 'init', '--claude'],
+          argv: ['bunx', QA_AI_RULES_PACKAGE, 'init', '--claude'],
           label: 'bunx',
         }),
         spawnPackageArgv: () => ({ status: 2 }),
@@ -174,7 +176,7 @@ test('runQaAiRulesSetupWithDeps returns success and forwards init args', () => {
     assert.deepEqual(invocations, [
       {
         runner: 'yarn-dlx',
-        packageName: '@metricinsights/qa-ai-rules',
+        packageName: QA_AI_RULES_PACKAGE,
         forwardArgs: ['init', '--cursor', '--claude'],
       },
     ]);

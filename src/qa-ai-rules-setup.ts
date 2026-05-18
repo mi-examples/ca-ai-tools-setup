@@ -93,11 +93,7 @@ export function runQaAiRulesSetupWithDeps(
   );
   setupLog(`QA AI rules: target=${targetAbs} runner=${runnerId} (${label}) package=${QA_AI_RULES_PACKAGE}`);
   setupLog(`QA AI rules: init flags=${toolFlags.join(' ') || '(none)'}`);
-  setupLog(`QA AI rules: argv=${JSON.stringify(argv)}`);
-
-  if (spawnPlan.windowsCmdArgument) {
-    setupLog(`QA AI rules: windows cmd /c argument=${spawnPlan.windowsCmdArgument}`);
-  }
+  setupLog(`QA AI rules: argv=${JSON.stringify(argv)} spawn=${spawnPlan.method}`);
 
   const result = deps.spawnPackageArgv(argv, {
     cwd: targetAbs,
@@ -107,7 +103,9 @@ export function runQaAiRulesSetupWithDeps(
 
   if (result.error) {
     setupLogError(`QA AI rules: failed to start ${label} — ${result.error.message}`);
-    setupLogError('QA AI rules: if the error mentions "metricinsights", cmd may have parsed @scope without quotes.');
+    setupLogError(
+      'QA AI rules: if the error mentions "metricinsights", Windows parsed @scope incorrectly — use npm exec --package=…',
+    );
 
     return {
       ok: false,
