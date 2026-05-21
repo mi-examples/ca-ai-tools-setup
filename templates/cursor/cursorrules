@@ -11,3 +11,10 @@ When **`AGENTS.md`** exists at the repository root, read it. It indexes **`.clau
 **Bootstrap:** **`ca-ai-tools-setup`** writes **`AGENTS.md`** on every run (shared with **`LINEAR_CLI.md`** and other repo-root stubs). If it is missing, re-run the installer or copy from another MI repo using this bootstrapper.
 
 Full onboarding: **`setup-cursor-assistant.md`**.
+
+## Portal Page — Linear (dev)
+
+- **`.env` / credentials:** **`.cursor/rules/portal-env-credentials.mdc`**.
+- **State gates:** **`.cursor/rules/linear-task-gates.mdc`** — **`linear-cli i get <ISSUE_KEY>`** first; AI dev only from **`Waiting AI Development`**; AI testing only from **`Waiting AI Test`**.
+- **Dev flow:** **`linear-cli i get`** (and **`linear-cli i start`** if your team uses it), then **operator** chooses **full** (greenfield) vs **fixes** with the agent — **`.cursor/skills/ai-development/SKILL.md`**.
+- **Testing / UI evidence:** **`.cursor/skills/ai-testing/SKILL.md`**.

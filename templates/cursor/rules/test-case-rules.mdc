@@ -1,0 +1,7 @@
+---
+alwaysApply: false
+---
+
+When writing or maintaining **test cases** / **test documentation** for this repo, read **`.cursor/skills/ai-testing/SKILL.md`** (Test documentation section).
+
+For **executing** tests or scripted checks against a real instance: use **`.env`** login vars (**`DEFAULT_USERNAME_ADMIN`**, **`DEFAULT_PASSWORD_ADMIN`**) and **`BASE_URL`** — **`.cursor/rules/portal-env-credentials.mdc`**. Do not paste real passwords into **`test-documentation/`** or committed files.

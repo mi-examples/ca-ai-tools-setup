@@ -8,6 +8,7 @@ import {
 } from './constants.js';
 import { generateCursorFiles } from './generators/cursor.js';
 import { generateClaudeFiles } from './generators/claude.js';
+import { buildCursorRuleFiles } from './generators/portal-page-ai.js';
 import { isMergeablePath, mergeFile } from './mcp-json-merge.js';
 import type { GeneratedFile } from './generators/types.js';
 import { readTemplate } from './templates.js';
@@ -124,6 +125,11 @@ export function getGeneratedFiles(
         includeFigmaMcp: figmaTargets.projectRootFile,
       }),
     );
+  }
+
+  // Claude Code reads `.cursor/rules/*.mdc` per project convention — emit rules even for Claude-only runs.
+  if (assistants.includes('claude') && !assistants.includes('cursor')) {
+    files.push(...buildCursorRuleFiles(figmaTargets.projectRootFile));
   }
 
   const sharedMetadata = {

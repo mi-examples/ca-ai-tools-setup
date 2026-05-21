@@ -33,6 +33,13 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/README.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/react-component-unit.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursorignore')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ai-development/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')));
   assert.ok(
     fs.readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8').includes('UI check and verification'),
@@ -40,7 +47,7 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(
     fs
       .readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.cursor/skills/linear-workflow/SKILL.md`'),
+      .includes('`.cursor/skills/ai-testing/SKILL.md`'),
   );
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
@@ -126,6 +133,8 @@ test('generateSetup setup-cursor notes bootstrap included MCP when enabled', () 
 
   assert.ok(md.includes('bootstrapped **with**'));
   assert.ok(md.includes('can differ by Metric Insights instance version'));
+  assert.ok(md.includes('**2.5. Enable project MCP in Cursor (manual'));
+  assert.ok(md.includes('does **not** turn MCP servers on'));
 });
 
 test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', () => {
@@ -165,11 +174,18 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
   assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ai-development/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/README.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
   assert.ok(
     fs
       .readFileSync(path.join(dir, '.claude/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.claude/skills/linear-workflow/SKILL.md`'),
+      .includes('`.claude/skills/ai-testing/SKILL.md`'),
   );
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('`.claude/skills/ai-development/SKILL.md`'));
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('linear-task-gates.mdc'));
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('ca-ai-tools-setup'));
   assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
@@ -292,12 +308,12 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
   assert.ok(
     fs
       .readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.cursor/skills/linear-workflow/SKILL.md`'),
+      .includes('`.cursor/skills/ai-testing/SKILL.md`'),
   );
   assert.ok(
     fs
       .readFileSync(path.join(dir, '.claude/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.claude/skills/linear-workflow/SKILL.md`'),
+      .includes('`.claude/skills/ai-testing/SKILL.md`'),
   );
 });
 
@@ -326,7 +342,13 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.ok(claudeMcp.mcpServers.figma);
   assert.equal(claudeMcp.mcpServers.playwright, undefined);
   assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/SKILL.md')), true);
+  assert.equal(
+    fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/references/api.md')),
+    true,
+  );
   assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/figma-code-connect/SKILL.md')), true);
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });
   assert.deepEqual(meta.figmaMcp, { cursorFile: true, projectRootFile: true });
 
@@ -352,7 +374,9 @@ test('generateSetup omits .cursor/rules/figma-mcp.mdc when Figma MCP not selecte
   });
 
   assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/figma-code-connect/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/SKILL.md')), false);
 });
 
 test('buildClaudeSettingsJson enables both MCP servers when selected', () => {

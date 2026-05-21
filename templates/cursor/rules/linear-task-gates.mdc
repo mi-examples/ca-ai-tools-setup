@@ -1,0 +1,32 @@
+---
+description: Linear issue state gates before AI testing or AI development work
+globs:
+alwaysApply: true
+---
+
+# Linear task gates (mandatory)
+
+Before **any** work driven by **`cursor start working with task <ISSUE_KEY>`** (or equivalent), run:
+
+```bash
+linear-cli i get <ISSUE_KEY> -o json
+```
+
+Read **`state.name`** from the response.
+
+## AI testing workflow
+
+- **Proceed only if** `state.name` is exactly **`Waiting AI Test`**.
+- If the state differs: **stop**, report the current state, and ask the user to move the issue in Linear (or to give an explicit override). **Do not** start automated / AI-first **testing** work from the wrong column.
+
+## AI development workflow (implement only; not testing-first)
+
+- **Proceed only if** `state.name` is exactly **`Waiting AI Development`**.
+- If your Linear team uses a different label, align it: `linear-cli statuses list --team "<Team from issue>"` and update this rule file to match your workspace.
+- If the state differs: **stop** and report — same pattern as testing.
+- When allowed to proceed: follow **`.cursor/skills/ai-development/SKILL.md`**. The **operator** (you) chooses with the agent **full** (new React + Vite + pp-dev project) vs **fixes** (bug work in an existing repo); both start from **`linear-cli i get <ISSUE_KEY>`** and the same Figma → stories → AC order where applicable.
+
+## Cross-reference
+
+- Shared Linear CLI steps: **`.cursor/skills/ai-development/SKILL.md`** (and mirrored at the top of **`.cursor/skills/ai-testing/SKILL.md`**).
+- AI testing steps after the gate: **`.cursor/skills/ai-testing/SKILL.md`**.

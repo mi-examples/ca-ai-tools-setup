@@ -1,0 +1,14 @@
+# Cursor AI indexing exclusions (Portal Page / Custom App)
+# Files remain readable via grep and direct open; contents are excluded from semantic indexing.
+
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Large lockfiles — rarely needed for agentic coding
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lockb

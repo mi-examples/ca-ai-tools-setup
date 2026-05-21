@@ -18,7 +18,7 @@ The issue is **only** the one from the **current** message:
 - **`<Task link>`** — full Linear URL or bare **`<ISSUE_KEY>`** (e.g. `PP-3388`).
 - **`<ISSUE_KEY>`** — segment after `/issue/` in the URL, or the pasted key. Do not use example keys from docs.
 
-**Linear CLI** (fetch, start, status, comment): **__LINEAR_WORKFLOW_SKILL_PATH__**.
+**Linear CLI** (fetch, start, status, comment): **__AI_TESTING_SKILL_PATH__**.
 
 ## Stack
 
@@ -31,7 +31,7 @@ The issue is **only** the one from the **current** message:
 2. Navigate to the route(s) the issue describes.
 3. Confirm each criterion; fix in **`src/`** and re-test.
 4. Use Playwright MCP if configured; otherwise manual check.
-5. When done, update Linear (state + comment) per **linear-workflow** skill unless the user opts out.
+5. When done, update Linear (state + comment) per **ai-testing** skill unless the user opts out.
 
 ## Linear: screenshots belong in the **comment**, not issue attachments
 

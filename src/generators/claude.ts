@@ -1,6 +1,7 @@
-import { readTemplate, readUiCheckSkillTemplate } from '../templates.js';
+import { readTemplate } from '../templates.js';
 import type { GeneratedFile } from './types.js';
 import { buildMcpJson } from './mcp.js';
+import { buildPortalPageSkillFiles } from './portal-page-ai.js';
 
 export type GenerateClaudeOptions = {
   includePlaywrightMcp: boolean;
@@ -82,7 +83,7 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
       '`.mcp.json` without refreshing settings.',
     '- If the file was removed, recreate it and merge with any existing `mcpServers` keys.',
     '- For **Figma MCP**, export **`FIGMA_API_KEY`** before server start, then reload MCP in Claude Code.',
-    '- If Figma MCP is enabled, use the **`.claude/agents/figma-mcp.md`** agent rules for implementation.',
+    '- If Figma MCP is enabled, use **`.claude/agents/figma-mcp.md`**, **`.claude/skills/figma-code-connect/SKILL.md`**, and **`.cursor/rules/figma-mcp.mdc`**.',
     '- After changes in `.mcp.json`, reload MCP and verify selected tools are available.',
     '',
     '```json',
@@ -112,10 +113,7 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
       path: '.claude/settings.json',
       content: buildClaudeSettingsJson(options),
     },
-    {
-      path: '.claude/skills/ui-check/SKILL.md',
-      content: readUiCheckSkillTemplate('claude'),
-    },
+    ...buildPortalPageSkillFiles('claude', options.includeFigmaMcp),
   ];
 
   if (options.includePlaywrightMcp || options.includeFigmaMcp) {

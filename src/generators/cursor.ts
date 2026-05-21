@@ -1,6 +1,7 @@
-import { readTemplate, readUiCheckSkillTemplate } from '../templates.js';
+import { readTemplate } from '../templates.js';
 import type { GeneratedFile } from './types.js';
 import { buildMcpJson } from './mcp.js';
+import { buildCursorRuleFiles, buildPortalPageSkillFiles } from './portal-page-ai.js';
 
 export type GenerateCursorOptions = {
   includePlaywrightMcp: boolean;
@@ -50,6 +51,8 @@ function renderCursorMcpSection(options: GenerateCursorOptions): string {
     '- Confirm **`.cursor/mcp.json`** exists and contains the expected `mcpServers` entries.',
     '- If someone removed the file, recreate it and merge with any existing `mcpServers` keys.',
     '- For **Figma MCP**, export **`FIGMA_API_KEY`** before starting the server, then reload MCP in Cursor.',
+    '- If Figma MCP is enabled, follow **`.cursor/rules/figma-mcp.mdc`** and **`.cursor/skills/figma-code-connect/SKILL.md`** when applicable.',
+    '- **Enable servers manually** in Cursor (**Settings → Features → MCP**): project MCP from `.cursor/mcp.json` is not auto-enabled — toggle each server on, then refresh MCP (see **Step 2.5** in this setup doc).',
     '- After any edit to `mcp.json`, reload MCP in Cursor and confirm selected tools are available.',
     '',
     '```json',
@@ -76,21 +79,19 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
       content: readTemplate('cursor/cursorrules'),
     },
     {
-      path: '.cursor/rules/linear-cli.mdc',
-      content: readTemplate('cursor/rules/linear-cli.mdc'),
-    },
-    {
-      path: '.cursor/rules/README.md',
-      content: readTemplate('cursor/rules/README.md'),
+      path: '.cursorignore',
+      content: readTemplate('cursor/cursorignore'),
     },
     {
       path: '.cursor/ca-ai-tools-setup.json',
       content: readTemplate('cursor/ca-ai-tools-setup.json'),
     },
     {
-      path: '.cursor/skills/ui-check/SKILL.md',
-      content: readUiCheckSkillTemplate('cursor'),
+      path: '.cursor/prompts/react-component-unit.md',
+      content: readTemplate('cursor/prompts/react-component-unit.md'),
     },
+    ...buildCursorRuleFiles(options.includeFigmaMcp),
+    ...buildPortalPageSkillFiles('cursor', options.includeFigmaMcp),
   ];
 
   if (options.includePlaywrightMcp || options.includeFigmaMcp) {
@@ -100,13 +101,6 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
         includePlaywrightMcp: options.includePlaywrightMcp,
         includeFigmaMcp: options.includeFigmaMcp,
       }),
-    });
-  }
-
-  if (options.includeFigmaMcp) {
-    files.push({
-      path: '.cursor/rules/figma-mcp.mdc',
-      content: readTemplate('cursor/rules/figma-mcp.mdc'),
     });
   }
 

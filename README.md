@@ -4,22 +4,24 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 
 ## What this package generates
 
-- `setup-cursor-assistant.md`
-- `.cursorrules` — short legacy entry point (points to **`.cursor/rules/`** and **`AGENTS.md`**; skipped on later runs if already present unless `--force`)
-- `setup-claude-assistant.md`
-- `CLAUDE.md` — Claude Code project instructions (starter; skipped on later runs if already present unless `--force`)
-- `.claude/settings.json` — Claude Code JSON settings (`$schema` on [Schema Store](https://json.schemastore.org/claude-code-settings.json)); when **`.mcp.json`** is emitted, this file also enables those servers (`enableAllProjectMcpServers`, `enabledMcpjsonServers`, `permissions.allow`). Same skip/`--force` behavior as **`CLAUDE.md`**
-- `.cursor/rules/linear-cli.mdc`
-- `.cursor/rules/README.md`
-- `.cursor/ca-ai-tools-setup.json`
-- `.cursor/mcp.json` (optional — when Cursor is selected and you enable one or more MCP servers in the CLI)
-- `.mcp.json` in the repository root (optional — when Claude is selected and you enable one or more MCP servers in the CLI)
-- `.claude/agents/figma-mcp.md` (optional — when Claude is selected and Figma MCP is enabled)
-- `.dev-environment.md`
-- `.assistant-setup/page-workflow-context.md`
-- `.assistant-setup/ca-ai-tools-setup.json`
-- `LINEAR_CLI.md` — Linear CLI command reference (Rust `linear-cli`)
-- `AGENTS.md` — index of **`.claude/agents/*.md`** (shared with every bootstrap; same overwrite behavior as **`LINEAR_CLI.md`**)
+**Shared (every run):** `LINEAR_CLI.md`, `AGENTS.md`, `.dev-environment.md`, `.assistant-setup/page-workflow-context.md`, `.assistant-setup/ca-ai-tools-setup.json`
+
+**Cursor rules (Cursor and/or Claude):** `.cursor/rules/*.mdc` — Claude Code follows the same rules. Emitted for **Claude-only** runs too.
+
+| Path | When |
+|------|------|
+| `setup-cursor-assistant.md` | Cursor selected |
+| `.cursorrules`, `.cursorignore` | Cursor selected |
+| `.cursor/rules/*` (linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP) | Cursor and/or Claude |
+| `.cursor/skills/*` (ai-testing, ai-development + DOD-FULL, ui-check, README; figma-code-connect + references if Figma MCP) | Cursor selected |
+| `.cursor/prompts/react-component-unit.md` | Cursor selected |
+| `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json` | Cursor + MCP option |
+| `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json` | Claude selected |
+| `.claude/skills/*` (same skill set as Cursor, under `.claude/skills/`) | Claude selected |
+| `.claude/agents/figma-mcp.md` | Claude + Figma MCP |
+| `.mcp.json` (repo root) | Claude + MCP option |
+
+Skip/`--force` behavior: setup assistant markdown is always refreshed; most other paths are created once, then skipped unless `--force` (see package docs below).
 
 ## Distribution
 

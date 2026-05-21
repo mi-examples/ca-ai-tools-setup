@@ -14,7 +14,7 @@ test('ui-check template for cursor replaces all placeholders with cursor paths',
   const rendered = readUiCheckSkillTemplate('cursor');
 
   assert.match(rendered, /when \*\*Cursor\*\* is included in the installer run\./);
-  assert.match(rendered, /`\.cursor\/skills\/linear-workflow\/SKILL\.md`/);
+  assert.match(rendered, /`\.cursor\/skills\/ai-testing\/SKILL\.md`/);
   assert.doesNotMatch(rendered, /__[A-Z0-9_]+__/);
 });
 
@@ -22,7 +22,7 @@ test('ui-check template for claude replaces all placeholders with claude paths',
   const rendered = readUiCheckSkillTemplate('claude');
 
   assert.match(rendered, /when \*\*Claude Code\*\* is included in the installer run\./);
-  assert.match(rendered, /`\.claude\/skills\/linear-workflow\/SKILL\.md`/);
+  assert.match(rendered, /`\.claude\/skills\/ai-testing\/SKILL\.md`/);
   assert.doesNotMatch(rendered, /__[A-Z0-9_]+__/);
 });
 

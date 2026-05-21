@@ -39,7 +39,7 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 - `src/cli.ts` — entry point; arg parsing (`minimist`), interactive prompts (`@clack/prompts`), orchestrates generation
 - `src/generator.ts` — core file-write logic; handles skip/overwrite/merge per file; calls `generators/claude.ts` and `generators/cursor.ts`
 - `src/generators/claude.ts` — builds the array of `GeneratedFile` objects for Claude (CLAUDE.md, .claude/settings.json, .claude/skills/ui-check/SKILL.md, .mcp.json, figma-mcp.md)
-- `src/generators/cursor.ts` — builds `GeneratedFile` array for Cursor (.cursorrules, .cursor/rules/\*, .cursor/mcp.json, .cursor/skills/ui-check/SKILL.md)
+- `src/generators/cursor.ts` — builds `GeneratedFile` array for Cursor (.cursorrules, .cursor/rules/\*, .cursor/mcp.json, `.cursor/skills/{ui-check,ai-testing,ai-development}/`)
 - `src/generators/mcp.ts` — constructs MCP JSON config objects
 - `src/mcp-json-merge.ts` — union-merges existing `.mcp.json` / `.cursor/mcp.json` with generated config (generated names win on conflict)
 - `src/previous-setup.ts` — reads `.cursor/ca-ai-tools-setup.json` or `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)

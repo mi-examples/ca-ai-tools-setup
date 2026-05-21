@@ -14,6 +14,14 @@ This repository targets **Metric Insights Portal Page / Custom App** development
 - When this repo was bootstrapped **with** root **`.mcp.json`**, the generated **`.claude/settings.json`** includes **`enableAllProjectMcpServers`**, **`enabledMcpjsonServers`** (matching server keys such as **`playwright`** / **`figma`**), and **`permissions.allow`** patterns so those MCP tools are permitted—reload MCP in Claude Code after changes.
 - **Re-running `ca-ai-tools-setup`:** Without **`--force`**, an existing **`.claude/settings.json`** is **not** overwritten—extend it in place or merge new keys from the template after back-up.
 
+## Skills
+
+- Index: **`.claude/skills/README.md`** (mirrors **`.cursor/skills/`** where both assistants are bootstrapped).
+- **`.env` / credentials:** **`.cursor/rules/portal-env-credentials.mdc`**.
+- **State gates:** **`.cursor/rules/linear-task-gates.mdc`** — **`linear-cli i get <ISSUE_KEY>`** first; AI dev only from **`Waiting AI Development`**; AI testing only from **`Waiting AI Test`**.
+- **Dev flow:** **`.claude/skills/ai-development/SKILL.md`** (operator picks **full** greenfield vs **fixes** with the agent).
+- **Testing / UI evidence:** **`.claude/skills/ai-testing/SKILL.md`**; focused UI pass: **`.claude/skills/ui-check/SKILL.md`**.
+
 ## Agents
 
 - Read task-specific rules under **`.claude/agents/*.md`** when the task matches (design implementation, MCP-specific workflows, etc.).
@@ -22,6 +30,8 @@ This repository targets **Metric Insights Portal Page / Custom App** development
 ### Figma MCP
 
 If **`.claude/agents/figma-mcp.md`** exists, use it for Figma MCP design-to-code work instead of ad-hoc styling guesses.
+
+If **`.claude/skills/figma-code-connect/SKILL.md`** exists, use it for Figma **Code Connect** (`.figma.ts` templates). Also follow **`.cursor/rules/figma-mcp.mdc`** when implementing from Figma.
 
 ## Keeping this file current
 
