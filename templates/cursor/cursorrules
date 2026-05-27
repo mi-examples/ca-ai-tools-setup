@@ -18,3 +18,24 @@ Full onboarding: **`setup-cursor-assistant.md`**.
 - **State gates:** **`.cursor/rules/linear-task-gates.mdc`** — **`linear-cli i get <ISSUE_KEY>`** first; AI dev only from **`Waiting AI Development`**; AI testing only from **`Waiting AI Test`**.
 - **Dev flow:** **`linear-cli i get`** (and **`linear-cli i start`** if your team uses it), then **operator** chooses **full** (greenfield) vs **fixes** with the agent — **`.cursor/skills/ai-development/SKILL.md`**.
 - **Testing / UI evidence:** **`.cursor/skills/ai-testing/SKILL.md`**.
+
+## QA skills
+
+- **Full QA flow:** `.cursor/skills/testing-flow/SKILL.md`.
+- **Linear-driven QA:** `.cursor/skills/testing-with-linear/SKILL.md`.
+- **Quick UI check:** `.cursor/skills/ui-check-simple/SKILL.md`.
+- **Linear QA report:** `.cursor/skills/linear-report/SKILL.md`.
+- **Existing branch helpers:** `.cursor/skills/linear-workflow/SKILL.md` and
+  `.cursor/skills/test-documentation/SKILL.md` stay available for legacy QA
+  flows.
+
+## Cursor-specific discovery
+
+- Search before creating test docs, components, hooks, or API modules.
+- Use semantic search with focused questions instead of one-word queries.
+- For UI verification, inspect the relevant route/page/component before
+  writing or executing test cases.
+
+## Indexing
+
+See **`.cursorignore`** for paths excluded from indexing in this workspace.

@@ -4,8 +4,11 @@ Markdown files under **`.claude/agents/`** define **specialized rules** Claude s
 
 ## Registered agents
 
-| File           | Purpose                                                                                                                                                     |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File | Purpose |
+| ---- | ------- |
+| `qa-tester.md` | Test cases, Playwright MCP execution, bug documentation, and local `test-documentation/` layout. |
+| `ui-verifier.md` | Browser UI checks, visual verification, and screenshot evidence for Linear comments. |
+| `linear-reporter.md` | Publish QA results to Linear (comments, state, embedded screenshots). |
 | `figma-mcp.md` | Figma MCP: structure-first implementation, tokens, Code Connect, layout fidelity. _(Present only if this repo was bootstrapped with Figma MCP for Claude.)_ |
 
 Add a row when you introduce a new **`.claude/agents/<name>.md`** file.

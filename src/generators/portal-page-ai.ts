@@ -19,8 +19,33 @@ const PORTAL_PAGE_RULES = [
   'cursor/rules/README.md',
 ] as const;
 
-/** Shared Portal Page skills for Cursor (`.cursor/skills/`) or Claude (`.claude/skills/`). */
-export function buildPortalPageSkillFiles(
+/** Shared skills mirrored under `.cursor/skills/` and `.claude/skills/`. */
+const SHARED_PORTAL_SKILLS = [
+  'skills/ai-testing/SKILL.md',
+  'skills/ai-development/SKILL.md',
+  'skills/ai-development/DOD-FULL.md',
+] as const;
+
+/** Cursor-only skills (Claude Code uses `.claude/workflows/` for QA orchestration). */
+const CURSOR_ONLY_SKILLS = [
+  'skills/testing-flow/SKILL.md',
+  'skills/testing-with-linear/SKILL.md',
+  'skills/ui-check-simple/SKILL.md',
+  'skills/linear-report/SKILL.md',
+  'skills/playwright-mcp/SKILL.md',
+  'skills/linear-workflow/SKILL.md',
+  'skills/test-documentation/SKILL.md',
+  'skills/figma-implementation/SKILL.md',
+  'skills/form-builder/SKILL.md',
+] as const;
+
+function skillTemplateToOutputPath(templateRel: string): string {
+  const parts = templateRel.split('/');
+
+  return `${parts[1]}/${parts[2]}`;
+}
+
+function buildSkillFilesForAssistant(
   assistant: 'cursor' | 'claude',
   includeFigmaMcp: boolean,
 ): GeneratedFile[] {
@@ -29,14 +54,21 @@ export function buildPortalPageSkillFiles(
 
   const files: GeneratedFile[] = [
     { path: `${skillsRoot}/README.md`, content: readTemplate(readmeTemplate) },
-    { path: `${skillsRoot}/ai-testing/SKILL.md`, content: readTemplate('skills/ai-testing/SKILL.md') },
-    { path: `${skillsRoot}/ai-development/SKILL.md`, content: readTemplate('skills/ai-development/SKILL.md') },
-    {
-      path: `${skillsRoot}/ai-development/DOD-FULL.md`,
-      content: readTemplate('skills/ai-development/DOD-FULL.md'),
-    },
+    ...SHARED_PORTAL_SKILLS.map((rel) => ({
+      path: `${skillsRoot}/${skillTemplateToOutputPath(rel)}`,
+      content: readTemplate(rel),
+    })),
     { path: `${skillsRoot}/ui-check/SKILL.md`, content: readUiCheckSkillTemplate(assistant) },
   ];
+
+  if (assistant === 'cursor') {
+    for (const rel of CURSOR_ONLY_SKILLS) {
+      files.push({
+        path: `${skillsRoot}/${skillTemplateToOutputPath(rel)}`,
+        content: readTemplate(rel),
+      });
+    }
+  }
 
   if (includeFigmaMcp) {
     for (const { rel, out } of FIGMA_CODE_CONNECT_TEMPLATES) {
@@ -48,6 +80,14 @@ export function buildPortalPageSkillFiles(
   }
 
   return files;
+}
+
+/** Shared Portal Page skills for Cursor (`.cursor/skills/`) or Claude (`.claude/skills/`). */
+export function buildPortalPageSkillFiles(
+  assistant: 'cursor' | 'claude',
+  includeFigmaMcp: boolean,
+): GeneratedFile[] {
+  return buildSkillFilesForAssistant(assistant, includeFigmaMcp);
 }
 
 /** Cursor rules (`.cursor/rules/*.mdc`) — shared with Claude Code per project convention. */

@@ -1,3 +1,8 @@
+---
+name: figma-mcp
+description: Use for Figma MCP implementation, visual matching, node inspection, token mapping, and Code Connect guidance.
+---
+
 # Figma Implementation Agent Rules (Claude Code)
 
 1. **Prioritize Data over Visuals**: Never rely only on screenshots. Fetch node JSON and use exact layout/style values (spacing, gaps, colors, typography).
@@ -7,5 +12,3 @@
 5. **Auto-layout to CSS**: Convert Auto-layout behavior to Flexbox/Grid with correct hug/fill and spacing semantics.
 6. **Reuse Existing Components**: Prefer existing UI primitives from the repository design system before creating new bespoke components.
 7. **Validate with Structure, Not Pixel Guessing**: Before finalizing, re-check node structure/constraints and verify resulting code still uses tokens instead of raw constants.
-8. **SVG-first Figma assets**: When bringing **resources** from Figma into this repo (icons, logos, non-photo graphics), **use SVG whenever possible**. Prefer exporting or reconstructing **vector** artwork as `.svg` (inline React components or imported static assets—follow existing patterns in `src/`). Do **not** default to Figma MCP **raster** URLs (`figma.com/api/mcp/asset/…` PNGs) or stacks of raster slices for crisp UI icons; reserve raster for genuinely bitmap-only art (photos, textured bitmaps) and document the exception. For compound vector icons, prefer a **single merged SVG** over many tiny PNG layers.
-9. **Prefer `download_figma_images` for file-backed SVGs**: When the Cursor MCP server **`project-0-task-console-figma`** is available, use tool **`download_figma_images`** (`fileKey`, `localPath`, `nodes[]` with `nodeId` + `fileName` ending in `.svg`) to write exports next to the consuming code (for example under `src/components/icon/icons/`). Requires a valid **`FIGMA_API_KEY`** for that server (and file access). After download, prefer **inline React SVG components** (see `src/components/icon/icons/`) or keep a co-located `.svg` when the asset must stay static (e.g. pattern + embedded bitmap).

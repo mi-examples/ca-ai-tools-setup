@@ -11,23 +11,9 @@ export function readTemplate(relativePath: string): string {
   return fs.readFileSync(fullPath, 'utf8');
 }
 
-const UI_CHECK_SKILL_PLACEHOLDERS: Record<'cursor' | 'claude', { bootstrapNote: string; aiTestingSkillPath: string }> =
-  {
-    cursor: {
-      bootstrapNote: 'when **Cursor** is included in the installer run.',
-      aiTestingSkillPath: '`.cursor/skills/ai-testing/SKILL.md`',
-    },
-    claude: {
-      bootstrapNote: 'when **Claude Code** is included in the installer run.',
-      aiTestingSkillPath: '`.claude/skills/ai-testing/SKILL.md`',
-    },
-  };
-
-/** Renders `templates/skills/ui-check/SKILL.md` for Cursor vs Claude Code paths. */
+/** Renders `templates/skills/ui-check/SKILL.{cursor,claude}.md` for the target assistant. */
 export function readUiCheckSkillTemplate(forAssistant: 'cursor' | 'claude'): string {
-  const { bootstrapNote, aiTestingSkillPath } = UI_CHECK_SKILL_PLACEHOLDERS[forAssistant];
+  const variant = forAssistant === 'cursor' ? 'cursor' : 'claude';
 
-  return readTemplate('skills/ui-check/SKILL.md')
-    .replaceAll('__BOOTSTRAP_NOTE__', bootstrapNote)
-    .replaceAll('__AI_TESTING_SKILL_PATH__', aiTestingSkillPath);
+  return readTemplate(`skills/ui-check/SKILL.${variant}.md`);
 }

@@ -3,6 +3,36 @@ import type { GeneratedFile } from './types.js';
 import { buildMcpJson } from './mcp.js';
 import { buildPortalPageSkillFiles } from './portal-page-ai.js';
 
+const CLAUDE_WORKFLOW_TEMPLATES = [
+  'claude/workflows/linear-workflow.md',
+  'claude/workflows/testing-with-linear.md',
+  'claude/workflows/testing-flow.md',
+  'claude/workflows/ui-check-simple.md',
+  'claude/workflows/ui-check.md',
+  'claude/workflows/linear-qa-report.md',
+  'claude/workflows/playwright-mcp.md',
+  'claude/workflows/test-documentation.md',
+] as const;
+
+const CLAUDE_COMMAND_TEMPLATES = [
+  'claude/commands/testing-with-linear.md',
+  'claude/commands/testing-flow.md',
+  'claude/commands/ui-check.md',
+  'claude/commands/linear-report.md',
+  'claude/commands/start-working-with-task.md',
+  'claude/commands/test-documentation.md',
+] as const;
+
+const CLAUDE_AGENT_TEMPLATES = [
+  'claude/agents/qa-tester.md',
+  'claude/agents/ui-verifier.md',
+  'claude/agents/linear-reporter.md',
+] as const;
+
+function claudeSubpath(templateRel: string): string {
+  return templateRel.replace(/^claude\//, '.claude/');
+}
+
 export type GenerateClaudeOptions = {
   includePlaywrightMcp: boolean;
   includeFigmaMcp: boolean;
@@ -114,6 +144,18 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
       content: buildClaudeSettingsJson(options),
     },
     ...buildPortalPageSkillFiles('claude', options.includeFigmaMcp),
+    ...CLAUDE_WORKFLOW_TEMPLATES.map((rel) => ({
+      path: claudeSubpath(rel),
+      content: readTemplate(rel),
+    })),
+    ...CLAUDE_COMMAND_TEMPLATES.map((rel) => ({
+      path: claudeSubpath(rel),
+      content: readTemplate(rel),
+    })),
+    ...CLAUDE_AGENT_TEMPLATES.map((rel) => ({
+      path: claudeSubpath(rel),
+      content: readTemplate(rel),
+    })),
   ];
 
   if (options.includePlaywrightMcp || options.includeFigmaMcp) {

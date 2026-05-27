@@ -10,20 +10,20 @@ test('setup assistant templates keep MCP replacement marker', () => {
   assert.match(claudeSetup, /\*\*PLAYWRIGHT_MCP_BLOCK\*\*/);
 });
 
-test('ui-check template for cursor replaces all placeholders with cursor paths', () => {
+test('ui-check template for cursor uses cursor skill and workflow paths', () => {
   const rendered = readUiCheckSkillTemplate('cursor');
 
   assert.match(rendered, /when \*\*Cursor\*\* is included in the installer run\./);
-  assert.match(rendered, /`\.cursor\/skills\/ai-testing\/SKILL\.md`/);
-  assert.doesNotMatch(rendered, /__[A-Z0-9_]+__/);
+  assert.match(rendered, /`\.cursor\/skills\/linear-workflow\/SKILL\.md`/);
+  assert.match(rendered, /UI check and verification/);
 });
 
-test('ui-check template for claude replaces all placeholders with claude paths', () => {
+test('ui-check template for claude uses claude workflow paths', () => {
   const rendered = readUiCheckSkillTemplate('claude');
 
   assert.match(rendered, /when \*\*Claude Code\*\* is included in the installer run\./);
-  assert.match(rendered, /`\.claude\/skills\/ai-testing\/SKILL\.md`/);
-  assert.doesNotMatch(rendered, /__[A-Z0-9_]+__/);
+  assert.match(rendered, /`\.claude\/workflows\/linear-workflow\.md`/);
+  assert.match(rendered, /UI check and verification/);
 });
 
 test('cursor legacy rules stub keeps links to rules directory and AGENTS index', () => {
@@ -32,4 +32,13 @@ test('cursor legacy rules stub keeps links to rules directory and AGENTS index',
   assert.match(cursorRules, /Primary project rules/);
   assert.match(cursorRules, /`\.cursor\/rules\/`/);
   assert.match(cursorRules, /`AGENTS\.md`/);
+  assert.match(cursorRules, /testing-flow\/SKILL\.md/);
+});
+
+test('AGENTS template lists core Claude agents', () => {
+  const agents = readTemplate('AGENTS.md');
+
+  assert.match(agents, /`qa-tester\.md`/);
+  assert.match(agents, /`ui-verifier\.md`/);
+  assert.match(agents, /`linear-reporter\.md`/);
 });

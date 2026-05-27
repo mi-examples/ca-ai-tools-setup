@@ -90,6 +90,10 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
       path: '.cursor/prompts/react-component-unit.md',
       content: readTemplate('cursor/prompts/react-component-unit.md'),
     },
+    {
+      path: '.cursor/prompts/form-prompt.md',
+      content: readTemplate('cursor/prompts/form-prompt.md'),
+    },
     ...buildCursorRuleFiles(options.includeFigmaMcp),
     ...buildPortalPageSkillFiles('cursor', options.includeFigmaMcp),
   ];

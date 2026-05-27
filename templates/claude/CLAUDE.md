@@ -1,42 +1,90 @@
-# Claude Code — project instructions
+# Claude Code Instructions
 
-This repository targets **Metric Insights Portal Page / Custom App** development (see **`pp-dev.config`**, **`@metricinsights/pp-dev`**). Treat **`setup-claude-assistant.md`** as the full bootstrap playbook (tools, Linear CLI, MCP). **`LINEAR_CLI.md`** documents **`linear-cli`** commands.
+This repository targets **Metric Insights Portal Page / Custom App**
+development (see `pp-dev.config` and `@metricinsights/pp-dev`). Treat
+`setup-claude-assistant.md` as the full bootstrap playbook and `LINEAR_CLI.md`
+as the `linear-cli` command reference.
 
-## Scope for Claude in this repo
+## Scope
 
-- Prefer **`pp-dev.config`** and **`package.json`** scripts for dev commands (`npm run dev`, `npx pp-dev`, Next.js: `npx pp-dev next` when applicable).
-- Local app URL is **`http://localhost:<port>`** (default **3000**; next free port if busy). Resolve port from config, server output, or the browser.
-- Authentication and API quirks belong in **`.dev-environment.md`** (personal; often gitignored). Do not invent secrets; follow that file for **`MI_ACCESS_TOKEN`**, session checks, and credentials layout.
+- Read `AGENTS.md` and `README.md` before non-trivial code changes.
+- Prefer `pp-dev.config` and `package.json` scripts for dev commands
+  (`npm run dev`, `npx pp-dev`, or `npx pp-dev next` when applicable).
+- Local app URL is `http://localhost:<port>`; default `3000`, then the next
+  free port if busy. Resolve the port from config, server output, or browser.
+- Authentication and API quirks belong in `.dev-environment.md` or `.env`.
+  Never invent or commit secrets.
+- Search before creating components, hooks, API modules, test docs, workflow
+  files, or agent files.
+- Do not revert user changes unless explicitly requested.
 
-## Claude Code settings
+## QA and Linear Routing
 
-- Project **`/.claude/settings.json`** is the shared **Claude Code** JSON config (permissions, hooks, `env`, etc.). Use **`/.claude/settings.local.json`** for personal overrides (typically gitignored). See [Claude Code settings](https://code.claude.com/docs/en/settings).
-- When this repo was bootstrapped **with** root **`.mcp.json`**, the generated **`.claude/settings.json`** includes **`enableAllProjectMcpServers`**, **`enabledMcpjsonServers`** (matching server keys such as **`playwright`** / **`figma`**), and **`permissions.allow`** patterns so those MCP tools are permitted—reload MCP in Claude Code after changes.
-- **Re-running `ca-ai-tools-setup`:** Without **`--force`**, an existing **`.claude/settings.json`** is **not** overwritten—extend it in place or merge new keys from the template after back-up.
+When the user references a Linear issue, task URL, issue key, or says
+`start working with task`, use only the issue from the current user message and
+read:
 
-## Skills
+`./.claude/workflows/linear-workflow.md`
 
-- Index: **`.claude/skills/README.md`** (mirrors **`.cursor/skills/`** where both assistants are bootstrapped).
-- **`.env` / credentials:** **`.cursor/rules/portal-env-credentials.mdc`**.
-- **State gates:** **`.cursor/rules/linear-task-gates.mdc`** — **`linear-cli i get <ISSUE_KEY>`** first; AI dev only from **`Waiting AI Development`**; AI testing only from **`Waiting AI Test`**.
-- **Dev flow:** **`.claude/skills/ai-development/SKILL.md`** (operator picks **full** greenfield vs **fixes** with the agent).
-- **Testing / UI evidence:** **`.claude/skills/ai-testing/SKILL.md`**; focused UI pass: **`.claude/skills/ui-check/SKILL.md`**.
+For a full QA run against a Linear issue, read and follow:
 
-## Agents
+`./.claude/workflows/testing-with-linear.md`
 
-- Read task-specific rules under **`.claude/agents/*.md`** when the task matches (design implementation, MCP-specific workflows, etc.).
-- **`AGENTS.md`** lists available agent files and short purposes—keep it aligned when you add or rename agents.
+For QA without Linear, read and follow:
 
-### Figma MCP
+`./.claude/workflows/testing-flow.md`
 
-If **`.claude/agents/figma-mcp.md`** exists, use it for Figma MCP design-to-code work instead of ad-hoc styling guesses.
+For quick UI checks, read and follow:
 
-If **`.claude/skills/figma-code-connect/SKILL.md`** exists, use it for Figma **Code Connect** (`.figma.ts` templates). Also follow **`.cursor/rules/figma-mcp.mdc`** when implementing from Figma.
+`./.claude/workflows/ui-check-simple.md`
 
-## Keeping this file current
+For publishing QA results to Linear, read and follow:
 
-This starter was produced by **`ca-ai-tools-setup`** when Claude was selected. **Customize it** with repo-specific conventions (test commands, branching, code owners, naming).
+`./.claude/workflows/linear-qa-report.md`
 
-- **First run:** You get this template at the repo root; extend it rather than duplicating long sections from **`setup-claude-assistant.md`** (link to that file instead).
-- **Re-running the installer:** Without **`--force`**, existing **`CLAUDE.md`** is **left unchanged** so local edits are preserved. To refresh from the latest tool template, back up your file, run with **`--force`**, or **manually merge** new paragraphs from the updated template.
-- **After setup:** When tooling or MCP choices change, update this file (and **`AGENTS.md`**) so Claude Code sees accurate project rules.
+## Slash Commands
+
+Use project commands from `./.claude/commands/` when available:
+
+- `/testing-with-linear <ISSUE_KEY_OR_URL>`
+- `/testing-flow <CONTEXT>`
+- `/ui-check <TARGET_OR_ISSUE>`
+- `/linear-report <ISSUE_KEY_OR_URL>`
+- `/start-working-with-task <ISSUE_KEY_OR_URL>`
+- `/test-documentation <CONTEXT>`
+
+## Specialized Agents
+
+Use agents from `./.claude/agents/` when a task benefits from a focused role:
+
+- `qa-tester` for test cases, execution, and bug documentation.
+- `ui-verifier` for browser UI checks and visual verification.
+- `linear-reporter` for publishing QA results to Linear.
+- `figma-mcp` for Figma MCP inspection and design-to-code guidance.
+
+`AGENTS.md` lists available agent files and short purposes. Keep it aligned
+when agent files are added, renamed, or removed.
+
+## Required Workflow Habits
+
+- Always read Linear comments before generating test cases. The latest
+  dev/product/review comment overrides older issue description text when they
+  conflict.
+- Test documentation lives in `test-documentation/<CONTEXT_KEY>/`.
+- Use abstract QA roles in docs: `Regular`, `Power`, `Admin`.
+- Actual role credentials come from `.env` variables:
+  `QA_USER_REGULAR`, `QA_PASS_REGULAR`, `QA_USER_POWER`, `QA_PASS_POWER`,
+  `QA_USER_ADMIN`, `QA_PASS_ADMIN`.
+- For browser automation or UI verification, read
+  `./.claude/workflows/playwright-mcp.md`.
+- For Figma implementation or visual matching, read
+  `./.claude/agents/figma-mcp.md`.
+
+## Claude Code Settings
+
+- Project `/.claude/settings.json` is the shared Claude Code JSON config
+  (permissions, hooks, `env`, etc.).
+- Use `/.claude/settings.local.json` for personal overrides.
+- Re-running `ca-ai-tools-setup` without `--force` does not overwrite an
+  existing `.claude/settings.json`; extend it in place or manually merge new
+  template keys.
