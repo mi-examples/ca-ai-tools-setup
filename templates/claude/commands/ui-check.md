@@ -12,7 +12,9 @@ Instructions:
 
 1. Inspect `$ARGUMENTS`.
 2. If it contains a Linear issue key or URL, read and follow
-   `./.claude/workflows/ui-check.md`.
+   `./.claude/workflows/testing-with-linear.md` (full QA) unless the user
+   explicitly asks for a quick check — then use
+   `./.claude/workflows/ui-check-simple.md`.
 3. If it does not contain a Linear issue, read and follow
    `./.claude/workflows/ui-check-simple.md`.
 4. Use Playwright MCP for browser verification.

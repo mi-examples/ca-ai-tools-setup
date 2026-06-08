@@ -180,7 +180,7 @@ export function printSummary(
 
   if (result.removedLegacy.length > 0) {
     printLine();
-    printLine('Removed legacy files (--force):');
+    printLine('Removed legacy files:');
 
     for (const file of result.removedLegacy) {
       printLine(`  - ${file}`);

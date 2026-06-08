@@ -1,14 +1,19 @@
 # Claude Code — skills mirror
 
-Canonical **Cursor** skills live under **`.cursor/skills/`**. The following are **copies** for Claude Code sessions that load **`.claude/skills/`** first:
+Canonical **Cursor** skills live under **`.cursor/skills/`**. The following are **copies or mirrors** for Claude Code sessions that load **`.claude/skills/`** first:
 
 - **`ai-development`** — Linear CLI + dev gate, greenfield pp-dev, Figma MCP, Form Builder / schema (MI backend), PR review, DoD + **`DOD-FULL.md`**.
-- **`ai-testing`** — Linear CLI + test gate, UI check (screenshots in comments), manual test-documentation format.
-- **`ui-check`** — focused UI verification against a Linear issue (see also **`.claude/workflows/ui-check.md`**).
-- **`figma-code-connect`** — Figma **Code Connect** template authoring (`.figma.ts`) via Figma MCP, plus reference docs under `references/`. _(Present only when Figma MCP was enabled at bootstrap.)_
+- **`figma-code-connect`** — Figma **Code Connect** template authoring (`.figma.ts`) via Figma MCP, plus reference docs under `references/`.
 
-**QA orchestration** for Claude Code is under **`.claude/workflows/`** (testing flow, Linear-driven QA, playwright-mcp, linear-qa-report, etc.). See **`CLAUDE.md`** for routing.
+### QA (use Cursor canonical skills or Claude workflows)
+
+| Purpose | Claude workflow | Cursor skill |
+|---------|-----------------|--------------|
+| Linear full QA | `./.claude/workflows/testing-with-linear.md` | `.cursor/skills/testing-with-linear/SKILL.md` |
+| QA without Linear | `./.claude/workflows/testing-flow.md` | `.cursor/skills/testing-flow/SKILL.md` |
+| Quick UI check | `./.claude/workflows/ui-check-simple.md` | `.cursor/skills/ui-check-simple/SKILL.md` |
+| Linear report | `./.claude/workflows/linear-qa-report.md` | `.cursor/skills/linear-report/SKILL.md` |
 
 **Rules** (Linear gates, CLI) live under **`.cursor/rules/*.mdc`** — Claude Code should still respect them when working in this repo.
 
-When you change a skill, update **both** `.cursor/skills/...` and `.claude/skills/...` (or matching workflows), or re-run the installer.
+When you change a QA skill, update **both** `.cursor/skills/...` and the matching `.claude/workflows/...` (or re-run `cp` from Cursor tree).

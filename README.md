@@ -13,7 +13,7 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 | `setup-cursor-assistant.md` | Cursor selected |
 | `.cursorrules`, `.cursorignore` | Cursor selected |
 | `.cursor/rules/*` (linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP) | Cursor and/or Claude |
-| `.cursor/skills/*` (ai-testing, ai-development + DOD-FULL, ui-check, README; figma-code-connect + references if Figma MCP) | Cursor selected |
+| `.cursor/skills/*` (ai-development + DOD-FULL, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-mcp, figma-implementation, form-builder; figma-code-connect + references if Figma MCP) | Cursor selected |
 | `.cursor/prompts/react-component-unit.md` | Cursor selected |
 | `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json` | Cursor + MCP option |
 | `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json` | Claude selected |
@@ -230,6 +230,7 @@ npm test
 
 - **Interactive MCP conflicts:** If any MCP server is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
 - Legacy metadata migration: old files **`.cursor/linear-cli-setup.json`** and **`.assistant-setup/linear-cli-setup.json`** are migrated to new names on update when possible; with **`--force`**, old legacy files are removed.
+- Obsolete QA flow cleanup (PP-3640): every re-run removes legacy **`ai-testing`** / **`ui-check`** skills and **`.claude/workflows/ui-check.md`** if they still exist from older bootstraps.
 - Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place. Root **`AGENTS.md`**, **`CLAUDE.md`** and **`.claude/settings.json`** (Claude only), and **`.cursorrules`** (Cursor only), follow the same rules as **`.dev-environment.md`**: created when missing, skipped if they already exist unless **`--force`**.
 - `.dev-environment.md` is generated as a personal local profile (including **Authentication**: `MI_ACCESS_TOKEN` for the dev proxy, `/data/page/index/auth/info` smoke check on localhost, session cookies); keep it up to date and add it to `.gitignore`. Store **`MI_USERNAME` / `MI_PASSWORD`** only in **`.mi-credentials.local.env`** (gitignored), never in `.dev-environment.md`.
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.

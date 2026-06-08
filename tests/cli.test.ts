@@ -48,7 +48,8 @@ test('cli --yes with cursor writes default Cursor setup and Playwright MCP', () 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.ok(fs.existsSync(path.join(targetDir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(targetDir, '.cursor/mcp.json')));
-  assert.ok(fs.existsSync(path.join(targetDir, '.cursor/skills/ui-check/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(targetDir, '.cursor/skills/testing-with-linear/SKILL.md')));
+  assert.equal(fs.existsSync(path.join(targetDir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(targetDir, '.mcp.json')), false);
 
   const cursorMcp = JSON.parse(fs.readFileSync(path.join(targetDir, '.cursor/mcp.json'), 'utf8')) as {

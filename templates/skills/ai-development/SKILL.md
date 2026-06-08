@@ -5,7 +5,7 @@ description: Portal Page AI development—Linear CLI + gates, implement from Lin
 
 # AI development (Portal Page / Custom App)
 
-Single combined skill for **development** work. **Testing** lives in **`.cursor/skills/ai-testing/SKILL.md`**.
+Single combined skill for **development** work. **QA/testing** (`Waiting AI Test`) lives in **`.cursor/skills/testing-with-linear/SKILL.md`** and **`.cursor/skills/testing-flow/SKILL.md`** — see **`.cursor/rules/linear-task-gates.mdc`** for routing.
 
 ---
 
@@ -14,9 +14,8 @@ Single combined skill for **development** work. **Testing** lives in **`.cursor/
 ### Mandatory: issue state before work
 
 1. **`linear-cli i get <ISSUE_KEY> -o json`** — inspect **`state.name`**.
-2. **AI testing** path: proceed **only** if state is **`Waiting AI Test`** — full playbook **`.cursor/skills/ai-testing/SKILL.md`** (see **`.cursor/rules/linear-task-gates.mdc`**).
-3. **AI development** path (implement from Figma + stories + AC): proceed **only** if state is **`Waiting AI Development`** (or the name your team configured — see **`.cursor/rules/linear-task-gates.mdc`**). After the gate, the **operator** picks **full** (greenfield) vs **fixes** with the agent — **[AI development from Linear](#ai-development-from-linear)** below.
-4. Wrong state → **stop**, report, ask for Linear update or explicit override.
+2. **AI development** path (implement from Figma + stories + AC): proceed **only** if state is **`Waiting AI Development`** (or the name your team configured — see **`.cursor/rules/linear-task-gates.mdc`**). After the gate, the **operator** picks **full** (greenfield) vs **fixes** with the agent — **[AI development from Linear](#ai-development-from-linear)** below.
+3. Wrong state → **stop**, report, ask for Linear update or explicit override. If the issue is in **`Waiting AI Test`**, follow **`.cursor/rules/linear-task-gates.mdc`** and the testing skills — not this dev playbook.
 
 ### Local app
 
@@ -140,7 +139,7 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 ### Implementation scope
 
 - **Focus:** deliver the **React / Vite** Portal Page behavior in **`src/`** (patterns in **`.cursorrules`** / **`.cursor/rules/`**).
-- **Not the primary goal here:** standing up full automated test suites, DoD-level QA matrices, or cross-browser matrices **unless** the issue explicitly demands them. For test-heavy work, use **`.cursor/skills/ai-testing/SKILL.md`** and the **Waiting AI Test** gate instead.
+- **Not the primary goal here:** standing up full automated test suites, DoD-level QA matrices, or cross-browser matrices **unless** the issue explicitly demands them. For test-heavy / QA-only work, use **`.cursor/skills/testing-with-linear/SKILL.md`** and the **Waiting AI Test** gate instead.
 
 ### Handoff
 
@@ -281,13 +280,13 @@ Use only in a **full Metric Insights** codebase that has `backend/app/Data/...` 
 
 ### If the user said “start working with task” (frontend-only repo)
 
-If the user invokes **`cursor` / `claude start working with task <Task link>`** and this repo is **frontend-only**, follow **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** + **`.cursor/skills/ai-testing/SKILL.md`**: resolve **`<ISSUE_KEY>`** from the message, load that issue, `npm run dev`, work under `src/`, update Linear for **that** key. Ignore Form Builder for implementation unless the issue explicitly points to a backend repo.
+If the user invokes **`cursor` / `claude start working with task <Task link>`** and this repo is **frontend-only**, follow **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** and route by gate — this skill for **`Waiting AI Development`**, **`testing-with-linear`** for **`Waiting AI Test`** (see **`.cursor/rules/linear-task-gates.mdc`**). Ignore Form Builder unless the issue explicitly points to a backend repo.
 
 ---
 
 ## Schema discovery (MI backend)
 
-> **Portal Page / custom app repos:** tasks are **frontend** in **`src/`**. Use **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** and **`.cursor/skills/ai-testing/SKILL.md`**. There is **no** `backend/` database or migrations in this workflow unless the user is in a different repository.
+> **Portal Page / custom app repos:** tasks are **frontend** in **`src/`**. Use **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** and this skill for development; **`testing-with-linear`** for QA. There is **no** `backend/` database or migrations in this workflow unless the user is in a different repository.
 
 ### Task context (from the user message)
 
@@ -307,7 +306,7 @@ Before creating a migration:
 
 ### If the user said “start working with task” (Portal-only clone)
 
-For **`cursor` / `claude start working with task <Task link>`** in a **Portal-only** clone, follow **Linear CLI workflow** + **ai-testing**: use **`<ISSUE_KEY>`** from the message, load the issue, `npm run dev`, verify/change UI under `src/`, update Linear. Do **not** run schema or migration steps unless the **fetched** issue requires a **backend** repo.
+For **`cursor` / `claude start working with task <Task link>`** in a **Portal-only** clone, follow **Linear CLI workflow** and route by gate — this skill for implementation (**`Waiting AI Development`**), **`testing-with-linear`** for QA (**`Waiting AI Test`**). Do **not** run schema or migration steps unless the **fetched** issue requires a **backend** repo.
 
 ---
 
@@ -357,7 +356,7 @@ This section is the **entry point**. The **full, section-by-section checklist** 
 ### How agents should use it
 
 1. When an issue asks for **“DoD”** or **release readiness**, open **`DOD-FULL.md`** and walk the relevant sections (not every bullet applies to every change).
-2. Prefer **evidence** (PR link, CI green, screenshots in Linear **comments** per **`.cursor/skills/ai-testing/SKILL.md`**) over ticking boxes blindly.
+2. Prefer **evidence** (PR link, CI green, screenshots in Linear **comments** per **`.cursor/skills/linear-report/SKILL.md`**) over ticking boxes blindly.
 3. **Living document:** if team policy changes, update **`DOD-FULL.md`** and keep this section as a short pointer.
 
 ### Quick map (see DOD-FULL for detail)
@@ -378,4 +377,4 @@ This section is the **entry point**. The **full, section-by-section checklist** 
 ### Related
 
 - **PR process:** **[Portal Page — code review](#portal-page--code-review)** above.
-- **Linear testing flow:** **`.cursor/skills/ai-testing/SKILL.md`**
+- **Linear QA flow (separate skill):** **`.cursor/skills/testing-with-linear/SKILL.md`**

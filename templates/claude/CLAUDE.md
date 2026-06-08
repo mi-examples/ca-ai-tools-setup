@@ -20,6 +20,10 @@ as the `linear-cli` command reference.
 
 ## QA and Linear Routing
 
+Before Linear-driven **testing**, check **`.cursor/rules/linear-task-gates.mdc`**
+(`Waiting AI Test`). Before **development**, check the same file
+(`Waiting AI Development`).
+
 When the user references a Linear issue, task URL, issue key, or says
 `start working with task`, use only the issue from the current user message and
 read:

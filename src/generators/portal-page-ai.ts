@@ -1,4 +1,4 @@
-import { readTemplate, readUiCheckSkillTemplate } from '../templates.js';
+import { readTemplate } from '../templates.js';
 import type { GeneratedFile } from './types.js';
 
 const FIGMA_CODE_CONNECT_TEMPLATES = [
@@ -21,7 +21,6 @@ const PORTAL_PAGE_RULES = [
 
 /** Shared skills mirrored under `.cursor/skills/` and `.claude/skills/`. */
 const SHARED_PORTAL_SKILLS = [
-  'skills/ai-testing/SKILL.md',
   'skills/ai-development/SKILL.md',
   'skills/ai-development/DOD-FULL.md',
 ] as const;
@@ -50,16 +49,18 @@ function buildSkillFilesForAssistant(
   includeFigmaMcp: boolean,
 ): GeneratedFile[] {
   const skillsRoot = assistant === 'cursor' ? '.cursor/skills' : '.claude/skills';
-  const readmeTemplate = assistant === 'cursor' ? 'cursor/skills/README.md' : 'claude/skills/README.md';
 
-  const files: GeneratedFile[] = [
-    { path: `${skillsRoot}/README.md`, content: readTemplate(readmeTemplate) },
-    ...SHARED_PORTAL_SKILLS.map((rel) => ({
-      path: `${skillsRoot}/${skillTemplateToOutputPath(rel)}`,
-      content: readTemplate(rel),
-    })),
-    { path: `${skillsRoot}/ui-check/SKILL.md`, content: readUiCheckSkillTemplate(assistant) },
-  ];
+  const files: GeneratedFile[] = SHARED_PORTAL_SKILLS.map((rel) => ({
+    path: `${skillsRoot}/${skillTemplateToOutputPath(rel)}`,
+    content: readTemplate(rel),
+  }));
+
+  if (assistant === 'claude') {
+    files.unshift({
+      path: `${skillsRoot}/README.md`,
+      content: readTemplate('claude/skills/README.md'),
+    });
+  }
 
   if (assistant === 'cursor') {
     for (const rel of CURSOR_ONLY_SKILLS) {

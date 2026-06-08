@@ -28,5 +28,6 @@ Read **`state.name`** from the response.
 
 ## Cross-reference
 
-- Shared Linear CLI steps: **`.cursor/skills/ai-development/SKILL.md`** (and mirrored at the top of **`.cursor/skills/ai-testing/SKILL.md`**).
-- AI testing steps after the gate: **`.cursor/skills/ai-testing/SKILL.md`**.
+- Shared Linear CLI steps: **`.cursor/skills/linear-workflow/SKILL.md`** (also at the top of **`.cursor/skills/ai-development/SKILL.md`**).
+- AI testing steps after the gate: **`.cursor/skills/testing-with-linear/SKILL.md`** (full QA: **`testing-flow`** → **`linear-report`**).
+- Quick UI check without full QA: **`.cursor/skills/ui-check-simple/SKILL.md`**.

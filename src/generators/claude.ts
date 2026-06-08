@@ -8,7 +8,6 @@ const CLAUDE_WORKFLOW_TEMPLATES = [
   'claude/workflows/testing-with-linear.md',
   'claude/workflows/testing-flow.md',
   'claude/workflows/ui-check-simple.md',
-  'claude/workflows/ui-check.md',
   'claude/workflows/linear-qa-report.md',
   'claude/workflows/playwright-mcp.md',
   'claude/workflows/test-documentation.md',
@@ -113,7 +112,8 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
       '`.mcp.json` without refreshing settings.',
     '- If the file was removed, recreate it and merge with any existing `mcpServers` keys.',
     '- For **Figma MCP**, export **`FIGMA_API_KEY`** before server start, then reload MCP in Claude Code.',
-    '- If Figma MCP is enabled, use **`.claude/agents/figma-mcp.md`**, **`.claude/skills/figma-code-connect/SKILL.md`**, and **`.cursor/rules/figma-mcp.mdc`**.',
+    '- If Figma MCP is enabled, use **`.claude/agents/figma-mcp.md`**, ' +
+      '**`.claude/skills/figma-code-connect/SKILL.md`**, and **`.cursor/rules/figma-mcp.mdc`**.',
     '- After changes in `.mcp.json`, reload MCP and verify selected tools are available.',
     '',
     '```json',

@@ -35,21 +35,14 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/README.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/react-component-unit.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursorignore')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ai-development/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')));
-  assert.ok(
-    fs.readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8').includes('UI check and verification'),
-  );
-  assert.ok(
-    fs
-      .readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.cursor/skills/linear-workflow/SKILL.md`'),
-  );
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-flow/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/README.md')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/form-prompt.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
@@ -85,7 +78,7 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
   });
 
   assert.ok(second.skipped.includes('.cursorrules'));
-  assert.ok(second.skipped.includes('.cursor/skills/ui-check/SKILL.md'));
+  assert.ok(second.skipped.includes('.cursor/skills/testing-with-linear/SKILL.md'));
   assert.ok(second.skipped.includes('AGENTS.md'));
 
   const forced = generateSetup({
@@ -97,7 +90,7 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
   });
 
   assert.ok(forced.overwritten.includes('.cursorrules'));
-  assert.ok(forced.overwritten.includes('.cursor/skills/ui-check/SKILL.md'));
+  assert.ok(forced.overwritten.includes('.cursor/skills/testing-with-linear/SKILL.md'));
   assert.ok(forced.overwritten.includes('AGENTS.md'));
 });
 
@@ -175,17 +168,13 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(md.includes('bootstrapped **with**'));
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
   assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ai-development/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/README.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/workflows/ui-check.md')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
-  assert.ok(
-    fs
-      .readFileSync(path.join(dir, '.claude/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.claude/workflows/linear-workflow.md`'),
-  );
   assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/testing-flow.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/agents/qa-tester.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/commands/testing-flow.md')));
@@ -262,7 +251,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(second.skipped.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
   assert.ok(second.skipped.includes('LINEAR_CLI.md'));
-  assert.ok(second.skipped.includes('.claude/skills/ui-check/SKILL.md'));
+  assert.ok(second.skipped.includes('.claude/skills/ai-development/SKILL.md'));
 
   const forced = generateSetup({
     targetDir: dir,
@@ -276,7 +265,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(forced.overwritten.includes('CLAUDE.md'));
   assert.ok(forced.overwritten.includes('.claude/settings.json'));
   assert.ok(forced.overwritten.includes('AGENTS.md'));
-  assert.ok(forced.overwritten.includes('.claude/skills/ui-check/SKILL.md'));
+  assert.ok(forced.overwritten.includes('.claude/skills/ai-development/SKILL.md'));
 });
 
 test('generateSetup writes both MCP files when Cursor and Claude selected and MCP enabled', () => {
@@ -309,18 +298,10 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
     generated: true,
   });
 
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')));
-  assert.ok(
-    fs
-      .readFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.cursor/skills/linear-workflow/SKILL.md`'),
-  );
-  assert.ok(
-    fs
-      .readFileSync(path.join(dir, '.claude/skills/ui-check/SKILL.md'), 'utf8')
-      .includes('`.claude/workflows/linear-workflow.md`'),
-  );
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/testing-with-linear.md')));
 });
 
 test('generateSetup writes figma MCP only when requested', () => {
@@ -635,6 +616,38 @@ test('generateSetup migrates legacy setup metadata files to new names', () => {
     result.migratedLegacy.includes('.assistant-setup/linear-cli-setup.json -> .assistant-setup/ca-ai-tools-setup.json'),
   );
   assert.ok(result.migratedLegacy.includes('.cursor/linear-cli-setup.json -> .cursor/ca-ai-tools-setup.json'));
+});
+
+test('generateSetup removes obsolete legacy QA skills on re-run', () => {
+  const dir = makeTempDir();
+
+  fs.mkdirSync(path.join(dir, '.cursor/skills/ai-testing'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.cursor/skills/ui-check'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.claude/skills/ai-testing'), { recursive: true });
+  fs.mkdirSync(path.join(dir, '.claude/workflows'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md'), '# legacy\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md'), '# legacy\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md'), '# legacy\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.claude/workflows/ui-check.md'), '# legacy\n', 'utf8');
+  fs.writeFileSync(path.join(dir, '.cursor/skills/README.md'), '# legacy\n', 'utf8');
+
+  const result = generateSetup({
+    targetDir: dir,
+    assistants: ['cursor', 'claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/workflows/ui-check.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/README.md')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
+  assert.ok(result.removedLegacy.includes('.cursor/skills/ai-testing/SKILL.md'));
+  assert.ok(result.removedLegacy.includes('.cursor/skills/ui-check/SKILL.md'));
+  assert.ok(result.removedLegacy.includes('.claude/workflows/ui-check.md'));
 });
 
 test('generateSetup removes legacy metadata files with --force', () => {

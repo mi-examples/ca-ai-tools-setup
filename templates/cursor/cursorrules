@@ -17,17 +17,17 @@ Full onboarding: **`setup-cursor-assistant.md`**.
 - **`.env` / credentials:** **`.cursor/rules/portal-env-credentials.mdc`**.
 - **State gates:** **`.cursor/rules/linear-task-gates.mdc`** — **`linear-cli i get <ISSUE_KEY>`** first; AI dev only from **`Waiting AI Development`**; AI testing only from **`Waiting AI Test`**.
 - **Dev flow:** **`linear-cli i get`** (and **`linear-cli i start`** if your team uses it), then **operator** chooses **full** (greenfield) vs **fixes** with the agent — **`.cursor/skills/ai-development/SKILL.md`**.
-- **Testing / UI evidence:** **`.cursor/skills/ai-testing/SKILL.md`**.
+## QA skills (canonical)
 
-## QA skills
+- **Linear-driven full QA** (`Waiting AI Test` gate): `.cursor/skills/testing-with-linear/SKILL.md`.
+- **Full QA flow** (Linear optional): `.cursor/skills/testing-flow/SKILL.md`.
+- **Quick UI check** (no Linear): `.cursor/skills/ui-check-simple/SKILL.md`.
+- **Publish QA results:** `.cursor/skills/linear-report/SKILL.md`.
+- **Linear CLI:** `.cursor/skills/linear-workflow/SKILL.md`.
+- **TC / BUG format:** `.cursor/skills/test-documentation/SKILL.md`.
+- **Playwright MCP:** `.cursor/skills/playwright-mcp/SKILL.md`.
 
-- **Full QA flow:** `.cursor/skills/testing-flow/SKILL.md`.
-- **Linear-driven QA:** `.cursor/skills/testing-with-linear/SKILL.md`.
-- **Quick UI check:** `.cursor/skills/ui-check-simple/SKILL.md`.
-- **Linear QA report:** `.cursor/skills/linear-report/SKILL.md`.
-- **Existing branch helpers:** `.cursor/skills/linear-workflow/SKILL.md` and
-  `.cursor/skills/test-documentation/SKILL.md` stay available for legacy QA
-  flows.
+Deprecated redirects (do not follow): `ai-testing`, `ui-check` — route per table in those stubs.
 
 ## Cursor-specific discovery
 

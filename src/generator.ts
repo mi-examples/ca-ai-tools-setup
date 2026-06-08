@@ -73,6 +73,16 @@ const LEGACY_FILE_MAPPINGS = [
   },
 ] as const;
 
+/** Obsolete setup artifacts removed on every re-run (PP-3640 legacy AI QA flow). */
+export const REMOVABLE_LEGACY_SETUP_PATHS = [
+  '.cursor/skills/ai-testing/SKILL.md',
+  '.cursor/skills/ui-check/SKILL.md',
+  '.claude/skills/ai-testing/SKILL.md',
+  '.claude/skills/ui-check/SKILL.md',
+  '.claude/workflows/ui-check.md',
+  '.cursor/skills/README.md',
+] as const;
+
 function shouldAlwaysOverwrite(filePath: string): boolean {
   return SETUP_ASSISTANT_FILES.has(filePath);
 }
@@ -182,6 +192,26 @@ export function getGeneratedFiles(
   });
 
   return files;
+}
+
+function removeObsoleteSetupFiles(
+  targetDir: string,
+  options: Pick<GenerateOptions, 'dryRun'>,
+  result: GenerateResult,
+): void {
+  for (const relativePath of REMOVABLE_LEGACY_SETUP_PATHS) {
+    const destination = path.join(targetDir, relativePath);
+
+    if (!fs.existsSync(destination)) {
+      continue;
+    }
+
+    if (!options.dryRun) {
+      fs.rmSync(destination);
+    }
+
+    result.removedLegacy.push(relativePath);
+  }
 }
 
 function migrateLegacyFiles(
@@ -340,6 +370,7 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
   };
 
   migrateLegacyFiles(options.targetDir, { force: options.force, dryRun: options.dryRun }, result);
+  removeObsoleteSetupFiles(options.targetDir, { dryRun: options.dryRun }, result);
 
   for (const file of files) {
     writeOneFile(

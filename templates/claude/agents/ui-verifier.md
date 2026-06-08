@@ -9,8 +9,8 @@ Use this agent for UI verification with or without Linear.
 
 ## Required Workflows
 
-- `./.claude/workflows/ui-check.md` for Linear-backed UI checks
-- `./.claude/workflows/ui-check-simple.md` for local or ad-hoc UI checks
+- `./.claude/workflows/testing-with-linear.md` for Linear-backed full QA
+- `./.claude/workflows/ui-check-simple.md` for quick or ad-hoc UI checks
 - `./.claude/workflows/playwright-mcp.md` for browser automation
 - `./.claude/agents/figma-mcp.md` when Figma is provided
 

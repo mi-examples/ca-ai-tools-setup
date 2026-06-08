@@ -4,16 +4,28 @@ This directory contains Metric Insights guidance for using Linear CLI inside Cur
 
 ## Skills
 
+### Development
+
 - `.cursor/skills/ai-development/SKILL.md` — development (Linear dev gate, greenfield pp-dev, Figma, PR, DoD).
-- `.cursor/skills/ai-testing/SKILL.md` — testing (Linear test gate, UI check, test-documentation format).
-- `.cursor/skills/figma-code-connect/SKILL.md` — Figma **Code Connect** template authoring (`.figma.ts`). Requires Figma MCP (see `.mcp.json` / `.cursor/mcp.json`).
+
+### QA (canonical modular stack)
+
+- `.cursor/skills/testing-with-linear/SKILL.md` — **primary** Linear QA entry (`Waiting AI Test` gate).
 - `.cursor/skills/testing-flow/SKILL.md` — full QA flow (Linear optional).
-- `.cursor/skills/testing-with-linear/SKILL.md` — Linear-driven QA orchestration.
 - `.cursor/skills/ui-check-simple/SKILL.md` — quick UI check without Linear.
 - `.cursor/skills/linear-report/SKILL.md` — publish QA results to Linear.
+- `.cursor/skills/linear-workflow/SKILL.md` — Linear CLI (get, list, start, comment).
+- `.cursor/skills/test-documentation/SKILL.md` — TC / BUG format (`@metricinsights/qa-ai-rules`).
 - `.cursor/skills/playwright-mcp/SKILL.md` — Playwright MCP tools reference.
-- `.cursor/skills/linear-workflow/SKILL.md` — branch QA/Linear workflow helper retained for existing flows.
-- `.cursor/skills/test-documentation/SKILL.md` — branch manual TC/bug documentation helper retained for existing flows.
+
+### Other
+
+- `.cursor/skills/figma-code-connect/SKILL.md` — Figma **Code Connect** template authoring (`.figma.ts`). Requires Figma MCP (see `.mcp.json` / `.cursor/mcp.json`).
+
+### Deprecated (redirect only)
+
+- `.cursor/skills/ai-testing/SKILL.md` — stub → use **`testing-with-linear`** / **`testing-flow`**.
+- `.cursor/skills/ui-check/SKILL.md` — stub → use **`testing-with-linear`** / **`ui-check-simple`**.
 
 ## Files
 

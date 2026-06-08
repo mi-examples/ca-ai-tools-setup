@@ -10,10 +10,3 @@ export function readTemplate(relativePath: string): string {
 
   return fs.readFileSync(fullPath, 'utf8');
 }
-
-/** Renders `templates/skills/ui-check/SKILL.{cursor,claude}.md` for the target assistant. */
-export function readUiCheckSkillTemplate(forAssistant: 'cursor' | 'claude'): string {
-  const variant = forAssistant === 'cursor' ? 'cursor' : 'claude';
-
-  return readTemplate(`skills/ui-check/SKILL.${variant}.md`);
-}

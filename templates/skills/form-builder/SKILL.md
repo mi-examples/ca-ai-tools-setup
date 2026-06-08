@@ -37,4 +37,4 @@ Use this skill only in a **full Metric Insights** codebase that has `backend/app
 
 ## If the user said “start working with task”
 
-If the user invokes **`cursor` / `claude start working with task <Task link>`** and this repo is **frontend-only**, follow **linear-workflow** + **ui-check** skills: resolve **`<ISSUE_KEY>`** from the message, load that issue, `npm run dev`, work under `src/`, update Linear for **that** key. Ignore this Form Builder skill for implementation unless the issue explicitly points to a backend repo.
+If the user invokes **`cursor` / `claude start working with task <Task link>`** and this repo is **frontend-only**, follow **linear-workflow** and route by gate: **`ai-development`** for **`Waiting AI Development`**, **`testing-with-linear`** for **`Waiting AI Test`**. Ignore this Form Builder skill unless the issue explicitly points to a backend repo.
