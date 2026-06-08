@@ -644,10 +644,17 @@ test('generateSetup removes obsolete legacy QA skills on re-run', () => {
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/workflows/ui-check.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/README.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills')));
   assert.ok(result.removedLegacy.includes('.cursor/skills/ai-testing/SKILL.md'));
   assert.ok(result.removedLegacy.includes('.cursor/skills/ui-check/SKILL.md'));
   assert.ok(result.removedLegacy.includes('.claude/workflows/ui-check.md'));
+  assert.ok(result.removedLegacy.includes('.cursor/skills/ai-testing'));
+  assert.ok(result.removedLegacy.includes('.cursor/skills/ui-check'));
+  assert.ok(result.removedLegacy.includes('.claude/skills/ai-testing'));
 });
 
 test('generateSetup removes legacy metadata files with --force', () => {

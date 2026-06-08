@@ -194,6 +194,37 @@ export function getGeneratedFiles(
   return files;
 }
 
+function removeEmptyParentDirs(targetDir: string, filePath: string, result: GenerateResult): void {
+  const targetRoot = path.resolve(targetDir);
+  let dir = path.dirname(path.resolve(filePath));
+
+  while (true) {
+    const rel = path.relative(targetRoot, dir);
+
+    if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {
+      break;
+    }
+
+    let entries: string[];
+
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      break;
+    }
+
+    if (entries.length > 0) {
+      break;
+    }
+
+    const relDir = rel.split(path.sep).join('/');
+
+    fs.rmdirSync(dir);
+    result.removedLegacy.push(relDir);
+    dir = path.dirname(dir);
+  }
+}
+
 function removeObsoleteSetupFiles(
   targetDir: string,
   options: Pick<GenerateOptions, 'dryRun'>,
@@ -208,6 +239,7 @@ function removeObsoleteSetupFiles(
 
     if (!options.dryRun) {
       fs.rmSync(destination);
+      removeEmptyParentDirs(targetDir, destination, result);
     }
 
     result.removedLegacy.push(relativePath);

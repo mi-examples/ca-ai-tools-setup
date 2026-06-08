@@ -127,9 +127,13 @@ export function isNpmExecArgv(argv: readonly string[]): boolean {
  * When Node refuses to spawn `.cmd` shims directly (EINVAL), run via `npm exec` with
  * `--package=` so `@scope` never appears as a bare cmd token.
  */
-export function buildWindowsNpmExecArgv(packageName: string, forwardArgs: string[]): string[] {
+/** argv for `npm exec --package=<name> -- <cli> …` — avoids bare `@scope/pkg` tokens (cmd on Windows, sh on macOS). */
+export function buildNpmExecArgv(packageName: string, forwardArgs: string[]): string[] {
   return ['npm', 'exec', '--yes', `--package=${packageName}`, '--', QA_AI_RULES_CLI, ...forwardArgs];
 }
+
+/** @deprecated Use {@link buildNpmExecArgv}. */
+export const buildWindowsNpmExecArgv = buildNpmExecArgv;
 
 /** Convert `npx --yes <pkg> …` argv into `npm exec --package=<pkg> -- qa-ai-rules …`. */
 export function npxArgvToNpmExecArgv(argv: readonly string[]): string[] | null {
@@ -137,7 +141,7 @@ export function npxArgvToNpmExecArgv(argv: readonly string[]): string[] | null {
     return null;
   }
 
-  return buildWindowsNpmExecArgv(argv[2], argv.slice(3));
+  return buildNpmExecArgv(argv[2], argv.slice(3));
 }
 
 export type SpawnPackageArgvOptions = {
@@ -386,17 +390,9 @@ export function buildPackageRunInvocation(
     };
   }
 
-  if (process.platform === 'win32') {
-    return {
-      runner,
-      argv: buildWindowsNpmExecArgv(packageName, forwardArgs),
-      label: 'npm exec',
-    };
-  }
-
   return {
     runner,
-    argv: ['npx', '--yes', packageName, ...forwardArgs],
-    label: 'npx',
+    argv: buildNpmExecArgv(packageName, forwardArgs),
+    label: 'npm exec',
   };
 }

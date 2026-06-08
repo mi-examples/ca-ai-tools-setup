@@ -57,9 +57,7 @@ async function run(): Promise<void> {
         qaAiRulesHook = 'skipped-no-package-json';
         console.warn(
           `[ca-ai-tools-setup] Skipped ${QA_AI_RULES_PACKAGE}: add package.json to the target repo, then e.g.:\n` +
-            (process.platform === 'win32'
-              ? `  npm exec --yes --package=${QA_AI_RULES_PACKAGE} -- qa-ai-rules init\n`
-              : `  npx --yes ${QA_AI_RULES_PACKAGE} init\n`) +
+            `  npm exec --yes --package=${QA_AI_RULES_PACKAGE} -- qa-ai-rules init\n` +
             `  pnpm dlx ${QA_AI_RULES_PACKAGE} init\n` +
             `  yarn dlx ${QA_AI_RULES_PACKAGE} init\n` +
             `  bunx ${QA_AI_RULES_PACKAGE} init`,
