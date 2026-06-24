@@ -57,7 +57,7 @@ The returned `assetUrl` is used inline in the comment.
 Write the comment body to a **UTF-8** markdown file, then post:
 
 ```bash
-cat /tmp/linear-comment.md | linear-cli i comment <ISSUE_KEY> --body -
+linear-cli i comment <ISSUE_KEY> --body - < /tmp/linear-comment.md
 ```
 
 **Unicode (status icons):** On Windows, do not pipe through PowerShell, cmd, or `cat … | linear-cli` — encoding breaks and icons become `???`. Use a UTF-8 script or stdin redirection instead.
