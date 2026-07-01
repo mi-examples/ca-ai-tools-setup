@@ -23,6 +23,7 @@ const CLAUDE_COMMAND_TEMPLATES = [
 ] as const;
 
 const CLAUDE_AGENT_TEMPLATES = [
+  'claude/agents/code-style.md',
   'claude/agents/qa-tester.md',
   'claude/agents/ui-verifier.md',
   'claude/agents/linear-reporter.md',

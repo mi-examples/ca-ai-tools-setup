@@ -1,0 +1,115 @@
+---
+description: Portal Page — component naming, SCSS modules, BEM, app context, constants, index.html globals
+globs:
+alwaysApply: true
+---
+
+# Portal Page code style
+
+Use when creating or editing **React + Vite + pp-dev** Portal Page / Custom App code. Mirror for Claude: **`.claude/agents/code-style.md`**.
+
+## Components and files
+
+- **Component filenames** start with a **lowercase** letter — **camelCase**, not PascalCase.
+  - ✅ `headerMain.tsx` · ❌ `HeaderMain.tsx`
+- **One feature per folder** under `src/components/<feature>/` (kebab-case folder names are fine; keep the **`.tsx` basename camelCase**).
+- **Default export** for the main component; name the symbol in **PascalCase** inside the file (`const HeaderMain = () => …`).
+- **Search before creating** — extend existing components/hooks/helpers when possible.
+
+## Styles (SCSS modules + BEM)
+
+- **Only `.scss`** — no plain `.css` for component/layout styles.
+- **CSS Modules only** — co-locate `<name>.module.scss` next to the component (e.g. `headerMain.module.scss`).
+- Import as `styles` and reference classes via the module object:
+
+```tsx
+import styles from "./headerMain.module.scss";
+
+<div className={styles.headerMain}>
+  <span className={styles.headerMain__title} />
+</div>
+```
+
+- **BEM in the module** — block `block`, element `block__element`, modifier `block--modifier`:
+
+```scss
+.headerMain {
+  &__title { … }
+  &--compact { … }
+}
+```
+
+- **Modifiers** in TSX when needed: `clsx(styles.headerMain, { [styles["headerMain--compact"]]: isCompact })`.
+- **Shared tokens** — prefer variables/mixins from `src/assets/styles/_variables.scss` and `_mixins.scss`; avoid hardcoded hex when a token exists.
+- **Do not** use global class strings for component UI unless matching an existing legacy pattern in the same file.
+
+## App shell (`src/`)
+
+Required layout for app-wide state:
+
+| File | Role |
+|------|------|
+| **`app-context.ts`** | `createContext`, `AppContextProps`, `useAppContext` |
+| **`app-provider.tsx`** | Provider component; holds React state and wraps `<App />` in `main.tsx` |
+| **`constants.ts`** | Typed **`PP_VARIABLES`** (from `window`) and **`PP_CONSTANTS`** (in-repo constants) |
+
+### `constants.ts` pattern
+
+```ts
+export interface PPVariables {
+  WELCOME_MESSAGE: string;
+  // …keys injected via index.html window.PP_VARIABLES
+}
+
+declare global {
+  interface Window {
+    PP_VARIABLES: PPVariables;
+  }
+}
+
+export const PP_VARIABLES: PPVariables =
+  typeof window !== "undefined" && typeof window.PP_VARIABLES === "object"
+    ? (window.PP_VARIABLES as PPVariables)
+    : ({} as PPVariables);
+
+export interface PPConstants {
+  ANNOUNCEMENT_CLOSED_STORAGE_KEY: string;
+}
+
+export const PP_CONSTANTS: PPConstants = {
+  ANNOUNCEMENT_CLOSED_STORAGE_KEY: "PPAnnouncementClosed",
+};
+```
+
+- **`PP_VARIABLES`** — deployment / MI-injected config (read-only at runtime from `window`).
+- **`PP_CONSTANTS`** — static keys and values that belong in source control.
+- Extend **`PPVariables`** when adding new `window.PP_VARIABLES` keys; keep types in sync with **`index.html`**.
+
+## `index.html` globals
+
+1. **Favicon** in `<head>`:
+
+```html
+<link rel="shortcut icon" type="image/x-icon" sizes="any" href="/img/favicon/favicon.ico">
+```
+
+2. **`window.PP_VARIABLES`** — inline script **before `</html>`** (after `</body>` is acceptable if the repo already uses that pattern; prefer immediately before `</html>` in new projects):
+
+```html
+<script>
+  window.PP_VARIABLES = {
+    WELCOME_MESSAGE: "[Welcome message]",
+    // …all keys typed in constants.ts
+  };
+</script>
+</html>
+```
+
+- Use MI placeholder tokens (`[Welcome message]`, `[Logo]`, etc.) in the template; do not commit instance-specific values.
+- **`FAVICON`** may still appear in `PP_VARIABLES` for runtime overrides; the `<link>` above is the static default.
+
+## General habits
+
+- TypeScript for app code; explicit types on public APIs and context shapes.
+- Path alias **`@/`** → `src/` for imports outside the current folder.
+- Match surrounding file conventions when editing legacy code; apply this rule fully on **new** components and greenfield setup.

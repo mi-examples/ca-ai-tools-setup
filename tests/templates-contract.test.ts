@@ -23,6 +23,7 @@ test('cursor legacy rules stub keeps canonical QA skills and deprecates ai-testi
 test('AGENTS template lists core Claude agents', () => {
   const agents = readTemplate('AGENTS.md');
 
+  assert.match(agents, /`code-style\.md`/);
   assert.match(agents, /`qa-tester\.md`/);
   assert.match(agents, /`ui-verifier\.md`/);
   assert.match(agents, /`linear-reporter\.md`/);
@@ -31,6 +32,7 @@ test('AGENTS template lists core Claude agents', () => {
 test('rules README documents deprecated ai-testing and ui-check stubs', () => {
   const rulesReadme = readTemplate('cursor/rules/README.md');
 
+  assert.match(rulesReadme, /code-style/);
   assert.match(rulesReadme, /testing-with-linear/);
   assert.match(rulesReadme, /Deprecated/);
   assert.match(rulesReadme, /ai-testing/);
