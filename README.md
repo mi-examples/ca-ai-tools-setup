@@ -12,12 +12,13 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 |------|------|
 | `setup-cursor-assistant.md` | Cursor selected |
 | `.cursorrules`, `.cursorignore` | Cursor selected |
-| `.cursor/rules/*` (linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP) | Cursor and/or Claude |
+| `.cursor/rules/*` (code-style, linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP) | Cursor and/or Claude |
 | `.cursor/skills/*` (ai-development + DOD-FULL, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-mcp, figma-implementation, form-builder; figma-code-connect + references if Figma MCP) | Cursor selected |
 | `.cursor/prompts/react-component-unit.md` | Cursor selected |
 | `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json` | Cursor + MCP option |
 | `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json` | Claude selected |
 | `.claude/skills/*` (same skill set as Cursor, under `.claude/skills/`) | Claude selected |
+| `.claude/agents/code-style.md` | Claude selected |
 | `.claude/agents/figma-mcp.md` | Claude + Figma MCP |
 | `.mcp.json` (repo root) | Claude + MCP option |
 

@@ -34,6 +34,7 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/react-component-unit.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursorignore')));
@@ -174,13 +175,15 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/workflows/ui-check.md')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/testing-flow.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/agents/qa-tester.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/agents/code-style.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/commands/testing-flow.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('testing-with-linear.md'));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('workflows/testing-with-linear.md'));
-  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('qa-tester'));
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('code-style.md'));
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('ca-ai-tools-setup'));
   assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));

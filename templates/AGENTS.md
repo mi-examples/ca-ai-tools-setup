@@ -6,6 +6,7 @@ Markdown files under **`.claude/agents/`** define **specialized rules** Claude s
 
 | File | Purpose |
 | ---- | ------- |
+| `code-style.md` | Portal Page naming, SCSS modules, BEM, `app-context` / `app-provider`, `constants.ts`, `index.html` globals. Always-on for development. |
 | `qa-tester.md` | Test cases, Playwright MCP execution, bug documentation, and local `test-documentation/` layout. |
 | `ui-verifier.md` | Browser UI checks, visual verification, and screenshot evidence for Linear comments. |
 | `linear-reporter.md` | Publish QA results to Linear (comments, state, embedded screenshots). |

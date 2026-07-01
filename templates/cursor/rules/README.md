@@ -29,6 +29,7 @@ This directory contains Metric Insights guidance for using Linear CLI inside Cur
 
 ## Files
 
+- `code-style.mdc` - Portal Page component naming, SCSS modules, BEM, app context, constants, index.html globals.
 - `linear-cli.mdc` - global rule set for Linear CLI usage behavior.
 - `figma-mcp.mdc` - Figma MCP design-to-code implementation rules.
 - `linear-task-gates.mdc` - mandatory Linear state gates before AI dev or QA.

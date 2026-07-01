@@ -8,6 +8,9 @@ as the `linear-cli` command reference.
 ## Scope
 
 - Read `AGENTS.md` and `README.md` before non-trivial code changes.
+- Follow **`.claude/agents/code-style.md`** (Portal Page naming, SCSS modules, BEM,
+  `app-context` / `app-provider`, `constants.ts`, `index.html` globals). Cursor mirror:
+  **`.cursor/rules/code-style.mdc`**.
 - Prefer `pp-dev.config` and `package.json` scripts for dev commands
   (`npm run dev`, `npx pp-dev`, or `npx pp-dev next` when applicable).
 - Local app URL is `http://localhost:<port>`; default `3000`, then the next
