@@ -17,7 +17,9 @@ Instructions:
    `./.claude/workflows/ui-check-simple.md`.
 3. If it does not contain a Linear issue, read and follow
    `./.claude/workflows/ui-check-simple.md`.
-4. Use Playwright MCP for browser verification.
+4. For browser verification use one transport (both work) —
+   `./.claude/workflows/playwright-cli.md` (Playwright Agent CLI, **preferred**,
+   token-efficient) or `./.claude/workflows/playwright-mcp.md` (Playwright MCP).
 5. If a Figma link or node is included, read `./.claude/agents/figma-mcp.md`.
 6. Report concrete pass/fail findings, screenshot paths, discrepancies, and
    console errors.

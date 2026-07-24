@@ -25,7 +25,9 @@ Full onboarding: **`setup-cursor-assistant.md`**.
 - **Publish QA results:** `.cursor/skills/linear-report/SKILL.md`.
 - **Linear CLI:** `.cursor/skills/linear-workflow/SKILL.md`.
 - **TC / BUG format:** `.cursor/skills/test-documentation/SKILL.md`.
-- **Playwright MCP:** `.cursor/skills/playwright-mcp/SKILL.md`.
+- **Browser automation** (pick one; both stay available):
+  - **Playwright Agent CLI** (`npx playwright-cli`, **preferred** — token-efficient): `.cursor/skills/playwright-cli/SKILL.md`.
+  - **Playwright MCP:** `.cursor/skills/playwright-mcp/SKILL.md`.
 
 Deprecated redirects (do not follow): `ai-testing`, `ui-check` — route per table in those stubs.
 

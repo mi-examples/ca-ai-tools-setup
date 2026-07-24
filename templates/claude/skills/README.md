@@ -14,6 +14,18 @@ Canonical **Cursor** skills live under **`.cursor/skills/`**. The following are 
 | Quick UI check | `./.claude/workflows/ui-check-simple.md` | `.cursor/skills/ui-check-simple/SKILL.md` |
 | Linear report | `./.claude/workflows/linear-qa-report.md` | `.cursor/skills/linear-report/SKILL.md` |
 
+### Browser automation (MCP or CLI)
+
+Two interchangeable transports for driving a browser — pick one per task, nothing is removed:
+
+| Transport | Claude workflow | Cursor skill |
+|-----------|-----------------|--------------|
+| Playwright Agent CLI (**preferred**, token-efficient) | `./.claude/workflows/playwright-cli.md` | `.cursor/skills/playwright-cli/SKILL.md` |
+| Playwright MCP tools | `./.claude/workflows/playwright-mcp.md` | `.cursor/skills/playwright-mcp/SKILL.md` |
+
+The CLI ships with the repo (`@playwright/cli` pinned devDependency + committed skill), so
+`npm install` is all a teammate needs — no global install or per-machine MCP config.
+
 **Rules** (Linear gates, CLI) live under **`.cursor/rules/*.mdc`** — Claude Code should still respect them when working in this repo.
 
 When you change a QA skill, update **both** `.cursor/skills/...` and the matching `.claude/workflows/...` (or re-run `cp` from Cursor tree).

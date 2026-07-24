@@ -7,6 +7,10 @@ description: Playwright MCP tools reference for browser automation—tool catalo
 
 Reference for the `user-playwright` MCP server (ExecuteAutomation). Used by `browser-use` subagent and `playwright-test-*` subagents in Cursor.
 
+> **Alternative:** the `playwright-cli` skill drives the same browser through the token-efficient
+> **Playwright Agent CLI** (`npx playwright-cli ...`) instead of MCP tools. Both transports stay
+> available — prefer the CLI for lower token cost; use MCP when it is already loaded or wired.
+
 ## Tools by category
 
 ### Navigation & page

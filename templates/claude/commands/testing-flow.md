@@ -16,7 +16,8 @@ Instructions:
 3. If `$ARGUMENTS` contains a Linear issue, also read
    `./.claude/workflows/linear-workflow.md` and fetch comments first.
 4. Create or update `test-documentation/<CONTEXT_KEY>/test-cases.md`.
-5. Execute the cases through Playwright MCP when browser verification is
-   required.
+5. Execute the cases through a browser transport when verification is required —
+   `./.claude/workflows/playwright-cli.md` (Playwright Agent CLI, **preferred**,
+   token-efficient) or `./.claude/workflows/playwright-mcp.md` (Playwright MCP).
 6. Write bugs to `test-documentation/<CONTEXT_KEY>/bugs.md`.
 7. Summarize local results in the conversation.

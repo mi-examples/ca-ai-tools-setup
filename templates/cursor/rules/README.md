@@ -16,6 +16,7 @@ This directory contains Metric Insights guidance for using Linear CLI inside Cur
 - `.cursor/skills/linear-report/SKILL.md` — publish QA results to Linear.
 - `.cursor/skills/linear-workflow/SKILL.md` — Linear CLI (get, list, start, comment).
 - `.cursor/skills/test-documentation/SKILL.md` — TC / BUG format (`@metricinsights/qa-ai-rules`).
+- `.cursor/skills/playwright-cli/SKILL.md` — Playwright Agent CLI (`npx playwright-cli`), token-efficient browser automation (**preferred**).
 - `.cursor/skills/playwright-mcp/SKILL.md` — Playwright MCP tools reference.
 
 ### Other

@@ -8,7 +8,9 @@ component, Figma link, or screenshot.
 
 Read as needed:
 
-- `./.claude/workflows/playwright-mcp.md`
+- Browser automation (pick one; both work):
+  - `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI (**preferred**, token-efficient)
+  - `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools
 - `./.claude/agents/figma-mcp.md` when Figma is provided
 
 ## Input

@@ -7,7 +7,8 @@ description: End-to-end QA testing flow—generate test cases, execute via Playw
 
 End-to-end QA testing: **context → test cases → Playwright MCP execution → bug investigation → local results**.
 
-Depends on: **`test-documentation`** (TC and bug report format), **`playwright-mcp`** (MCP tools reference), optionally **`figma-implementation`** (design reference).
+Depends on: **`test-documentation`** (TC and bug report format), a browser transport —
+**`playwright-cli`** (**preferred**) or **`playwright-mcp`** — optionally **`figma-implementation`** (design reference).
 
 ## 0. Known limitations & lessons learned
 
@@ -73,7 +74,9 @@ Generate per **`test-documentation`** skill. Additionally analyze source code fo
 
 ## 4. Execute via Playwright MCP
 
-For tools reference, patterns, and limitations see **`playwright-mcp`** skill.
+For browser automation, use either the **`playwright-cli`** skill (`npx playwright-cli ...`,
+**preferred** — token-efficient) or the **`playwright-mcp`** skill (MCP tools). Both drive the
+same browser; see the chosen skill for the command/tool reference, patterns, and limitations.
 
 ### Authentication (form login)
 
