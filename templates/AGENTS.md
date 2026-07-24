@@ -7,8 +7,8 @@ Markdown files under **`.claude/agents/`** define **specialized rules** Claude s
 | File | Purpose |
 | ---- | ------- |
 | `code-style.md` | Portal Page naming, SCSS modules, BEM, `app-context` / `app-provider`, `constants.ts`, `index.html` globals. Always-on for development. |
-| `qa-tester.md` | Test cases, Playwright MCP execution, bug documentation, and local `test-documentation/` layout. |
-| `ui-verifier.md` | Browser UI checks, visual verification, and screenshot evidence for Linear comments. |
+| `qa-tester.md` | Test cases, Playwright execution (CLI or MCP), bug documentation, and local `test-documentation/` layout. |
+| `ui-verifier.md` | Browser UI checks (Playwright CLI or MCP), visual verification, and screenshot evidence for Linear comments. |
 | `linear-reporter.md` | Publish QA results to Linear (comments, state, embedded screenshots). |
 | `figma-mcp.md` | Figma MCP: structure-first implementation, tokens, Code Connect, layout fidelity. _(Present only if this repo was bootstrapped with Figma MCP for Claude.)_ |
 

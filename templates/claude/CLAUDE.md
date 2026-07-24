@@ -82,10 +82,35 @@ when agent files are added, renamed, or removed.
 - Actual role credentials come from `.env` variables:
   `QA_USER_REGULAR`, `QA_PASS_REGULAR`, `QA_USER_POWER`, `QA_PASS_POWER`,
   `QA_USER_ADMIN`, `QA_PASS_ADMIN`.
-- For browser automation or UI verification, read
-  `./.claude/workflows/playwright-mcp.md`.
+- For browser automation or UI verification, choose one transport (both stay available):
+  - `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI via `npx playwright-cli`
+    (**preferred**, token-efficient, no MCP config).
+  - `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools (`playwright_*`).
 - For Figma implementation or visual matching, read
   `./.claude/agents/figma-mcp.md`.
+
+## Browser Automation: MCP or CLI
+
+This repo ships **two interchangeable** browser-automation transports for AI agents — pick one
+per task; nothing is removed:
+
+- **Playwright MCP** — `playwright_*` tools from `.mcp.json` / `.claude/settings.json`. See
+  `./.claude/workflows/playwright-mcp.md` (Cursor mirror: `.cursor/skills/playwright-mcp/SKILL.md`).
+- **Playwright Agent CLI** (**preferred**) — `npx playwright-cli ...` via Bash; lower token
+  cost, no MCP config. See `./.claude/workflows/playwright-cli.md` (Cursor mirror:
+  `.cursor/skills/playwright-cli/SKILL.md`).
+
+**Universal setup (not per-developer):** the CLI ships with the repo so `npm install` is all a
+teammate needs — no global install, no per-machine MCP config.
+
+- Keep `@playwright/cli` as a **pinned devDependency** in `package.json`
+  (`npm install --save-dev @playwright/cli@0.1.17`). Invoke it as `npx playwright-cli ...`.
+- Add the CLI workspace state to `.gitignore` and never commit it:
+
+  ```gitignore
+  .playwright/       # CLI workspace state (sessions, browser profiles)
+  .playwright-cli/   # page snapshots, console logs
+  ```
 
 ## Claude Code Settings
 

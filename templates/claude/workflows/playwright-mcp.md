@@ -3,6 +3,10 @@
 Use this workflow for browser automation, UI verification, manual QA execution,
 and debugging UI failures through the Playwright MCP server.
 
+> **Alternative:** `./.claude/workflows/playwright-cli.md` performs the same work through the
+> token-efficient **Playwright Agent CLI** (`npx playwright-cli ...`) instead of MCP tools. Both
+> stay available — prefer the CLI for lower token cost; use MCP when it is already wired.
+
 ## Tool Categories
 
 ### Navigation and Page

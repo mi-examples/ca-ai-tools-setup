@@ -33,6 +33,7 @@ const CURSOR_ONLY_SKILLS = [
   'skills/ui-check-simple/SKILL.md',
   'skills/linear-report/SKILL.md',
   'skills/playwright-mcp/SKILL.md',
+  'skills/playwright-cli/SKILL.md',
   'skills/linear-workflow/SKILL.md',
   'skills/test-documentation/SKILL.md',
   'skills/figma-implementation/SKILL.md',

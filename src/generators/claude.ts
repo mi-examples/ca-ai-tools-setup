@@ -10,6 +10,7 @@ const CLAUDE_WORKFLOW_TEMPLATES = [
   'claude/workflows/ui-check-simple.md',
   'claude/workflows/linear-qa-report.md',
   'claude/workflows/playwright-mcp.md',
+  'claude/workflows/playwright-cli.md',
   'claude/workflows/test-documentation.md',
 ] as const;
 

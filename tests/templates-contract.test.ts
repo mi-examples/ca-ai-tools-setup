@@ -10,6 +10,37 @@ test('setup assistant templates keep MCP replacement marker', () => {
   assert.match(claudeSetup, /\*\*PLAYWRIGHT_MCP_BLOCK\*\*/);
 });
 
+test('playwright-cli skill and workflow ship the CLI browser-automation alternative', () => {
+  const skill = readTemplate('skills/playwright-cli/SKILL.md');
+  const workflow = readTemplate('claude/workflows/playwright-cli.md');
+
+  for (const doc of [skill, workflow]) {
+    assert.match(doc, /npx playwright-cli/);
+    assert.match(doc, /@playwright\/cli/);
+    // Universal, not per-developer: shipped as a pinned devDependency, workspace state gitignored.
+    assert.match(doc, /--save-dev @playwright\/cli/);
+    assert.match(doc, /\.playwright-cli\//);
+  }
+});
+
+test('playwright-mcp docs point at the CLI alternative without removing MCP', () => {
+  const mcpSkill = readTemplate('skills/playwright-mcp/SKILL.md');
+  const mcpWorkflow = readTemplate('claude/workflows/playwright-mcp.md');
+
+  assert.match(mcpSkill, /playwright-cli/);
+  assert.match(mcpWorkflow, /playwright-cli/);
+  // MCP reference itself is preserved.
+  assert.match(mcpSkill, /playwright_navigate/);
+});
+
+test('CLAUDE template documents both browser-automation transports', () => {
+  const claudeMd = readTemplate('claude/CLAUDE.md');
+
+  assert.match(claudeMd, /workflows\/playwright-cli\.md/);
+  assert.match(claudeMd, /workflows\/playwright-mcp\.md/);
+  assert.match(claudeMd, /pinned devDependency/);
+});
+
 test('cursor legacy rules stub keeps canonical QA skills and deprecates ai-testing/ui-check', () => {
   const cursorRules = readTemplate('cursor/cursorrules');
 

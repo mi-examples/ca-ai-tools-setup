@@ -7,7 +7,12 @@ description: Quick UI verification without Linear—run dev server, open via Pla
 
 Quick UI verification **without Linear**. Optionally accepts a **Figma link** or **reference screenshot** for comparison.
 
-Depends on: **`playwright-mcp`** (MCP tools reference), optionally Figma MCP rules for node data.
+Depends on one browser transport (both work; steps below show MCP `playwright_*` tools):
+**`playwright-cli`** (`npx playwright-cli ...`, **preferred** — token-efficient) or
+**`playwright-mcp`** (MCP tools reference). Optionally Figma MCP rules for node data. When using
+the CLI, map each `playwright_navigate` / `playwright_fill` / `playwright_click` /
+`playwright_screenshot` / `playwright_console_logs` step below to `goto` / `fill` / `click` /
+`screenshot` / `console` — see the `playwright-cli` skill.
 
 ## 1. Input
 

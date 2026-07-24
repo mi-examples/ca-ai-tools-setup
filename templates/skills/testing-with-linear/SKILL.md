@@ -58,7 +58,7 @@ Execute the **`testing-flow`** skill with the Linear issue as context source:
 
 - Pass acceptance criteria from Step 1 as the test scope
 - `<CONTEXT_KEY>` = `<ISSUE_KEY>` for folder naming
-- Generate TCs, execute via Playwright MCP, investigate bugs per the bug report rule referenced in **`test-documentation`**
+- Generate TCs, execute via a browser transport (**`playwright-cli`** preferred, or **`playwright-mcp`**), investigate bugs per the bug report rule referenced in **`test-documentation`**
 - Results land in `test-documentation/<ISSUE_KEY>/`
 
 ### Step 3 — Publish results to Linear

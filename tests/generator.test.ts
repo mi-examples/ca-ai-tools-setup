@@ -41,6 +41,8 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ai-development/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-flow/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/playwright-cli/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/playwright-mcp/SKILL.md')));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/README.md')), false);
@@ -178,6 +180,8 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/testing-flow.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/playwright-cli.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/playwright-mcp.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/agents/qa-tester.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/agents/code-style.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/commands/testing-flow.md')));

@@ -22,3 +22,8 @@ This repository was bootstrapped **without** **`.mcp.json`** in the project root
 - Register the project MCP file in **Claude Code** per current product documentation, then reload or restart so tools appear.
 
 Do **not** block onboarding on MCP; skip this subsection if browser automation is not needed.
+
+**Browser automation without MCP:** the **Playwright Agent CLI** (`npx playwright-cli ...`) is the
+**preferred**, token-efficient way to drive a browser and needs **no MCP config at all**. It ships
+with the repo (`@playwright/cli` pinned devDependency + committed skill), so `npm install` is all a
+teammate needs. See **`./.claude/workflows/playwright-cli.md`** and **Step 2.5** below.

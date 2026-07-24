@@ -276,6 +276,36 @@ Writing **`.cursor/mcp.json`** during bootstrap does **not** turn MCP servers on
 
 If bootstrap **did not** create **`.cursor/mcp.json`**, skip this subsection until MCP is added manually.
 
+**2.6. Playwright Agent CLI (browser automation — universal, not per-developer)**
+
+The repo also ships the **Playwright Agent CLI** as a token-efficient alternative to Playwright
+MCP for UI checks and QA (see **`.cursor/skills/playwright-cli/SKILL.md`**). It is committed with
+the repo so every teammate gets it from **`npm install`** — no global install and, unlike MCP,
+no manual per-machine enablement. Both the CLI and MCP paths stay available; nothing is removed.
+
+Set it up once for the project (skip the install if `@playwright/cli` is already a devDependency):
+
+```bash
+# 1. Pin the CLI as a devDependency so `npm install` provides it for the whole team
+npm install --save-dev @playwright/cli@0.1.17
+
+# 2. Confirm it resolves via the local install (no global needed)
+npx playwright-cli --version
+
+# 3. Install the browser binaries the CLI drives (first time only)
+npx playwright install chromium
+```
+
+Add the CLI workspace state to **`.gitignore`** and never commit it:
+
+```gitignore
+.playwright/       # CLI workspace state (sessions, browser profiles)
+.playwright-cli/   # page snapshots, console logs
+```
+
+Invoke the CLI as **`npx playwright-cli ...`** (resolves the pinned local version;
+`npx -y @playwright/cli@0.1.17 ...` is a fallback when no local install is present).
+
 ### Step 3: Developer environment profile (finalize after setup)
 
 After installing tools, update **`.dev-environment.md`** with the complete local profile
