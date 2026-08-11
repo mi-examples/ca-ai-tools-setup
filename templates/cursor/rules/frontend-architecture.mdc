@@ -1,0 +1,356 @@
+---
+description: Frontend architecture — component hierarchy, design system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope
+globs:
+alwaysApply: true
+---
+
+# Frontend Architecture & AI Coding Standards
+
+Mirror for Claude: **`.claude/agents/frontend-architecture.md`**.
+
+Portal Page file naming, SCSS modules, BEM, `app-context` / `constants.ts`, and `index.html` globals: **`.cursor/rules/code-style.mdc`**.
+
+## Purpose
+
+You are working on an **existing** React + TypeScript application (Portal Page / Custom App with pp-dev).
+
+Produce **consistent, maintainable, reusable, component-driven** code that follows the existing architecture and design system.
+
+Do **not** treat each task as an isolated implementation. Before writing code: understand structure, find reusable components/patterns, follow conventions already in the repo.
+
+Evolve a **consistent component system**, not a collection of independent implementations.
+
+---
+
+## 1. Explicit component hierarchy
+
+```text
+Application
+  └── Pages
+        └── Widgets
+              └── Features
+                    └── Entities
+                          └── Shared
+                                └── Design System
+                                      └── @metricinsights/pp-components
+```
+
+Map new work to this hierarchy. When the repo folder layout differs (e.g. `src/components/<feature>/`), place code in the **closest existing layer** and keep responsibilities clear — do not invent a parallel tree without need.
+
+### Design system
+
+Lowest-level UI: Button, Input, Select, Checkbox, Radio, Modal, Drawer, Tooltip, Dropdown, Table, Card, Typography, Icon, etc. from **`@metricinsights/pp-components`** (and project wrappers). Prefer these; do not recreate existing primitives.
+
+### Shared
+
+Reusable across features: PageHeader, PageToolbar, SearchBar, FilterBar, EmptyState, LoadingState, Pagination. Only if genuinely multi-feature.
+
+### Entities
+
+Domain concepts: User, Folder, Element, Company, Report, Announcement. Keep entity UI/logic close to the entity when appropriate.
+
+### Features
+
+User actions / business functionality: CreateUser, EditFolder, FavoriteElement, SearchElements, RequestAccess. Keep feature-specific UI here — not in global shared.
+
+### Widgets
+
+Compose features/components into larger sections: Sidebar, FavoriteBar, ElementBrowser, SearchPanel, AnnouncementPanel. Compose; do not reimplement everything.
+
+### Pages
+
+Compose widgets, features, and shared. Prefer thin pages:
+
+```tsx
+export function AccessRequestsPage() {
+  return (
+    <>
+      <PageHeader />
+      <AccessRequestFilters />
+      <AccessRequestTable />
+    </>
+  );
+}
+```
+
+Do not dump hundreds of lines of JSX into a page.
+
+---
+
+## 2. Component-driven development
+
+Before creating a component: search the repo → search the design system → find similar implementations → reuse or extend via props → create new only if nothing fits.
+
+One clear responsibility. Split when too large or mixed concerns. Do **not** extract every small JSX fragment — extract when it improves reuse, readability, or separation.
+
+---
+
+## 3. Search before writing
+
+**Before writing new code, inspect the repository.**
+
+Do not assume a component, hook, utility, type, constant, helper, style pattern, or API abstraction is missing. Search first.
+
+When a similar solution exists: **follow that pattern** — consistency beats a “cleaner” new approach.
+
+Examples of what **not** to do when patterns already exist:
+
+- Introducing `div` + ad-hoc flex classes when the project uses layout primitives
+- Custom `<button className="…">` when `<Button variant="primary">` exists
+- Raw `fetch` / `axios` when `useSWRUser()` (or other established SWR hooks) already wrap the API
+
+---
+
+## 4. Design system first
+
+Default to design-system / pp-components for buttons, inputs, forms, selects, dropdowns, modals, drawers, tooltips, tables, cards, typography, icons, loading/empty states, navigation, layout primitives.
+
+Verify no existing primitive can satisfy the need before creating a new one.
+
+---
+
+## 5. Styling
+
+Follow **`.cursor/rules/code-style.mdc`** (SCSS modules + BEM + tokens).
+
+Do not invent colors, font sizes/weights, spacing, radii, shadows, breakpoints, z-index, or animation timings when design-system / `_variables` / mixins exist.
+
+No new CSS framework or styling methodology without explicit approval. Do not mix approaches unnecessarily.
+
+---
+
+## 6. JavaScript / TypeScript whitespace and formatting
+
+### Source of truth
+
+Apply formatting rules in the following order of precedence:
+
+1. Repository ESLint, Prettier, TypeScript, and formatter configuration.
+2. Existing conventions in the current file and surrounding code.
+3. Google JavaScript Style Guide — Formatting / Whitespace, as a non-binding fallback:
+   https://google.github.io/styleguide/jsguide.html#formatting-whitespace
+
+The Google guide must not override repository tooling or established local conventions. It is not the project's complete coding-style specification.
+
+### Repository formatting rules
+
+Unless a file-specific override applies:
+
+- End every file with a newline.
+- Limit lines to **120 characters**.
+- Limit each line to at most **3 statements**.
+- Use curly braces for all control-flow bodies, including single-statement bodies.
+- Format content inside curly braces according to the configured `@stylistic/curly-newline` rule.
+- Do not place whitespace before an object property colon.
+- Place exactly one space after an object property colon.
+- Separate class members with a blank line.
+- A blank line is optional after a single-line class member.
+
+### Blank lines between statements
+
+Apply these rules:
+
+- Consecutive `const`, `let`, and `var` declarations may remain together without blank lines.
+- Add a blank line after the final declaration in a declaration group when the next statement is not another declaration.
+- Add a blank line after a block statement.
+- Add a blank line after `if`, `for`, `while`, `switch`, and `try` statements.
+- Add a blank line before:
+  - `return`;
+  - `throw`;
+  - `if`;
+  - `for`;
+  - `while`;
+  - `switch`;
+  - `try`.
+- Consecutive expression statements do not require blank lines.
+
+### Exceptions
+
+Respect all file-specific ESLint and formatter overrides.
+
+For example, the **120-character line limit does not apply** to:
+
+```text
+src/components/icon/icons/**/*.tsx
+```
+
+This exception exists because inline SVG exports may contain long path definitions.
+
+### Rules for generated or modified code
+
+AI agents and developers must:
+
+- use repository formatting and lint commands when available;
+- produce formatter- and lint-compatible code;
+- preserve the formatting conventions of the current file;
+- avoid unrelated whitespace or formatting changes;
+- avoid manually reformatting code against configured tooling;
+- preserve file-specific overrides and generated-code exceptions;
+- keep formatting-only changes separate from behavioral changes when practical.
+
+If tooling and documentation disagree, tooling takes precedence.
+
+This section covers formatting only. All other repository lint rules—including naming, type safety, React Hooks, console usage, and class organization—remain mandatory and must pass the configured lint checks.
+
+---
+
+## 7. File naming
+
+Use lowercase kebab-case for application source and style filenames:
+
+- `semantic-models-view.tsx`
+- `use-semantic-models-map.ts`
+- `tableau-data-source-status.helper.ts`
+- `modal.module.scss`
+
+Additional requirements:
+
+- Use lowercase letters and hyphens between words.
+- Do not use PascalCase, camelCase, spaces, or underscores in regular source filenames.
+- Keep acronyms lowercase, such as `bi-tool-icon.tsx`.
+- Use `.ts` for TypeScript modules and `.tsx` for modules containing JSX.
+- Use `.scss` for styles and `.module.scss` for CSS Modules.
+- React component filenames use kebab-case; exported components use PascalCase.
+- Hook filenames start with `use-`; exported hooks use camelCase.
+- Put role suffixes immediately before the extension, such as `.helper.ts`, `.module.scss`, or `.d.ts`.
+- When a file has one primary export, make its filename correspond to that export.
+- TypeScript interfaces use PascalCase without an `I` prefix.
+
+Valid exceptions include `index.ts`, declaration files, Sass partials, tool-defined configuration files, and generated or externally supplied filenames that must be preserved.
+
+Repository conventions and tooling-required filenames take precedence over this rule.
+
+---
+
+## 8. TypeScript
+
+Use TypeScript strictly. Avoid `any` unless documented and unavoidable.
+
+Before new types: search → reuse → extend → create only if needed. Do not duplicate domain models.
+
+---
+
+## 9. DO NOT
+
+Never:
+
+- Duplicate components, utilities, types, or API abstractions
+- Build custom UI primitives when an existing component exists
+- Invent colors / spacing / typography when tokens exist
+- Use arbitrary CSS or inline styles unless required
+- Introduce a new CSS framework or unapproved styling methodology
+- Copy/paste a component instead of making it reusable
+- Create large monolithic React components
+- Put unrelated business logic or API calls in presentational components
+- Put complex business logic directly in JSX
+- Bypass existing hooks, API abstractions, or state-management patterns
+- Add a dependency without checking existing ones
+- Use `any` or suppress TS/ESLint to silence errors without understanding
+- Change shared components for a feature-only problem
+- Put feature-specific components in the global shared layer
+- Refactor unrelated code while implementing a small feature
+
+---
+
+## 10. Business logic vs presentation
+
+Prefer feature layout: `hooks/` (data/business), `components/` (presentation), `types/`.
+
+Avoid one file with API + state + transforms + rules + handlers + calculations + large JSX + styling. Extract when it improves readability/reuse/testability — not for trivial logic.
+
+---
+
+## 11. Hooks and API patterns
+
+Use existing SWR / API abstractions. Before a new call: search hooks, API methods, types, helpers; reuse. Do not add a second way to hit the same API.
+
+---
+
+## 12. Naming
+
+Descriptive, purpose-first names (`AccessRequestTable`, `SearchElements`, `AnnouncementPanel`). Avoid `Data`, `Box`, `Container2`, `Component`, `Wrapper`, `NewComponent`.
+
+Follow **§7 File naming** for filenames. Do not rename existing files unless the task requires it.
+
+---
+
+## 13. File organization
+
+Keep related code together. Prefer something like:
+
+```text
+feature/
+├── components/
+├── hooks/
+├── types/
+├── utils/
+└── index.ts
+```
+
+No excessive nesting. No new directory structure per tiny component. Follow the established repo layout when one exists.
+
+---
+
+## 14. Reuse before abstraction
+
+Avoid both “duplicate everything” and “abstract everything.”
+
+```text
+Existing component solves it? → Reuse
+Can extend/configure? → Extend
+Likely reused? → Create reusable component
+Otherwise → Keep local to feature/page
+```
+
+---
+
+## 15. Minimal scope
+
+Smallest architectural change. No unrelated refactors, renames, migrations, or dependency adds. No drive-by cleanup unless asked.
+
+`Small change + existing architecture + components + patterns = predictable implementation`
+
+---
+
+## 16. Before completing
+
+Check: correct hierarchy/layer; searched for reuse; design-system + tokens + styling method; kebab-case file naming; formatting precedence (tooling → local conventions → Google fallback) + ESLint + types; hooks/utils/types/API reused; no unrelated refactor or deps.
+
+---
+
+## 17. Priority order
+
+```text
+1. Existing project architecture
+2. Existing design system / pp-components
+3. Existing project patterns
+4. Existing utilities / hooks / types
+5. Established styling conventions (code-style.mdc)
+6. File naming (kebab-case; see §7)
+7. JS/TS formatting (repo tooling → local conventions → Google whitespace fallback)
+8. New implementation
+```
+
+Consistency and maintainability over architectural novelty.
+
+---
+
+## 18. Expected AI behavior
+
+1. **Understand** — read relevant files  
+2. **Search** — components, UI lib, hooks, utils, types, API, styles  
+3. **Plan** — place in hierarchy / existing folders  
+4. **Reuse** — compose existing abstractions  
+5. **Implement** — smallest clean change  
+6. **Validate** — TS, ESLint, format, architecture, styling, patterns  
+7. **Explain** (when useful) — what was reused, where it lives, why new code was needed  
+
+Skip long explanations for straightforward changes.
+
+---
+
+## Core principle
+
+**Do not write code as if starting a new project.** Contribute to the existing system. The best implementation looks like it was written by the same developer as the surrounding code.
+
+**Reuse first. Compose second. Abstract when justified. Create new patterns only when necessary.**

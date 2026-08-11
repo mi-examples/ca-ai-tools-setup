@@ -11,6 +11,9 @@ as the `linear-cli` command reference.
 - Follow **`.claude/agents/code-style.md`** (Portal Page naming, SCSS modules, BEM,
   `app-context` / `app-provider`, `constants.ts`, `index.html` globals). Cursor mirror:
   **`.cursor/rules/code-style.mdc`**.
+- Follow **`.claude/agents/frontend-architecture.md`** (component hierarchy, design
+  system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope).
+  Cursor mirror: **`.cursor/rules/frontend-architecture.mdc`**.
 - Prefer `pp-dev.config` and `package.json` scripts for dev commands
   (`npm run dev`, `npx pp-dev`, or `npx pp-dev next` when applicable).
 - Local app URL is `http://localhost:<port>`; default `3000`, then the next

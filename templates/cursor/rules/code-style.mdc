@@ -8,22 +8,24 @@ alwaysApply: true
 
 Use when creating or editing **React + Vite + pp-dev** Portal Page / Custom App code. Mirror for Claude: **`.claude/agents/code-style.md`**.
 
+Architecture, design-system-first, reuse, TypeScript discipline, and JS/TS formatting (tooling-first): **`.cursor/rules/frontend-architecture.mdc`**.
+
 ## Components and files
 
-- **Component filenames** start with a **lowercase** letter — **camelCase**, not PascalCase.
-  - ✅ `headerMain.tsx` · ❌ `HeaderMain.tsx`
-- **One feature per folder** under `src/components/<feature>/` (kebab-case folder names are fine; keep the **`.tsx` basename camelCase**).
+- **Filenames** use lowercase **kebab-case** (not PascalCase or camelCase). Full rules: **frontend-architecture** §7 File naming.
+  - ✅ `header-main.tsx` · ❌ `HeaderMain.tsx` · ❌ `headerMain.tsx`
+- **One feature per folder** under `src/components/<feature>/` (kebab-case folder names).
 - **Default export** for the main component; name the symbol in **PascalCase** inside the file (`const HeaderMain = () => …`).
 - **Search before creating** — extend existing components/hooks/helpers when possible.
 
 ## Styles (SCSS modules + BEM)
 
 - **Only `.scss`** — no plain `.css` for component/layout styles.
-- **CSS Modules only** — co-locate `<name>.module.scss` next to the component (e.g. `headerMain.module.scss`).
+- **CSS Modules only** — co-locate `<name>.module.scss` next to the component (e.g. `header-main.module.scss`).
 - Import as `styles` and reference classes via the module object:
 
 ```tsx
-import styles from "./headerMain.module.scss";
+import styles from "./header-main.module.scss";
 
 <div className={styles.headerMain}>
   <span className={styles.headerMain__title} />
