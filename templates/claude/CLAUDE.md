@@ -115,6 +115,29 @@ teammate needs — no global install, no per-machine MCP config.
   .playwright-cli/   # page snapshots, console logs
   ```
 
+## Keeping Generated Files Current
+
+Files under `.claude/agents/`, `.claude/workflows/`, `.claude/commands/`, `.claude/skills/`,
+and `.cursor/rules/` are templates from **`ca-ai-tools-setup`**
+(`github:mi-examples/ca-ai-tools-setup`, see its `templates/` directory). Re-running the
+installer without `--force` does **not** refresh files that already exist, so a repo
+bootstrapped earlier can silently fall behind the current template set — missing new
+agents/rules, stale cross-references, or superseded conventions.
+
+If you notice a generated file that looks outdated — it doesn't reference an agent/rule
+another current file points at, or it documents a convention a newer file contradicts —
+treat that as a signal this repo predates the latest templates:
+
+1. Fetch the current version of the affected file(s) from `github:mi-examples/ca-ai-tools-setup`
+   (local `.claude/agents/<name>.md` maps to `templates/claude/agents/<name>.md`; local
+   `.cursor/rules/<name>.mdc` maps to `templates/cursor/rules/<name>.mdc`).
+2. Update the local file(s) to match, preserving any repo-specific customizations already
+   made.
+3. Tell the user what changed and why so they can review before committing.
+
+Do not blanket-overwrite with `--force` — that would also discard customizations in files
+meant to be edited per-repo (`AGENTS.md`, this file, `code-style.md`, etc.).
+
 ## Claude Code Settings
 
 - Project `/.claude/settings.json` is the shared Claude Code JSON config
