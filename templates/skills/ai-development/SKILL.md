@@ -154,7 +154,7 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 ### Node.js
 
 - Minimum **Node.js ≥ 18.17.0** (project policy).
-- Many MI templates and **`@metricinsights/pp-dev`** builds expect **Node 22+** in practice — align `engines` in `package.json` and CI with what `pp-dev` release notes require.
+- **`@metricinsights/pp-dev` ≥ 1.0 requires Node.js ≥ 24** (declared in its `engines`) — align `engines` in `package.json` and CI images with whatever `pp-dev` version this repo pins.
 
 ### Baseline layout (what “full” development should commit)
 
@@ -185,24 +185,57 @@ npm install
 npm install @metricinsights/pp-dev@latest
 ```
 
+`pp-dev` declares Next.js as a peer dependency for its Next.js integration only — a plain Vite
+**`react-ts`** project can ignore an `npm install` peer-dependency warning about `next` unless you
+are wiring up the Next.js path (see **[Next.js Integration](#nextjs-integration)** if you are).
+
 ### 3. `pp-dev.config.ts` (connect MI instance)
 
-Create **`pp-dev.config.ts`** at the repo root:
+Create **`pp-dev.config.ts`** at the repo root — **`@metricinsights/pp-dev` ≥ 1.0** uses a grouped
+config shape (`mi` / `app` / …), not the old flat fields:
 
 ```typescript
-import { PPDevConfig } from '@metricinsights/pp-dev';
+import { defineConfig } from '@metricinsights/pp-dev';
 
-const ppDevConfig: PPDevConfig = {
-  backendBaseURL: 'https://metricinsights.com',
-  portalPageId: 1,
-  miHudLess: true,
-};
-
-export default ppDevConfig;
+export default defineConfig({
+  mi: {
+    url: 'https://metricinsights.com',
+    mode: 'standalone',
+  },
+  app: {
+    id: 1,
+    type: 'template',
+  },
+});
 ```
 
-- Set **`backendBaseURL`** and **`portalPageId`** to the real MI instance and page.
-- **`miHudLess: true`** is required so the MI chrome does not override local styles/logic during development.
+- Set **`mi.url`** and **`app.id`** to the real MI instance and Portal Page ID.
+- **`mi.mode: 'standalone'`** is required so the MI chrome does not override local styles/logic
+  during development (`'embedding'` keeps MI navigation).
+- **`app.type`**: **`'template'`** syncs back to the MI instance; **`'page'`** is standalone-only.
+
+#### Upgrading an older (pre-1.0) config
+
+If this repo's `pp-dev.config.*` still uses the flat 0.x fields (`backendBaseURL`, `personalAccessToken`,
+`miHudLess`, `integrateMiTopBar`, `v7Features`, `appId` / `portalPageId`, `templateName`, `templateLess`,
+`enableProxyCache`, `proxyCacheTTL`, `disableSSLValidation`, `distZip`, `versionPlugin`, `imageOptimizer`,
+`outDir`, `syncBackupsDir`), don't hand-edit it — run the built-in codemod:
+
+```bash
+npx @metricinsights/pp-dev migrate
+```
+
+| Option | Description |
+|---|---|
+| `[config]` | Path to the config file (auto-detected if omitted) |
+| `--dry-run` | Preview the migrated output without writing |
+| `--format ts\|js\|json` | Override the output format |
+| `--output <file>` | Write to a specific file instead of overwriting |
+| `--no-backup` | Skip creating a `.bak` backup of the original |
+
+It also detects legacy `pp-watch.config.*` files. By default it overwrites the original config
+in place after writing a `.bak` backup — use `--dry-run` first to review the result, and
+`--output <file>` if you'd rather not overwrite the original at all.
 
 ### 4. TypeScript config for Node
 
