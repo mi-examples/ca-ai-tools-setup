@@ -16,6 +16,7 @@ Full onboarding: **`setup-cursor-assistant.md`**.
 
 - **`.env` / credentials:** **`.cursor/rules/portal-env-credentials.mdc`**.
 - **State gates:** **`.cursor/rules/linear-task-gates.mdc`** — **`linear-cli i get <ISSUE_KEY>`** first; AI dev only from **`Waiting AI Development`**; AI testing only from **`Waiting AI Test`**.
+- **Post-commit/merge notice:** **`.cursor/rules/linear-merge-notification.mdc`** — notify page/template location and offer a Linear comment; dismissible until next commit, next merge, or permanently for that issue.
 - **Dev flow:** **`linear-cli i get`** (and **`linear-cli i start`** if your team uses it), then **operator** chooses **full** (greenfield) vs **fixes** with the agent — **`.cursor/skills/ai-development/SKILL.md`**.
 ## QA skills (canonical)
 

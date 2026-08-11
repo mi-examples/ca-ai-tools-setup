@@ -36,6 +36,7 @@ This directory contains Metric Insights guidance for using Linear CLI inside Cur
 - `linear-cli.mdc` - global rule set for Linear CLI usage behavior.
 - `figma-mcp.mdc` - Figma MCP design-to-code implementation rules.
 - `linear-task-gates.mdc` - mandatory Linear state gates before AI dev or QA.
+- `linear-merge-notification.mdc` - after commit/merge on a Linear-issue branch, notify where the page/template lives and offer a Linear comment (dismissible).
 - `portal-env-credentials.mdc` - `.env` credential rules for local QA and automation.
 - `test-case-rules.mdc`, `test-suite-template.mdc` - QA documentation pointers.
 

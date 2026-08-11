@@ -33,6 +33,11 @@ Before Linear-driven **testing**, check **`.cursor/rules/linear-task-gates.mdc`*
 (`Waiting AI Test`). Before **development**, check the same file
 (`Waiting AI Development`).
 
+After commits land on a Linear-issue branch, or right after that branch merges to
+`main`, follow **`.cursor/rules/linear-merge-notification.mdc`** — notify where the
+page/template lives (edit + view) and offer to post it as a Linear comment. The user
+can dismiss it until the next commit, the next merge, or permanently for that issue.
+
 When the user references a Linear issue, task URL, issue key, or says
 `start working with task`, use only the issue from the current user message and
 read:
