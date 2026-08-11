@@ -24,6 +24,16 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 
 Skip/`--force` behavior: setup assistant markdown is always refreshed; most other paths are created once, then skipped unless `--force` (see package docs below).
 
+## Where Rule/Agent Template Content Comes From
+
+The `.mdc` / `.md` rule and agent content under `templates/` is not written from scratch — it is kept in sync with real Metric Insights repos that use this bootstrapper day to day (for example `mi-pp/AI-Test-App`). Teams refine a rule while doing actual work in a bootstrapped repo (tighten a convention, add a new rule/agent file, fix a cross-reference); those refinements get ported back here so the next bootstrap ships them.
+
+When auditing `templates/` for drift against a reference repo:
+
+1. Diff this repo's `templates/` tree against the reference repo's generated `.claude/` / `.cursor/` files.
+2. For anything that exists downstream but not here, check the commit that introduced it in the reference repo — a new rule usually lands together with cross-reference updates in `code-style.*`, `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/README.md`; port those alongside it.
+3. Don't assume staleness only runs one direction: a reference repo can also fall behind **this** tool's structural additions (new skills/workflows) if it wasn't re-bootstrapped with `--force`. Treat each file independently rather than blanket-copying either direction.
+
 ## Distribution
 
 This package is **private** and consumed **directly from its GitHub repository** (not the public npm registry). Push changes to the repo; consumers install with npm’s GitHub shorthand.
