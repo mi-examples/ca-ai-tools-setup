@@ -14,6 +14,9 @@ as the `linear-cli` command reference.
 - Follow **`.claude/agents/frontend-architecture.md`** (component hierarchy, design
   system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope).
   Cursor mirror: **`.cursor/rules/frontend-architecture.mdc`**.
+- Follow **`.claude/agents/commit-convention.md`** for commit messages (Angular
+  commit message convention: `type(scope): subject`). Cursor mirror:
+  **`.cursor/rules/commit-convention.mdc`**.
 - Prefer `pp-dev.config` and `package.json` scripts for dev commands
   (`npm run dev`, `npx pp-dev`, or `npx pp-dev next` when applicable).
 - Local app URL is `http://localhost:<port>`; default `3000`, then the next

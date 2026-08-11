@@ -26,6 +26,7 @@ const CLAUDE_COMMAND_TEMPLATES = [
 const CLAUDE_AGENT_TEMPLATES = [
   'claude/agents/code-style.md',
   'claude/agents/frontend-architecture.md',
+  'claude/agents/commit-convention.md',
   'claude/agents/qa-tester.md',
   'claude/agents/ui-verifier.md',
   'claude/agents/linear-reporter.md',

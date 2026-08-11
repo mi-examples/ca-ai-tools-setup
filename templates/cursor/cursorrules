@@ -38,6 +38,11 @@ Deprecated redirects (do not follow): `ai-testing`, `ui-check` — route per tab
 - For UI verification, inspect the relevant route/page/component before
   writing or executing test cases.
 
+## Commit Messages
+
+Follow **`.cursor/rules/commit-convention.mdc`** (Angular commit message convention:
+`type(scope): subject`) whenever you generate, edit, or review a commit message.
+
 ## Keeping Generated Files Current
 
 Files under `.cursor/rules/` and `.cursor/skills/` are templates from **`ca-ai-tools-setup`**
