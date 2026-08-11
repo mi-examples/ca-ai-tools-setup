@@ -1,0 +1,60 @@
+---
+description: After Linear-issue work is committed or merged to main, notify the user where the Portal Page/template lives (edit + view) and offer a Linear comment — with a dismiss/snooze mechanism
+globs:
+alwaysApply: true
+---
+
+# Linear merge notification (page/template location)
+
+## Trigger
+
+Check this after commits land on a working branch, and especially right after a merge to **`main`**:
+
+1. The current branch name contains a Linear issue key (`[A-Z]+-\d+`, e.g. `PP-1234`).
+2. Either:
+   - there are commits on this branch not yet on `main` (work in progress on this issue), or
+   - this branch's commits are now reachable from `main` (`git merge-base --is-ancestor <branch> main`) — the work just landed.
+
+If neither holds, this rule does not apply — skip silently.
+
+## Dismiss / snooze first
+
+Before notifying, read **`.assistant-setup/linear-merge-notification.local.json`** (gitignored local state) if it exists, and look up the entry for the current issue key:
+
+| Stored `mode` | Skip notifying when |
+|---|---|
+| `next-commit` | `atSha` still equals the branch's current HEAD (no new commit landed since the user dismissed it) |
+| `next-merge` | the branch still isn't merged into `main` yet |
+| `this-issue` | always, for this issue key — until the user explicitly asks to re-enable it |
+
+If the stored condition has since been satisfied (a new commit landed, or the merge happened), **delete that entry** and proceed with the notification below as normal — dismissals are one-shot per condition, not permanent unless `this-issue` was chosen.
+
+When you notify (below) and the user wants to postpone instead of acting now, ask which of the three options they want and write/update the entry, e.g.:
+
+```json
+{
+  "PP-1234": { "mode": "next-commit", "atSha": "<current branch HEAD sha>" }
+}
+```
+
+`next-merge` and `this-issue` entries omit `atSha`. Create the file if it doesn't exist, and add `.assistant-setup/linear-merge-notification.local.json` to `.gitignore` if it isn't already ignored — this is local scratch state, not shared repo history.
+
+## What to notify
+
+Tell the user where the Portal Page / template behind this repo lives:
+
+- **Identity:** `mi.url` + `app.id` from `pp-dev.config.ts` (or `pp-dev.config`; pre-1.0 `pp-dev`: `backendBaseURL` + `portalPageId`). `app.type` tells you whether this is a `'template'` (syncs back to MI) or a standalone `'page'`.
+- **Edit / view links:** use whatever is already recorded under **Routes and Page Flows** in **`.assistant-setup/page-workflow-context.md`**. If the edit/view URLs for this page aren't recorded yet, determine the real ones for this instance — ask the user, or check **`.dev-environment.md`** — rather than guessing a URL pattern. Record them in `page-workflow-context.md` once known so this and future runs don't have to re-derive them.
+
+## Suggest a Linear comment
+
+If **`linear-cli`** is configured (`linear-cli auth status`, or a successful `linear-cli i get <ISSUE_KEY>`):
+
+1. Check existing comments on the issue itself and on directly related issues (parent/sub-issues, linked duplicates) for one that already states this page location. If found, don't suggest posting again — just mention it's already there.
+2. Otherwise, propose posting a short comment with the edit/view links and **ask before posting** — see **`.cursor/skills/linear-workflow/SKILL.md`** for `linear-cli i comment`. Never post automatically.
+
+## Cross-reference
+
+- Linear CLI usage: **`.cursor/skills/linear-workflow/SKILL.md`**.
+- Page routes/URLs source of truth: **`.assistant-setup/page-workflow-context.md`**.
+- Commit conventions: **`.cursor/rules/commit-convention.mdc`**.

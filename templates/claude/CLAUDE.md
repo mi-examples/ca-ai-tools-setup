@@ -11,6 +11,12 @@ as the `linear-cli` command reference.
 - Follow **`.claude/agents/code-style.md`** (Portal Page naming, SCSS modules, BEM,
   `app-context` / `app-provider`, `constants.ts`, `index.html` globals). Cursor mirror:
   **`.cursor/rules/code-style.mdc`**.
+- Follow **`.claude/agents/frontend-architecture.md`** (component hierarchy, design
+  system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope).
+  Cursor mirror: **`.cursor/rules/frontend-architecture.mdc`**.
+- Follow **`.claude/agents/commit-convention.md`** for commit messages (Angular
+  commit message convention: `type(scope): subject`). Cursor mirror:
+  **`.cursor/rules/commit-convention.mdc`**.
 - Prefer `pp-dev.config` and `package.json` scripts for dev commands
   (`npm run dev`, `npx pp-dev`, or `npx pp-dev next` when applicable).
 - Local app URL is `http://localhost:<port>`; default `3000`, then the next
@@ -26,6 +32,11 @@ as the `linear-cli` command reference.
 Before Linear-driven **testing**, check **`.cursor/rules/linear-task-gates.mdc`**
 (`Waiting AI Test`). Before **development**, check the same file
 (`Waiting AI Development`).
+
+After commits land on a Linear-issue branch, or right after that branch merges to
+`main`, follow **`.cursor/rules/linear-merge-notification.mdc`** — notify where the
+page/template lives (edit + view) and offer to post it as a Linear comment. The user
+can dismiss it until the next commit, the next merge, or permanently for that issue.
 
 When the user references a Linear issue, task URL, issue key, or says
 `start working with task`, use only the issue from the current user message and
@@ -111,6 +122,29 @@ teammate needs — no global install, no per-machine MCP config.
   .playwright/       # CLI workspace state (sessions, browser profiles)
   .playwright-cli/   # page snapshots, console logs
   ```
+
+## Keeping Generated Files Current
+
+Files under `.claude/agents/`, `.claude/workflows/`, `.claude/commands/`, `.claude/skills/`,
+and `.cursor/rules/` are templates from **`ca-ai-tools-setup`**
+(`github:mi-examples/ca-ai-tools-setup`, see its `templates/` directory). Re-running the
+installer without `--force` does **not** refresh files that already exist, so a repo
+bootstrapped earlier can silently fall behind the current template set — missing new
+agents/rules, stale cross-references, or superseded conventions.
+
+If you notice a generated file that looks outdated — it doesn't reference an agent/rule
+another current file points at, or it documents a convention a newer file contradicts —
+treat that as a signal this repo predates the latest templates:
+
+1. Fetch the current version of the affected file(s) from `github:mi-examples/ca-ai-tools-setup`
+   (local `.claude/agents/<name>.md` maps to `templates/claude/agents/<name>.md`; local
+   `.cursor/rules/<name>.mdc` maps to `templates/cursor/rules/<name>.mdc`).
+2. Update the local file(s) to match, preserving any repo-specific customizations already
+   made.
+3. Tell the user what changed and why so they can review before committing.
+
+Do not blanket-overwrite with `--force` — that would also discard customizations in files
+meant to be edited per-repo (`AGENTS.md`, this file, `code-style.md`, etc.).
 
 ## Claude Code Settings
 

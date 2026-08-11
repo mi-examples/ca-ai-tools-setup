@@ -16,6 +16,7 @@ Full onboarding: **`setup-cursor-assistant.md`**.
 
 - **`.env` / credentials:** **`.cursor/rules/portal-env-credentials.mdc`**.
 - **State gates:** **`.cursor/rules/linear-task-gates.mdc`** — **`linear-cli i get <ISSUE_KEY>`** first; AI dev only from **`Waiting AI Development`**; AI testing only from **`Waiting AI Test`**.
+- **Post-commit/merge notice:** **`.cursor/rules/linear-merge-notification.mdc`** — notify page/template location and offer a Linear comment; dismissible until next commit, next merge, or permanently for that issue.
 - **Dev flow:** **`linear-cli i get`** (and **`linear-cli i start`** if your team uses it), then **operator** chooses **full** (greenfield) vs **fixes** with the agent — **`.cursor/skills/ai-development/SKILL.md`**.
 ## QA skills (canonical)
 
@@ -37,6 +38,27 @@ Deprecated redirects (do not follow): `ai-testing`, `ui-check` — route per tab
 - Use semantic search with focused questions instead of one-word queries.
 - For UI verification, inspect the relevant route/page/component before
   writing or executing test cases.
+
+## Commit Messages
+
+Follow **`.cursor/rules/commit-convention.mdc`** (Angular commit message convention:
+`type(scope): subject`) whenever you generate, edit, or review a commit message.
+
+## Keeping Generated Files Current
+
+Files under `.cursor/rules/` and `.cursor/skills/` are templates from **`ca-ai-tools-setup`**
+(`github:mi-examples/ca-ai-tools-setup`, see its `templates/` directory). Re-running the
+installer without `--force` does **not** refresh files that already exist, so this repo can
+silently fall behind the current template set — missing new rules, stale cross-references,
+or superseded conventions.
+
+If a generated file looks outdated — it doesn't reference a rule another current file points
+at, or documents a convention a newer file contradicts — treat that as a signal this repo
+predates the latest templates: fetch the current version of the affected file(s) from
+`github:mi-examples/ca-ai-tools-setup` (local `.cursor/rules/<name>.mdc` maps to
+`templates/cursor/rules/<name>.mdc`), update the local file(s) while preserving any
+repo-specific customizations, and tell the user what changed and why before it's committed.
+Do not blanket-overwrite with `--force` — that also discards intentional per-repo edits.
 
 ## Indexing
 

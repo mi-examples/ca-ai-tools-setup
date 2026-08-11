@@ -12,8 +12,11 @@ const FIGMA_CODE_CONNECT_TEMPLATES = [
 
 const PORTAL_PAGE_RULES = [
   'cursor/rules/code-style.mdc',
+  'cursor/rules/frontend-architecture.mdc',
+  'cursor/rules/commit-convention.mdc',
   'cursor/rules/linear-cli.mdc',
   'cursor/rules/linear-task-gates.mdc',
+  'cursor/rules/linear-merge-notification.mdc',
   'cursor/rules/portal-env-credentials.mdc',
   'cursor/rules/test-case-rules.mdc',
   'cursor/rules/test-suite-template.mdc',

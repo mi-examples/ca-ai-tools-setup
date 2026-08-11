@@ -24,6 +24,16 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 
 Skip/`--force` behavior: setup assistant markdown is always refreshed; most other paths are created once, then skipped unless `--force` (see package docs below).
 
+## Where Rule/Agent Template Content Comes From
+
+The `.mdc` / `.md` rule and agent content under `templates/` is not written from scratch — it is kept in sync with real Metric Insights repos that use this bootstrapper day to day (for example `mi-pp/AI-Test-App`). Teams refine a rule while doing actual work in a bootstrapped repo (tighten a convention, add a new rule/agent file, fix a cross-reference); those refinements get ported back here so the next bootstrap ships them.
+
+When auditing `templates/` for drift against a reference repo:
+
+1. Diff this repo's `templates/` tree against the reference repo's generated `.claude/` / `.cursor/` files.
+2. For anything that exists downstream but not here, check the commit that introduced it in the reference repo — a new rule usually lands together with cross-reference updates in `code-style.*`, `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/README.md`; port those alongside it.
+3. Don't assume staleness only runs one direction: a reference repo can also fall behind **this** tool's structural additions (new skills/workflows) if it wasn't re-bootstrapped with `--force`. Treat each file independently rather than blanket-copying either direction.
+
 ## Distribution
 
 This package is **private** and consumed **directly from its GitHub repository** (not the public npm registry). Push changes to the repo; consumers install with npm’s GitHub shorthand.
@@ -235,5 +245,5 @@ npm test
 - Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place. Root **`AGENTS.md`**, **`CLAUDE.md`** and **`.claude/settings.json`** (Claude only), and **`.cursorrules`** (Cursor only), follow the same rules as **`.dev-environment.md`**: created when missing, skipped if they already exist unless **`--force`**.
 - `.dev-environment.md` is generated as a personal local profile (including **Authentication**: `MI_ACCESS_TOKEN` for the dev proxy, `/data/page/index/auth/info` smoke check on localhost, session cookies); keep it up to date and add it to `.gitignore`. Store **`MI_USERNAME` / `MI_PASSWORD`** only in **`.mi-credentials.local.env`** (gitignored), never in `.dev-environment.md`.
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.
-- **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories that use current **`@metricinsights/pp-dev`** should use **Node.js 22+** for dev and CI (recent pp-dev requires it); align `engines` and workflow images in those app repos when you adopt newer pp-dev.
+- **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories on **`@metricinsights/pp-dev` ≥ 1.0** need **Node.js ≥ 24** (declared in its `engines`); align `engines` and workflow images in those app repos when you adopt that pp-dev version.
 - **CI:** Consumer app repositories may not have GitHub Actions (or other CI) yet—that is still often the exception—but the goal is for **build / lint / test on every change** to become the default. This tool does not generate CI files; add workflows in each app repo when you standardize, and pin the same Node version you use locally (see above for pp-dev).

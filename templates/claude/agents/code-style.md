@@ -7,10 +7,12 @@ description: Portal Page component naming, SCSS modules, BEM, app context, const
 
 Cursor equivalent: **`.cursor/rules/code-style.mdc`**. Apply on every **development** task in this repo unless the user explicitly overrides.
 
+Architecture, design-system-first, reuse, TypeScript discipline, and JS/TS formatting (tooling-first): **`.claude/agents/frontend-architecture.md`** / **`.cursor/rules/frontend-architecture.mdc`**.
+
 ## Components and files
 
-- **Component filenames** start with a **lowercase** letter — **camelCase**, not PascalCase.
-  - ✅ `headerMain.tsx` · ❌ `HeaderMain.tsx`
+- **Filenames** use lowercase **kebab-case** (not PascalCase or camelCase). Full rules: **frontend-architecture** §7 File naming.
+  - ✅ `header-main.tsx` · ❌ `HeaderMain.tsx` · ❌ `headerMain.tsx`
 - **One feature per folder** under `src/components/<feature>/`.
 - **Default export** for the main component; symbol name **PascalCase** inside the file.
 - **Search before creating** — extend existing components/hooks/helpers when possible.
@@ -18,11 +20,11 @@ Cursor equivalent: **`.cursor/rules/code-style.mdc`**. Apply on every **developm
 ## Styles (SCSS modules + BEM)
 
 - **Only `.scss`** for component/layout styles.
-- **CSS Modules only** — co-locate `<name>.module.scss` (e.g. `headerMain.module.scss`).
+- **CSS Modules only** — co-locate `<name>.module.scss` (e.g. `header-main.module.scss`).
 - Import as `styles`; use **`styles.className`** in TSX — never bare global class strings for new UI.
 
 ```tsx
-import styles from "./headerMain.module.scss";
+import styles from "./header-main.module.scss";
 
 <div className={styles.headerMain}>
   <span className={styles.headerMain__title} />
