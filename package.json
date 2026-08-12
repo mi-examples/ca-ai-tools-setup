@@ -1,9 +1,20 @@
 {
   "name": "@metricinsights/ca-ai-tools-setup",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Bootstrap Cursor and Claude Linear CLI setup files in a repository",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mi-examples/ca-ai-tools-setup.git"
+  },
+  "homepage": "https://github.com/mi-examples/ca-ai-tools-setup#readme",
+  "bugs": {
+    "url": "https://github.com/mi-examples/ca-ai-tools-setup/issues"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
   "bin": {
     "ca-ai-tools-setup": "dist/cli.js"
   },
@@ -16,10 +27,11 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "prepare": "npm run build",
+    "build": "node scripts/clean-dist.mjs && tsc -p tsconfig.build.json",
+    "prepack": "npm run build && node scripts/write-release-info.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "npm run build && tsx --test tests/**/*.test.ts",
+    "test:package": "node scripts/package-smoke.mjs",
     "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0 --fix",
     "format": "prettier --write \"**/*.{ts,md,json}\""
@@ -43,5 +55,5 @@
     "tsx": "^4.19.4",
     "typescript": "^5.9.3"
   },
-  "license": "ISC"
+  "license": "UNLICENSED"
 }

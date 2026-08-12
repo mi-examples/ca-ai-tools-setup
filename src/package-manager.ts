@@ -152,10 +152,7 @@ export type SpawnPackageArgvOptions = {
   log?: (message: string) => void;
 };
 
-function logSpawnError(
-  log: ((message: string) => void) | undefined,
-  result: SpawnSyncReturns<Buffer | string>,
-): void {
+function logSpawnError(log: ((message: string) => void) | undefined, result: SpawnSyncReturns<Buffer | string>): void {
   if (!log) {
     return;
   }
@@ -207,7 +204,8 @@ function spawnWindowsDirect(
 
 /**
  * Run a one-shot package-manager command (`npx`, `pnpm dlx`, …).
- * On Windows: `npm exec --package=` uses shell (cmd-safe, finds `npm` in PATH); bare `@scope` uses direct spawn with resolved `.cmd`.
+ * On Windows, `npm exec --package=` uses the shell so cmd can find `npm` in PATH.
+ * A bare `@scope` package uses direct spawn with a resolved `.cmd` executable.
  */
 export function spawnPackageArgv(
   argv: readonly string[],
@@ -295,10 +293,7 @@ function yarnMajorFromPackageManagerField(field: string): number | null {
 }
 
 function isYarnBerryLayout(targetDir: string): boolean {
-  return (
-    fs.existsSync(path.join(targetDir, '.yarnrc.yml')) ||
-    fs.existsSync(path.join(targetDir, '.yarn', 'releases'))
-  );
+  return fs.existsSync(path.join(targetDir, '.yarnrc.yml')) || fs.existsSync(path.join(targetDir, '.yarn', 'releases'));
 }
 
 /**
