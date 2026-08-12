@@ -6,6 +6,10 @@ export const DEFAULT_ASSISTANTS: Assistant[] = ['cursor', 'claude'];
 
 export const METADATA_VERSION = 6;
 
+/** Stable prebuilt CLI tarball attached to GitHub Releases. */
+export const RELEASE_TGZ_LATEST =
+  'https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz';
+
 /** npm package installed/configured when `--qa-ai-rules` is enabled. */
 export const QA_AI_RULES_PACKAGE = '@metricinsights/qa-ai-rules';
 

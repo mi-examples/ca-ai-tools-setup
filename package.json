@@ -11,10 +11,6 @@
   "bugs": {
     "url": "https://github.com/mi-examples/ca-ai-tools-setup/issues"
   },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "restricted"
-  },
   "bin": {
     "ca-ai-tools-setup": "dist/cli.js"
   },

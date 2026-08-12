@@ -1,4 +1,4 @@
-name: Release private package
+name: Release package
 
 on:
   push:
@@ -6,24 +6,31 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
-  packages: write
+  contents: write
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     environment: package-release
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag commit is on main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "Release tags must point to commits reachable from origin/main."
+            exit 1
+          }
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          registry-url: https://npm.pkg.github.com
-          scope: '@metricinsights'
           cache: npm
 
       - name: Verify tag matches package version
@@ -48,15 +55,17 @@ jobs:
       - name: Test packed artifact
         run: npm run test:package
 
-      - name: Select release channel
-        id: channel
-        run: >-
-          node -e 'const p=require("./package.json");
-          require("fs").appendFileSync(
-          process.env.GITHUB_OUTPUT,
-          "tag=" + (p.version.includes("-") ? "next" : "stable") + "\n");'
+      - name: Pack release artifact
+        id: pack
+        run: |
+          FILENAME="$(npm pack --json | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(data[0].filename)')"
+          cp "$FILENAME" ca-ai-tools-setup.tgz
+          node -e 'const p=require("./package.json"); require("fs").appendFileSync(process.env.GITHUB_OUTPUT, "prerelease=" + (p.version.includes("-") ? "true" : "false") + "\n")'
+          echo "Packed $FILENAME as ca-ai-tools-setup.tgz"
 
-      - name: Publish
-        run: npm publish --tag "${{ steps.channel.outputs.tag }}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.METRICINSIGHTS_PACKAGES_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ca-ai-tools-setup.tgz
+          generate_release_notes: true
+          prerelease: ${{ steps.pack.outputs.prerelease == 'true' }}

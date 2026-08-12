@@ -38,133 +38,77 @@ When auditing `templates/` for drift against a reference repo:
 
 ## Distribution
 
-This package is published to **GitHub Packages** as a private, prebuilt package. A release tag such as
-**`v0.1.0`** must match `package.json`; release CI validates the source, smoke-tests the packed artifact, and
-publishes normal versions under **`stable`** and prereleases under **`next`**.
+This public repository ships a **prebuilt npm tarball** as a GitHub Release asset named
+**`ca-ai-tools-setup.tgz`**. A release tag such as **`v0.1.0`** must match `package.json`; release CI validates
+the source, smoke-tests the packed artifact, verifies the tag commit is on **`main`**, and attaches the tarball
+to the GitHub Release. Prerelease versions (`1.2.3-rc.1`) create a GitHub prerelease.
 
-Developers who run the installer need GitHub Packages read access. Configure npm once:
+No GitHub Packages registry or package token is required. Developers install the CLI directly from the public
+release asset:
 
-```ini
-@metricinsights:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
+```bash
+# Latest stable release
+https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz
+
+# Exact version (preferred for reviewable setup/update PRs)
+https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz
 ```
 
-Yarn 2+ users can configure the same access in their user-level `.yarnrc.yml`:
-
-```yaml
-npmScopes:
-  metricinsights:
-    npmRegistryServer: https://npm.pkg.github.com
-    npmAlwaysAuth: true
-    npmAuthToken: '${GITHUB_PACKAGES_TOKEN}'
-```
-
-Use a classic PAT with `read:packages` (and repository access when GitHub requires it), authorize SSO when
-applicable, and expose it as `GITHUB_PACKAGES_TOKEN`. Do not commit the token.
-
-Release CI uses the repository secret `METRICINSIGHTS_PACKAGES_TOKEN`; it must have `write:packages` access to
-the `@metricinsights` package scope because the source repository is owned by the separate `mi-examples` account.
-The `package-release` GitHub environment should require an internal reviewer before the publish job can access
-that secret.
-
+The `package-release` GitHub environment should require an internal reviewer before the release job can publish.
 To release, merge a reviewed version bump, create and push the matching `vX.Y.Z` tag, then approve the protected
-publish job. Roll back a target repository by running `check` and `update` with the previous exact package
-version and reviewing the reverse diff.
+job. Roll back a target repository by running `check` and `update` with the previous release tarball and reviewing
+the reverse diff.
 
-Use **`@stable`** for the current team release or an exact version such as **`@0.1.0`** for reproducible setup
-and update PRs. The package contains prebuilt **`dist/**`** plus **`templates/**`**; developer machines do not
-compile TypeScript during installation.
+The tarball contains prebuilt **`dist/**`** plus **`templates/**`**; developer machines do not compile TypeScript
+during installation.
 
 ## Usage
 
-Binary name: **`ca-ai-tools-setup`**. Package spec: **`@metricinsights/ca-ai-tools-setup@stable`** (replace
-`stable` with an exact version for a reviewable update). Below, **`TARGET`** is another repo path; omit
-**`--target`** to use the **current directory**.
+Binary name: **`ca-ai-tools-setup`**. Below, **`TARGET`** is another repo path; omit **`--target`** to use the
+**current directory**.
 
-The subsections **Interactive** through **Local clone** show **`npx`** invocations; swap the
-**`npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup`** prefix for
-**`pnpm --package=… exec`**, **`yarn dlx …`**, or **`bunx …`** as below.
-
-### Fetching the CLI with pnpm, Yarn, or Bun
-
-One-shot install + run from GitHub (equivalent to **`npx -p … ca-ai-tools-setup`**):
+Set a package URL once, then reuse it with **`npx`** or **`pnpm`**:
 
 ```bash
-pnpm --package=@metricinsights/ca-ai-tools-setup@stable exec ca-ai-tools-setup --assistants cursor,claude --yes
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz
+# or pin a version:
+# export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz
 ```
 
 ```bash
-yarn dlx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants cursor,claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup
+pnpm --package="$CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup
 ```
 
-```bash
-bunx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants cursor,claude --yes
-```
-
-- **pnpm:** **`pnpm exec`** runs the **`bin`** from the temporary **`--package`** install; add **`--`** before **`ca-ai-tools-setup`** only if your shell swallows flags meant for the CLI.
-- **Yarn:** requires **Yarn 2+** (**`yarn dlx`**). **Yarn 1 (Classic)** has no equivalent — use **`npx`** or **`pnpm exec`** for GitHub one-shots.
-- **Bun:** **`bunx`** (same idea as **`npx`**). You can also try **`bun x …`** if you standardize on Bun’s CLI.
+- **pnpm:** **`pnpm exec`** runs the **`bin`** from the temporary **`--package`** install; add **`--`** before
+  **`ca-ai-tools-setup`** only if your shell swallows flags meant for the CLI.
+- **Yarn / Bun:** prefer **`npx`** or **`pnpm`** for HTTPS tarball one-shots.
 
 ### Interactive (prompts for assistants, MCP, QA rules)
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup
 ```
 
 ```bash
-pnpm --package=@metricinsights/ca-ai-tools-setup@stable exec ca-ai-tools-setup
-```
-
-```bash
-yarn dlx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup
-```
-
-```bash
-bunx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup
-```
-
-```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app
-```
-
-```bash
-pnpm --package=@metricinsights/ca-ai-tools-setup@stable exec ca-ai-tools-setup --target ../my-app
-```
-
-```bash
-yarn dlx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app
-```
-
-```bash
-bunx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app
 ```
 
 ### Non-interactive — defaults (`--yes`)
 
-**Selects** both assistants, Playwright MCP **on**, Figma MCP **off**, QA AI rules **off**. Emits **`.cursor/mcp.json`** / **`.mcp.json`** when MCP is enabled for the selected assistants.
-
-**npm:**
-
-```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants cursor,claude --yes
-```
-
-**pnpm / Yarn / Bun:** use the same shape as in **Fetching the CLI with pnpm, Yarn, or Bun** (same flags: **`--assistants cursor,claude --yes`**). Example with **`--target`:**
+**Selects** both assistants, Playwright MCP **on**, Figma MCP **off**, QA AI rules **off**. Emits
+**`.cursor/mcp.json`** / **`.mcp.json`** when MCP is enabled for the selected assistants.
 
 ```bash
-pnpm --package=@metricinsights/ca-ai-tools-setup@stable exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes
 ```
 
 ```bash
-yarn dlx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
 ```
 
 ```bash
-bunx @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
-```
-
-```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+pnpm --package="$CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
 ```
 
 ### Preview only (`--dry-run`)
@@ -172,21 +116,17 @@ npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my
 No files written; QA AI rules init is **not** executed.
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
-```
-
-```bash
-pnpm --package=@metricinsights/ca-ai-tools-setup@stable exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
 ```
 
 ### One assistant only
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants cursor --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor --yes
 ```
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants claude --yes
 ```
 
 ### MCP — disable Playwright or enable Figma
@@ -194,31 +134,33 @@ npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants c
 Disable Playwright MCP (no **`.cursor/mcp.json`** / **`.mcp.json`** from this run unless Figma is on):
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
 ```
 
 Enable **both** Playwright and Figma MCP (requires **`FIGMA_API_KEY`** where Figma is used):
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
 ```
 
 ### QA AI rules (`@metricinsights/qa-ai-rules`)
 
-After generating files, runs **`init`** for the package using the detected runner (**`pnpm dlx`**, **`yarn dlx`**, **`bunx`**, or **`npx`**) with **`--cursor`** / **`--claude`** aligned to **`--assistants`**. Needs **`package.json`** in the target repo.
+After generating files, runs **`init`** for the package using the detected runner (**`pnpm dlx`**, **`yarn dlx`**,
+**`bunx`**, or **`npx`**) with **`--cursor`** / **`--claude`** aligned to **`--assistants`**. Needs **`package.json`**
+in the target repo.
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --assistants cursor,claude --yes --qa-ai-rules yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --qa-ai-rules yes
 ```
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app --assistants cursor --yes --qa-ai-rules yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor --yes --qa-ai-rules yes
 ```
 
 ### Overwrite existing generated files
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@stable ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --force
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --force
 ```
 
 ### Local clone (development)
@@ -237,11 +179,12 @@ The installer is not added to the application package or lockfile.
 
 ### Initial setup
 
-Use an exact package version, inspect the complete generated diff, run the target repository's validation, and
+Use an exact release tarball, inspect the complete generated diff, run the target repository's validation, and
 open a setup PR:
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@0.1.0 ca-ai-tools-setup \
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup \
   --target ../my-app --assistants cursor,claude --yes
 ```
 
@@ -251,17 +194,19 @@ npx -p @metricinsights/ca-ai-tools-setup@0.1.0 ca-ai-tools-setup \
 need attention, and `1` for invalid input or I/O failures:
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@0.2.0 ca-ai-tools-setup check ../my-app
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.2.0/ca-ai-tools-setup.tgz
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup check ../my-app
 ```
 
 ### Prepare an update PR
 
 Run a preview, apply the update, review `git diff`, resolve any reported protected-file conflicts, validate the
-target repository, and open a normal PR:
+target repository, and open a normal PR. `update --dry-run` also exits `2` when changes or conflicts are pending:
 
 ```bash
-npx -p @metricinsights/ca-ai-tools-setup@0.2.0 ca-ai-tools-setup update ../my-app --dry-run
-npx -p @metricinsights/ca-ai-tools-setup@0.2.0 ca-ai-tools-setup update ../my-app
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.2.0/ca-ai-tools-setup.tgz
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app --dry-run
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app
 ```
 
 Update ownership rules:
@@ -294,7 +239,7 @@ freshness matters and to request approval before any update.
 - `--version` / `-v`: print the installed CLI package version
 - `--target <path>`: target repo directory (resolved from the current working directory; omit or press Enter in the prompt to use the current directory)
 - `--assistants <list>`: comma-separated assistants, e.g. `cursor,claude`
-- `--dry-run`: preview generation or update changes without writing
+- `--dry-run`: preview generation or update changes without writing; for `update`, exits `2` when changes or conflicts are pending
 - `--force`: overwrite generated managed/structured baselines; protected files remain preserved in `update` mode
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**

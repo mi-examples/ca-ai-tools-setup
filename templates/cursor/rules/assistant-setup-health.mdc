@@ -17,5 +17,5 @@ Before non-trivial work that depends on repository rules, skills, agents, MCP, o
 5. Exit code **`2`** means the tracked setup is stale, incomplete, or requires migration. Report that state and
    propose a reviewable update PR.
 
-Never run `update` or `--force` without explicit developer approval. A missing package token or failed check is
-an error to report, not proof that the setup is current.
+Never run `update` or `--force` without explicit developer approval. A failed check is an error to report,
+not proof that the setup is current.
