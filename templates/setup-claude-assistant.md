@@ -85,9 +85,9 @@ The **`ca-ai-tools-setup`** installer writes **`AGENTS.md`** in the repository r
 - **Bring them up to date:** Add repo-specific conventions to **`CLAUDE.md`** (tests, branching,
   ownership). Keep **`AGENTS.md`** aligned with files under **`.claude/agents/`** (add/remove rows
   in the table when agents change).
-- **Re-running setup:** A new installer run **does not overwrite** existing **`CLAUDE.md`**,
-  **`.claude/settings.json`**, or **`AGENTS.md`** unless you pass **`--force`**—to preserve local edits.
-  To refresh from the latest templates, merge manually or back up and run with **`--force`**.
+- **Re-running setup:** A new installer run does not overwrite existing **`CLAUDE.md`** or
+  **`.claude/settings.json`** unless you pass **`--force`**. Existing **`AGENTS.md`** is never
+  replaced, including with **`--force`**; the installer only merges missing generated agent rows.
 - In **`CLAUDE.md`**, ensure Claude is told to use specialized agents from **`.claude/agents/*.md`**
   when available (the starter already does); extend as needed.
 - If **`.claude/agents/figma-mcp.md`** exists, ensure **`CLAUDE.md`** or **`AGENTS.md`** points at it
@@ -320,22 +320,20 @@ Invoke the CLI as **`npx playwright-cli ...`** (resolves the pinned local versio
 
 ### Step 3: Developer environment profile (finalize after setup)
 
-After installing tools, update **`.dev-environment.md`** with the complete local profile
+After installing tools, update the tracked **`.dev-environment.md`** with the shared repository profile
 (generator metadata remains in **`.assistant-setup/ca-ai-tools-setup.json`**):
 
-- If the file is missing, create it from the generated template and fill in local details.
-- **Local app URL** (`http://localhost:<port>` — default **3000**, otherwise next free port; record
-  the actual port from `pp-dev.config`, the running server, or the browser).
+- If the file is missing, create it from the generated template and add it to the setup PR.
+- **Local app URL convention** (`http://localhost:<port>` — default **3000**, otherwise next free port; record
+  the configured default and how developers discover overrides).
 - **Authentication** section: **`MI_ACCESS_TOKEN`** status, validation notes (`/data/page/index/auth/info`), session vs token, and **Credentials** line — **usernames only** in **`.dev-environment.md`**; passwords belong in **`.mi-credentials.local.env`** (add **`/.mi-credentials.local.env`** to **`.gitignore`**).
 - **API compatibility notes** for your Metric Insights instance (confirmed endpoint/field differences;
   see Step 1.2).
-- **Last verification date** for this profile (when URL, auth, and API checks were last confirmed).
-- **OS, architecture, and shells** (PowerShell, cmd, bash, zsh, etc.) so future commands use the
-  correct syntax.
-- Keep shell notes explicit (for example: "primary shell is PowerShell; avoid `&&` and Bash
-  heredocs").
-- Add **`.dev-environment.md`** to **`.gitignore`** if not already present (this file is personal
-  and should not be committed).
+- **Last verification date** for the shared profile (when URL, auth, and API checks were last confirmed).
+- **Supported OS, architectures, and shells** (PowerShell, cmd, bash, zsh, etc.) so future commands use the
+  correct syntax for each platform.
+- Keep platform notes explicit (for example: "PowerShell users should avoid `&&` and Bash heredocs").
+- Commit **`.dev-environment.md`**; keep machine-specific credentials and tokens in ignored local files.
 
 ### Step 4: Final verification
 

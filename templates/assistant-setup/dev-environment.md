@@ -1,7 +1,7 @@
 # Developer Local Environment
 
-> Fill this file with your personal local setup details.
-> Keep it out of git: add `.dev-environment.md` to `.gitignore`.
+> Commit this file as shared repository guidance for supported local setups and platform-specific variations.
+> Do not store tokens, passwords, session values, or other per-developer secrets here.
 
 ## System and Shell Context
 
@@ -178,4 +178,4 @@ Metric Insights instance docs can diverge from [published API reference](https:/
 
 ## Notes
 
-Add any personal workflow notes, quick commands, and environment caveats.
+Add shared workflow notes, quick commands, supported-platform differences, and environment caveats.

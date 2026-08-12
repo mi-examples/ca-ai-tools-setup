@@ -11,13 +11,7 @@ import { resolveCliRepoRoot } from './path-policy.js';
 import { type InteractiveDefaults } from './previous-setup.js';
 import { type ExistingFileAction } from './generator.js';
 import { type GeneratedFile } from './generators/types.js';
-import {
-  firstNonEmptyTarget,
-  mcpFigmaCliRaw,
-  mcpPlaywrightCliRaw,
-  qaAiRulesCliRaw,
-  type CliArgs,
-} from './cli-args.js';
+import { firstNonEmptyTarget, mcpFigmaCliRaw, mcpPlaywrightCliRaw, qaAiRulesCliRaw, type CliArgs } from './cli-args.js';
 
 export async function pickTargetDir(args: CliArgs): Promise<string> {
   const cwd = process.cwd();
@@ -172,6 +166,11 @@ export async function promptExistingMcpActions(
     const dest = path.join(targetDir, file.path);
 
     if (!fs.existsSync(dest)) {
+      continue;
+    }
+
+    if (file.path === 'AGENTS.md') {
+      actions[file.path] = 'merge';
       continue;
     }
 

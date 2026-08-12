@@ -37,6 +37,7 @@ test('cli --dry-run does not write generated files', () => {
   assert.equal(fs.existsSync(path.join(targetDir, 'setup-cursor-assistant.md')), false);
   assert.equal(fs.existsSync(path.join(targetDir, '.dev-environment.md')), false);
   assert.equal(fs.existsSync(path.join(targetDir, '.assistant-setup/page-workflow-context.md')), false);
+  assert.equal(fs.existsSync(path.join(targetDir, '.assistant-setup/SETUP_STATUS.md')), false);
   assert.equal(fs.existsSync(path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json')), false);
   assert.equal(fs.existsSync(path.join(targetDir, 'LINEAR_CLI.md')), false);
 });
@@ -91,7 +92,7 @@ test('cli --force overwrites existing generated files', () => {
   assert.equal(first.status, 0, `Initial run failed.\nSTDERR:\n${first.stderr}`);
 
   const cursorRulesPath = path.join(targetDir, '.cursorrules');
-  
+
   fs.writeFileSync(cursorRulesPath, 'MANUAL TEST CONTENT\n', 'utf8');
 
   const second = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
@@ -131,7 +132,7 @@ test('cli --yes skips existing .cursor/mcp.json (no merge prompt in non-interact
   assert.match(result.stdout, /\.cursor\/mcp\.json/);
 });
 
-test('cli --yes skips existing .claude/settings.json and AGENTS.md', () => {
+test('cli --yes skips existing settings and safely merges AGENTS.md', () => {
   const targetDir = makeTempDir();
   const settingsPath = path.join(targetDir, '.claude/settings.json');
   const agentsPath = path.join(targetDir, 'AGENTS.md');
@@ -154,7 +155,8 @@ test('cli --yes skips existing .claude/settings.json and AGENTS.md', () => {
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.equal(fs.readFileSync(settingsPath, 'utf8'), customSettings);
-  assert.equal(fs.readFileSync(agentsPath, 'utf8'), customAgents);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /Do not overwrite\./);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`code-style\.md`/);
   assert.match(result.stdout, /\.claude\/settings\.json/);
   assert.match(result.stdout, /AGENTS\.md/);
 });
@@ -198,7 +200,7 @@ test('cli --yes skips existing .mcp.json and keeps configured token', () => {
   assert.match(result.stdout, /\.mcp\.json/);
 });
 
-test('cli --force overwrites existing mergeable files for claude flow', () => {
+test('cli --force overwrites settings but safely merges existing AGENTS.md', () => {
   const targetDir = makeTempDir();
   const settingsPath = path.join(targetDir, '.claude/settings.json');
   const agentsPath = path.join(targetDir, 'AGENTS.md');
@@ -220,7 +222,9 @@ test('cli --force overwrites existing mergeable files for claude flow', () => {
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.match(fs.readFileSync(settingsPath, 'utf8'), /claude-code-settings/);
   assert.match(fs.readFileSync(settingsPath, 'utf8'), /mcp__playwright__/);
-  assert.match(fs.readFileSync(agentsPath, 'utf8'), /# Claude Code — agent registry/);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /# Manual AGENTS/);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /Registered agents added by ca-ai-tools-setup/);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`code-style\.md`/);
 });
 
 test('cli exits non-zero for invalid assistants value', () => {
@@ -237,4 +241,114 @@ test('cli exits non-zero for invalid --mcp-figma value', () => {
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Invalid --mcp-figma value "maybe"/);
+});
+
+test('cli --version prints the package version without starting setup', () => {
+  const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as { version: string };
+  const result = runCli(['--version']);
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, `${version}\n`);
+  assert.equal(result.stderr, '');
+});
+
+test('cli check returns zero for a synchronized tracked setup', () => {
+  const targetDir = makeTempDir();
+  const generated = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+
+  assert.equal(generated.status, 0, generated.stderr);
+
+  const checked = runCli(['check', targetDir]);
+
+  assert.equal(checked.status, 0, checked.stderr);
+  assert.match(checked.stdout, /Setup check completed\./);
+  assert.match(checked.stdout, /Conflicts: 0/);
+});
+
+test('cli check returns two for a missing managed file without changing the repository', () => {
+  const targetDir = makeTempDir();
+
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+
+  const missingPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
+
+  fs.rmSync(missingPath);
+
+  const checked = runCli(['check', targetDir]);
+
+  assert.equal(checked.status, 2, checked.stderr);
+  assert.match(checked.stdout, /\.cursor\/rules\/code-style\.mdc \(create\)/);
+  assert.equal(fs.existsSync(missingPath), false);
+});
+
+test('cli update recreates a missing managed file and produces a PR summary', () => {
+  const targetDir = makeTempDir();
+
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+
+  const missingPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
+
+  fs.rmSync(missingPath);
+
+  const updated = runCli(['update', targetDir]);
+
+  assert.equal(updated.status, 0, updated.stderr);
+  assert.equal(fs.existsSync(missingPath), true);
+  assert.match(updated.stdout, /Setup update completed\./);
+  assert.match(updated.stdout, /PR summary:/);
+});
+
+test('cli update blocks all writes when a managed file conflicts', () => {
+  const targetDir = makeTempDir();
+
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+
+  const conflictPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
+  const missingPath = path.join(targetDir, '.cursor/rules/linear-cli.mdc');
+
+  fs.writeFileSync(conflictPath, 'Local managed edit.\n', 'utf8');
+  fs.rmSync(missingPath);
+
+  const updated = runCli(['update', targetDir]);
+
+  assert.equal(updated.status, 2, updated.stderr);
+  assert.match(updated.stdout, /Setup update blocked by conflicts\./);
+  assert.equal(fs.existsSync(missingPath), false);
+  assert.equal(fs.readFileSync(conflictPath, 'utf8'), 'Local managed edit.\n');
+});
+
+test('cli update --dry-run previews pending changes without writing and exits two', () => {
+  const targetDir = makeTempDir();
+
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+
+  const missingPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
+  const metadataPath = path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json');
+  const metadataBefore = fs.readFileSync(metadataPath, 'utf8');
+
+  fs.rmSync(missingPath);
+
+  const preview = runCli(['update', targetDir, '--dry-run']);
+
+  assert.equal(preview.status, 2, preview.stderr);
+  assert.match(preview.stdout, /Setup update preview completed\./);
+  assert.match(preview.stdout, /Planned changes:/);
+  assert.match(preview.stdout, /\.cursor\/rules\/code-style\.mdc \(create\)/);
+  assert.equal(fs.existsSync(missingPath), false);
+  assert.equal(fs.readFileSync(metadataPath, 'utf8'), metadataBefore);
+});
+
+test('cli update is deterministic when no generated content changed', () => {
+  const targetDir = makeTempDir();
+
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+
+  const metadataPath = path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json');
+  const before = fs.readFileSync(metadataPath, 'utf8');
+  const updated = runCli(['update', targetDir]);
+  const after = fs.readFileSync(metadataPath, 'utf8');
+
+  assert.equal(updated.status, 0, updated.stderr);
+  assert.equal(after, before);
+  assert.doesNotMatch(after, /generatedAt/);
 });

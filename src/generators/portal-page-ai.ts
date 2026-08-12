@@ -11,6 +11,7 @@ const FIGMA_CODE_CONNECT_TEMPLATES = [
 ] as const;
 
 const PORTAL_PAGE_RULES = [
+  'cursor/rules/assistant-setup-health.mdc',
   'cursor/rules/code-style.mdc',
   'cursor/rules/frontend-architecture.mdc',
   'cursor/rules/commit-convention.mdc',
@@ -24,10 +25,7 @@ const PORTAL_PAGE_RULES = [
 ] as const;
 
 /** Shared skills mirrored under `.cursor/skills/` and `.claude/skills/`. */
-const SHARED_PORTAL_SKILLS = [
-  'skills/ai-development/SKILL.md',
-  'skills/ai-development/DOD-FULL.md',
-] as const;
+const SHARED_PORTAL_SKILLS = ['skills/ai-development/SKILL.md', 'skills/ai-development/DOD-FULL.md'] as const;
 
 /** Cursor-only skills (Claude Code uses `.claude/workflows/` for QA orchestration). */
 const CURSOR_ONLY_SKILLS = [
@@ -49,10 +47,7 @@ function skillTemplateToOutputPath(templateRel: string): string {
   return `${parts[1]}/${parts[2]}`;
 }
 
-function buildSkillFilesForAssistant(
-  assistant: 'cursor' | 'claude',
-  includeFigmaMcp: boolean,
-): GeneratedFile[] {
+function buildSkillFilesForAssistant(assistant: 'cursor' | 'claude', includeFigmaMcp: boolean): GeneratedFile[] {
   const skillsRoot = assistant === 'cursor' ? '.cursor/skills' : '.claude/skills';
 
   const files: GeneratedFile[] = SHARED_PORTAL_SKILLS.map((rel) => ({
@@ -89,10 +84,7 @@ function buildSkillFilesForAssistant(
 }
 
 /** Shared Portal Page skills for Cursor (`.cursor/skills/`) or Claude (`.claude/skills/`). */
-export function buildPortalPageSkillFiles(
-  assistant: 'cursor' | 'claude',
-  includeFigmaMcp: boolean,
-): GeneratedFile[] {
+export function buildPortalPageSkillFiles(assistant: 'cursor' | 'claude', includeFigmaMcp: boolean): GeneratedFile[] {
   return buildSkillFilesForAssistant(assistant, includeFigmaMcp);
 }
 

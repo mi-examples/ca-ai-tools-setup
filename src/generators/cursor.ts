@@ -51,8 +51,11 @@ function renderCursorMcpSection(options: GenerateCursorOptions): string {
     '- Confirm **`.cursor/mcp.json`** exists and contains the expected `mcpServers` entries.',
     '- If someone removed the file, recreate it and merge with any existing `mcpServers` keys.',
     '- For **Figma MCP**, export **`FIGMA_API_KEY`** before starting the server, then reload MCP in Cursor.',
-    '- If Figma MCP is enabled, follow **`.cursor/rules/figma-mcp.mdc`** and **`.cursor/skills/figma-code-connect/SKILL.md`** when applicable.',
-    '- **Enable servers manually** in Cursor (**Settings → Features → MCP**): project MCP from `.cursor/mcp.json` is not auto-enabled — toggle each server on, then refresh MCP (see **Step 2.5** in this setup doc).',
+    '- If Figma MCP is enabled, follow **`.cursor/rules/figma-mcp.mdc`** and ' +
+      '**`.cursor/skills/figma-code-connect/SKILL.md`** when applicable.',
+    '- **Enable servers manually** in Cursor (**Settings → Features → MCP**): project MCP from ' +
+      '`.cursor/mcp.json` is not auto-enabled — toggle each server on, then refresh MCP ' +
+      '(see **Step 2.5** in this setup doc).',
     '- After any edit to `mcp.json`, reload MCP in Cursor and confirm selected tools are available.',
     '',
     '```json',

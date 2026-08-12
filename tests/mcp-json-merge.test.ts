@@ -258,12 +258,55 @@ test('mergeAgentsMd does not duplicate existing rows', () => {
   const matches = result.match(/`figma-mcp\.md`/g);
 
   assert.equal(matches?.length, 1);
+  assert.match(result, /Figma MCP\./);
+  assert.doesNotMatch(result, /updated description/);
 });
 
 test('mergeAgentsMd returns existing unchanged when no new rows', () => {
   const content = '| `figma-mcp.md` | Figma. |\n';
 
   assert.equal(mergeAgentsMd(content, content), content);
+});
+
+test('mergeAgentsMd preserves custom content and appends a complete registry section when no table exists', () => {
+  const existing = '# Repository instructions\n\nKeep this guidance.\n';
+  const incoming = [
+    '# Generated template',
+    '',
+    '| File | Purpose |',
+    '| ---- | ------- |',
+    '| `code-style.md` | Generated code style agent. |',
+    '',
+  ].join('\n');
+  const result = mergeAgentsMd(existing, incoming);
+
+  assert.match(result, /^# Repository instructions/m);
+  assert.match(result, /Keep this guidance\./);
+  assert.match(result, /## Registered agents added by ca-ai-tools-setup/);
+  assert.match(result, /`code-style\.md`/);
+  assert.doesNotMatch(result, /# Generated template/);
+});
+
+test('mergeAgentsMd inserts rows into an existing table that has no data rows', () => {
+  const existing = ['# Repository instructions', '', '| File | Purpose |', '| ---- | ------- |', ''].join('\n');
+  const incoming = [
+    '| File | Purpose |',
+    '| ---- | ------- |',
+    '| `code-style.md` | Generated code style agent. |',
+    '',
+  ].join('\n');
+  const result = mergeAgentsMd(existing, incoming);
+
+  assert.match(result, /^# Repository instructions/m);
+  assert.match(result, /\| File \| Purpose \|/);
+  assert.match(result, /`code-style\.md`/);
+  assert.doesNotMatch(result, /## Registered agents added by ca-ai-tools-setup/);
+});
+
+test('mergeAgentsMd uses the generated template when the existing file is empty', () => {
+  const incoming = '# Generated AGENTS\n\n| `code-style.md` | Code style. |\n';
+
+  assert.equal(mergeAgentsMd('', incoming), incoming);
 });
 
 // mergeFile dispatch

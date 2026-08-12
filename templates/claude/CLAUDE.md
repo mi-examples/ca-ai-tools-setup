@@ -7,6 +7,9 @@ as the `linear-cli` command reference.
 
 ## Scope
 
+- Check `.assistant-setup/SETUP_STATUS.md` before setup-sensitive work. If it is missing, report that
+  `ca-ai-tools-setup` is absent or incomplete. Follow `.cursor/rules/assistant-setup-health.mdc` for the
+  read-only freshness check; never run `update` or `--force` without explicit developer approval.
 - Read `AGENTS.md` and `README.md` before non-trivial code changes.
 - Follow **`.claude/agents/code-style.md`** (Portal Page naming, SCSS modules, BEM,
   `app-context` / `app-provider`, `constants.ts`, `index.html` globals). Cursor mirror:

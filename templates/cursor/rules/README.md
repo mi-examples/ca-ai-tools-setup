@@ -30,6 +30,7 @@ This directory contains Metric Insights guidance for using Linear CLI inside Cur
 
 ## Files
 
+- `assistant-setup-health.mdc` - always-on detection for missing or stale tracked assistant setup.
 - `code-style.mdc` - Portal Page component naming, SCSS modules, BEM, app context, constants, index.html globals.
 - `frontend-architecture.mdc` - component hierarchy, design system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope.
 - `commit-convention.mdc` - Git commit message format (Angular commit message convention).

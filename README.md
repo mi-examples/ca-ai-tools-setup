@@ -4,23 +4,25 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 
 ## What this package generates
 
-**Shared (every run):** `LINEAR_CLI.md`, `AGENTS.md`, `.dev-environment.md`, `.assistant-setup/page-workflow-context.md`, `.assistant-setup/ca-ai-tools-setup.json`
+**Shared (every run):** `LINEAR_CLI.md`, `AGENTS.md`, `.dev-environment.md`,
+`.assistant-setup/page-workflow-context.md`, `.assistant-setup/SETUP_STATUS.md`,
+`.assistant-setup/ca-ai-tools-setup.json`
 
 **Cursor rules (Cursor and/or Claude):** `.cursor/rules/*.mdc` — Claude Code follows the same rules. Emitted for **Claude-only** runs too.
 
-| Path | When |
-|------|------|
-| `setup-cursor-assistant.md` | Cursor selected |
-| `.cursorrules`, `.cursorignore` | Cursor selected |
-| `.cursor/rules/*` (code-style, linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP) | Cursor and/or Claude |
-| `.cursor/skills/*` (ai-development + DOD-FULL, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-mcp, figma-implementation, form-builder; figma-code-connect + references if Figma MCP) | Cursor selected |
-| `.cursor/prompts/react-component-unit.md` | Cursor selected |
-| `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json` | Cursor + MCP option |
-| `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json` | Claude selected |
-| `.claude/skills/*` (same skill set as Cursor, under `.claude/skills/`) | Claude selected |
-| `.claude/agents/code-style.md` | Claude selected |
-| `.claude/agents/figma-mcp.md` | Claude + Figma MCP |
-| `.mcp.json` (repo root) | Claude + MCP option |
+| Path                                                                                                                                                                                                                                                     | When                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `setup-cursor-assistant.md`                                                                                                                                                                                                                              | Cursor selected      |
+| `.cursorrules`, `.cursorignore`                                                                                                                                                                                                                          | Cursor selected      |
+| `.cursor/rules/*` (assistant-setup-health, code-style, linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP)                                                                | Cursor and/or Claude |
+| `.cursor/skills/*` (ai-development + DOD-FULL, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-mcp, figma-implementation, form-builder; figma-code-connect + references if Figma MCP) | Cursor selected      |
+| `.cursor/prompts/react-component-unit.md`                                                                                                                                                                                                                | Cursor selected      |
+| `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json`                                                                                                                                                                                                     | Cursor + MCP option  |
+| `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                                                                                        | Claude selected      |
+| `.claude/skills/*` (same skill set as Cursor, under `.claude/skills/`)                                                                                                                                                                                   | Claude selected      |
+| `.claude/agents/code-style.md`                                                                                                                                                                                                                           | Claude selected      |
+| `.claude/agents/figma-mcp.md`                                                                                                                                                                                                                            | Claude + Figma MCP   |
+| `.mcp.json` (repo root)                                                                                                                                                                                                                                  | Claude + MCP option  |
 
 Skip/`--force` behavior: setup assistant markdown is always refreshed; most other paths are created once, then skipped unless `--force` (see package docs below).
 
@@ -36,100 +38,77 @@ When auditing `templates/` for drift against a reference repo:
 
 ## Distribution
 
-This package is **private** and consumed **directly from its GitHub repository** (not the public npm registry). Push changes to the repo; consumers install with npm’s GitHub shorthand.
+This public repository ships a **prebuilt npm tarball** as a GitHub Release asset named
+**`ca-ai-tools-setup.tgz`**. A release tag such as **`v0.1.0`** must match `package.json`; release CI validates
+the source, smoke-tests the packed artifact, verifies the tag commit is on **`main`**, and attaches the tarball
+to the GitHub Release. Prerelease versions (`1.2.3-rc.1`) create a GitHub prerelease.
 
-Authenticate to the private repo the same way you clone it (SSH, or HTTPS with a [personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) and credential helper).
+No GitHub Packages registry or package token is required. Developers install the CLI directly from the public
+release asset:
 
-Optional: pin a **branch**, **tag**, or **commit** after `#` (for example `github:mi-examples/ca-ai-tools-setup#main` or `github:mi-examples/ca-ai-tools-setup#v0.1.0`).
+```bash
+# Latest stable release
+https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz
 
-The **`prepare`** script runs **`npm run build`** after **`npm install`** (including installs from `github:…` and `npm pack`), so **`dist/`** is generated and is not committed to git. **`dist/`** contains only compiled **`src/`** (the CLI and library JS); tests stay in **`tests/*.ts`** and are run with **`tsx`** — they are not emitted into **`dist/`**.
+# Exact version (preferred for reviewable setup/update PRs)
+https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz
+```
+
+The `package-release` GitHub environment should require an internal reviewer before the release job can publish.
+To release, merge a reviewed version bump, create and push the matching `vX.Y.Z` tag, then approve the protected
+job. Roll back a target repository by running `check` and `update` with the previous release tarball and reviewing
+the reverse diff.
+
+The tarball contains prebuilt **`dist/**`** plus **`templates/**`**; developer machines do not compile TypeScript
+during installation.
 
 ## Usage
 
-Binary name: **`ca-ai-tools-setup`**. Package spec: **`github:mi-examples/ca-ai-tools-setup`** (optional pin: **`#main`**, **`#v0.1.0`**, commit hash). Below, **`TARGET`** is another repo path; omit **`--target`** to use the **current directory**.
+Binary name: **`ca-ai-tools-setup`**. Below, **`TARGET`** is another repo path; omit **`--target`** to use the
+**current directory**.
 
-The subsections **Interactive** through **Local clone** show **`npx`** invocations; swap the **`npx -p github:… ca-ai-tools-setup`** prefix for **`pnpm --package=… exec`**, **`yarn dlx …`**, or **`bunx …`** as in **Fetching the CLI with pnpm, Yarn, or Bun** — all other flags stay the same.
-
-### Fetching the CLI with pnpm, Yarn, or Bun
-
-One-shot install + run from GitHub (equivalent to **`npx -p … ca-ai-tools-setup`**):
+Set a package URL once, then reuse it with **`npx`** or **`pnpm`**:
 
 ```bash
-pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --assistants cursor,claude --yes
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz
+# or pin a version:
+# export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz
 ```
 
 ```bash
-yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup
+pnpm --package="$CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup
 ```
 
-```bash
-bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes
-```
-
-- **pnpm:** **`pnpm exec`** runs the **`bin`** from the temporary **`--package`** install; add **`--`** before **`ca-ai-tools-setup`** only if your shell swallows flags meant for the CLI.
-- **Yarn:** requires **Yarn 2+** (**`yarn dlx`**). **Yarn 1 (Classic)** has no equivalent — use **`npx`** or **`pnpm exec`** for GitHub one-shots.
-- **Bun:** **`bunx`** (same idea as **`npx`**). You can also try **`bun x …`** if you standardize on Bun’s CLI.
+- **pnpm:** **`pnpm exec`** runs the **`bin`** from the temporary **`--package`** install; add **`--`** before
+  **`ca-ai-tools-setup`** only if your shell swallows flags meant for the CLI.
+- **Yarn / Bun:** prefer **`npx`** or **`pnpm`** for HTTPS tarball one-shots.
 
 ### Interactive (prompts for assistants, MCP, QA rules)
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup
 ```
 
 ```bash
-pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup
-```
-
-```bash
-yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup
-```
-
-```bash
-bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup
-```
-
-```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app
-```
-
-```bash
-pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --target ../my-app
-```
-
-```bash
-yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app
-```
-
-```bash
-bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app
 ```
 
 ### Non-interactive — defaults (`--yes`)
 
-**Selects** both assistants, Playwright MCP **on**, Figma MCP **off**, QA AI rules **off**. Emits **`.cursor/mcp.json`** / **`.mcp.json`** when MCP is enabled for the selected assistants.
-
-**npm:**
-
-```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes
-```
-
-**pnpm / Yarn / Bun:** use the same shape as in **Fetching the CLI with pnpm, Yarn, or Bun** (same flags: **`--assistants cursor,claude --yes`**). Example with **`--target`:**
+**Selects** both assistants, Playwright MCP **on**, Figma MCP **off**, QA AI rules **off**. Emits
+**`.cursor/mcp.json`** / **`.mcp.json`** when MCP is enabled for the selected assistants.
 
 ```bash
-pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes
 ```
 
 ```bash
-yarn dlx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
 ```
 
 ```bash
-bunx github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
-```
-
-```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+pnpm --package="$CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
 ```
 
 ### Preview only (`--dry-run`)
@@ -137,21 +116,17 @@ npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app
 No files written; QA AI rules init is **not** executed.
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
-```
-
-```bash
-pnpm --package=github:mi-examples/ca-ai-tools-setup exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
 ```
 
 ### One assistant only
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor --yes
 ```
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants claude --yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants claude --yes
 ```
 
 ### MCP — disable Playwright or enable Figma
@@ -159,47 +134,113 @@ npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants claud
 Disable Playwright MCP (no **`.cursor/mcp.json`** / **`.mcp.json`** from this run unless Figma is on):
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
 ```
 
 Enable **both** Playwright and Figma MCP (requires **`FIGMA_API_KEY`** where Figma is used):
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
 ```
 
 ### QA AI rules (`@metricinsights/qa-ai-rules`)
 
-After generating files, runs **`init`** for the package using the detected runner (**`pnpm dlx`**, **`yarn dlx`**, **`bunx`**, or **`npx`**) with **`--cursor`** / **`--claude`** aligned to **`--assistants`**. Needs **`package.json`** in the target repo.
+After generating files, runs **`init`** for the package using the detected runner (**`pnpm dlx`**, **`yarn dlx`**,
+**`bunx`**, or **`npx`**) with **`--cursor`** / **`--claude`** aligned to **`--assistants`**. Needs **`package.json`**
+in the target repo.
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --assistants cursor,claude --yes --qa-ai-rules yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --qa-ai-rules yes
 ```
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor --yes --qa-ai-rules yes
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor --yes --qa-ai-rules yes
 ```
 
 ### Overwrite existing generated files
 
 ```bash
-npx -p github:mi-examples/ca-ai-tools-setup ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --force
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --force
 ```
 
 ### Local clone (development)
 
-From this repository after **`npm install`**:
+From this repository after **`npm install && npm run build`**:
 
 ```bash
 node dist/cli.js --target ../my-app --assistants cursor,claude --dry-run
 ```
 
+## Tracked setup and update workflow
+
+All generated Cursor and Claude files are intended to be committed. Any authenticated developer may prepare
+the initial setup or an update; after the PR merges, everyone else receives the files through a normal pull.
+The installer is not added to the application package or lockfile.
+
+### Initial setup
+
+Use an exact release tarball, inspect the complete generated diff, run the target repository's validation, and
+open a setup PR:
+
+```bash
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup \
+  --target ../my-app --assistants cursor,claude --yes
+```
+
+### Check for changes
+
+`check` is read-only. It returns exit code `0` when the tracked setup is synchronized, `2` when files or metadata
+need attention, and `1` for invalid input or I/O failures:
+
+```bash
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.2.0/ca-ai-tools-setup.tgz
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup check ../my-app
+```
+
+### Prepare an update PR
+
+Run a preview, apply the update, review `git diff`, resolve any reported protected-file conflicts, validate the
+target repository, and open a normal PR. `update --dry-run` also exits `2` when changes or conflicts are pending:
+
+```bash
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.2.0/ca-ai-tools-setup.tgz
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app --dry-run
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app
+```
+
+Update ownership rules:
+
+- Managed rules, skills, workflows, prompts, agents, and shared references update automatically only when their
+  current hash matches the recorded generated baseline.
+- Repository-owned files such as `.cursorrules`, `CLAUDE.md`, `.dev-environment.md`, and page context are
+  preserved and recorded as adopted content.
+- MCP JSON and Claude settings use semantic merge only when their baseline is unchanged.
+- Existing `AGENTS.md` content is never replaced, including with `--force`; missing generated agent rows are
+  merged into its registry table or appended as a separate generated section.
+- Locally modified managed/structured files block the entire update so a partial write cannot occur. Use
+  `--force` only when replacing those generated baselines is intentional.
+- Unchanged managed files removed by a release are deleted; modified or protected orphaned files are preserved
+  and reported.
+
+The metadata file records package version, release commit/template revision, and per-file SHA-256 hashes with
+line endings normalized for Windows/macOS/Linux checkouts. It contains no timestamp, so identical content
+produces identical tracked output.
+
+`.assistant-setup/SETUP_STATUS.md` is the agent-facing marker. Its absence means setup is missing or incomplete;
+its embedded package version identifies what generated the repository. The always-on
+`.cursor/rules/assistant-setup-health.mdc` rule tells Cursor and Claude to run the read-only `check` command when
+freshness matters and to request approval before any update.
+
 ## Options
 
+- `check [target]`: inspect a tracked setup without writing; exits `2` when an update or migration is required
+- `update [target]`: apply a deterministic tracked-file update using the configuration stored in setup metadata
+- `--version` / `-v`: print the installed CLI package version
 - `--target <path>`: target repo directory (resolved from the current working directory; omit or press Enter in the prompt to use the current directory)
 - `--assistants <list>`: comma-separated assistants, e.g. `cursor,claude`
-- `--dry-run`: preview created/skipped/overwritten files without writing
-- `--force`: overwrite existing generated files (no merge prompts; MCP files are fully replaced)
+- `--dry-run`: preview generation or update changes without writing; for `update`, exits `2` when changes or conflicts are pending
+- `--force`: overwrite generated managed/structured baselines; protected files remain preserved in `update` mode
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
 - `--mcp-figma <yes|no>`: add or skip Figma MCP files for the assistants you selected (`yes` / `true` / `1` / `figma` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **no** (requires `FIGMA_API_KEY`)
@@ -235,15 +276,20 @@ npm install
 npm test
 ```
 
-`npm install` runs `prepare` and builds `dist/`. Use `npm run build` alone when you only need a compile without reinstalling. Use **`npm run typecheck`** for **`tsc --noEmit`** over **`src/`** and **`tests/`** (no output).
+`npm install` installs development dependencies without producing `dist/`. Run `npm run build` for a local CLI.
+`prepack` builds the release artifact and records release provenance. Use **`npm run typecheck`** for
+**`tsc --noEmit`** over **`src/`** and **`tests/`**.
 
 ## Notes
 
 - **Interactive MCP conflicts:** If any MCP server is enabled and **`.cursor/mcp.json`** or **`.mcp.json`** already exists, the CLI asks per file: **Skip** (keep as-is), **Merge** (union of `mcpServers`; generated server names override duplicates), or **Overwrite** (replace with the template). **`--dry-run`** and **`--yes`** skip these prompts; **`--force`** overwrites every generated path without merging.
 - Legacy metadata migration: old files **`.cursor/linear-cli-setup.json`** and **`.assistant-setup/linear-cli-setup.json`** are migrated to new names on update when possible; with **`--force`**, old legacy files are removed.
 - Obsolete QA flow cleanup (PP-3640): every re-run removes legacy **`ai-testing`** / **`ui-check`** skills and **`.claude/workflows/ui-check.md`** if they still exist from older bootstraps, then deletes any **empty parent folders** left behind (e.g. `.cursor/skills/ai-testing/`).
-- Setup assistant markdown files are always refreshed on each run; use `--force` to update other generated files in place. Root **`AGENTS.md`**, **`CLAUDE.md`** and **`.claude/settings.json`** (Claude only), and **`.cursorrules`** (Cursor only), follow the same rules as **`.dev-environment.md`**: created when missing, skipped if they already exist unless **`--force`**.
-- `.dev-environment.md` is generated as a personal local profile (including **Authentication**: `MI_ACCESS_TOKEN` for the dev proxy, `/data/page/index/auth/info` smoke check on localhost, session cookies); keep it up to date and add it to `.gitignore`. Store **`MI_USERNAME` / `MI_PASSWORD`** only in **`.mi-credentials.local.env`** (gitignored), never in `.dev-environment.md`.
+- Setup assistant markdown files are always refreshed by the legacy generation flow. For subsequent tracked updates,
+  prefer `check` and `update`, which use recorded baselines instead of blanket replacement.
+- `.dev-environment.md` is tracked repository guidance and may describe **Authentication** (`MI_ACCESS_TOKEN`,
+  `/data/page/index/auth/info`, session cookies), but must not contain credentials. Store **`MI_USERNAME` /
+  `MI_PASSWORD`** only in **`.mi-credentials.local.env`** (gitignored).
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.
 - **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories on **`@metricinsights/pp-dev` ≥ 1.0** need **Node.js ≥ 24** (declared in its `engines`); align `engines` and workflow images in those app repos when you adopt that pp-dev version.
 - **CI:** Consumer app repositories may not have GitHub Actions (or other CI) yet—that is still often the exception—but the goal is for **build / lint / test on every change** to become the default. This tool does not generate CI files; add workflows in each app repo when you standardize, and pin the same Node version you use locally (see above for pp-dev).
