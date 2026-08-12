@@ -206,7 +206,7 @@ export function printReconcileSummary(targetDir: string, result: ReconcileResult
   printLine(`Package version: ${result.previousVersion} -> ${result.desiredVersion}`);
 
   if (result.metadataMigrationRequired) {
-    printLine('Metadata: schema 5 migration required');
+    printLine(result.applied && !dryRun ? 'Metadata: migrated to schema 6' : 'Metadata: schema 5 migration required');
   } else if (result.metadataUpdated) {
     printLine('Metadata: updated');
   }

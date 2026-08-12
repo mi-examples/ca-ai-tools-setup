@@ -466,6 +466,14 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
   );
 
   for (const filePlan of plan.files) {
+    if (filePlan.state === 'orphaned' && filePlan.action !== 'remove' && filePlan.previous && filePlan.currentContent) {
+      metadata.files[filePlan.path] = {
+        ...filePlan.previous,
+        contentHash: hashContent(filePlan.currentContent),
+      };
+      continue;
+    }
+
     const record = metadata.files[filePlan.path];
 
     if (!record) {

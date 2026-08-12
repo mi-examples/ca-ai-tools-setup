@@ -464,7 +464,8 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
         content: serializeSetupMetadata(metadata),
       },
       {
-        force: options.force,
+        // Metadata must describe the files installed during this run.
+        force: true,
         dryRun: options.dryRun,
         existingFileActions: options.existingFileActions,
       },

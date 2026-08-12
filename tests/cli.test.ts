@@ -244,10 +244,11 @@ test('cli exits non-zero for invalid --mcp-figma value', () => {
 });
 
 test('cli --version prints the package version without starting setup', () => {
+  const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as { version: string };
   const result = runCli(['--version']);
 
   assert.equal(result.status, 0);
-  assert.equal(result.stdout, '0.1.0\n');
+  assert.equal(result.stdout, `${version}\n`);
   assert.equal(result.stderr, '');
 });
 
@@ -314,6 +315,27 @@ test('cli update blocks all writes when a managed file conflicts', () => {
   assert.match(updated.stdout, /Setup update blocked by conflicts\./);
   assert.equal(fs.existsSync(missingPath), false);
   assert.equal(fs.readFileSync(conflictPath, 'utf8'), 'Local managed edit.\n');
+});
+
+test('cli update --dry-run previews pending changes without writing and exits two', () => {
+  const targetDir = makeTempDir();
+
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+
+  const missingPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
+  const metadataPath = path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json');
+  const metadataBefore = fs.readFileSync(metadataPath, 'utf8');
+
+  fs.rmSync(missingPath);
+
+  const preview = runCli(['update', targetDir, '--dry-run']);
+
+  assert.equal(preview.status, 2, preview.stderr);
+  assert.match(preview.stdout, /Setup update preview completed\./);
+  assert.match(preview.stdout, /Planned changes:/);
+  assert.match(preview.stdout, /\.cursor\/rules\/code-style\.mdc \(create\)/);
+  assert.equal(fs.existsSync(missingPath), false);
+  assert.equal(fs.readFileSync(metadataPath, 'utf8'), metadataBefore);
 });
 
 test('cli update is deterministic when no generated content changed', () => {

@@ -184,7 +184,10 @@ async function runReconcile(args: CliArgs, mode: 'check' | 'update'): Promise<vo
 
   printReconcileSummary(targetDir, result, Boolean(args.dryRun));
 
-  if ((mode === 'check' && result.plan.hasChanges) || result.conflicts.length > 0) {
+  if (
+    ((mode === 'check' || (mode === 'update' && args.dryRun)) && result.plan.hasChanges) ||
+    result.conflicts.length > 0
+  ) {
     process.exitCode = 2;
   }
 }

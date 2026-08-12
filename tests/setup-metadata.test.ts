@@ -82,6 +82,7 @@ test('createSetupStatusContent exposes an agent-readable deterministic marker', 
   assert.match(content, /ca-ai-tools-setup-status/);
   assert.match(content, /"packageVersion":"1\.2\.3"/);
   assert.match(content, /"assistants":\["cursor","claude"\]/);
+  assert.match(content, /releases\/latest\/download\/ca-ai-tools-setup\.tgz/);
   assert.match(content, /Exit code `2`/);
   assert.match(content, /Never run `update` or `--force` without explicit developer approval/);
   assert.equal(
@@ -151,5 +152,37 @@ test('loadSetupMetadata rejects unsafe file-record paths and ignores claimed own
   unsafe.files['../outside.md'] = unsafe.files['AGENTS.md'];
   fs.writeFileSync(metadataPath, serializeSetupMetadata(unsafe), 'utf8');
 
+  assert.equal(loadSetupMetadata(dir).kind, 'invalid');
+});
+
+test('loadSetupMetadata rejects unknown or duplicate assistant values', () => {
+  const dir = makeTempDir();
+  const metadataPath = path.join(dir, SETUP_METADATA_PATH);
+  const baseMetadata = createSetupMetadata(
+    {
+      assistants: ['cursor'],
+      playwrightMcp: { cursorFile: false, projectRootFile: false },
+      figmaMcp: { cursorFile: false, projectRootFile: false },
+      qaAiRulesEnabled: false,
+    },
+    [{ path: 'AGENTS.md', content: '# Agents\n' }],
+  );
+
+  fs.mkdirSync(path.dirname(metadataPath), { recursive: true });
+
+  const unknownAssistant = {
+    ...baseMetadata,
+    assistants: ['cursor', 'invalid'],
+  };
+
+  fs.writeFileSync(metadataPath, `${JSON.stringify(unknownAssistant, null, 2)}\n`, 'utf8');
+  assert.equal(loadSetupMetadata(dir).kind, 'invalid');
+
+  const duplicateAssistants = {
+    ...baseMetadata,
+    assistants: ['cursor', 'cursor'],
+  };
+
+  fs.writeFileSync(metadataPath, `${JSON.stringify(duplicateAssistants, null, 2)}\n`, 'utf8');
   assert.equal(loadSetupMetadata(dir).kind, 'invalid');
 });

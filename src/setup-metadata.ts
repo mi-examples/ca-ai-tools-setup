@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ASSISTANTS, METADATA_VERSION, QA_AI_RULES_PACKAGE, type Assistant } from './constants.js';
+import { ASSISTANTS, METADATA_VERSION, QA_AI_RULES_PACKAGE, RELEASE_TGZ_LATEST, type Assistant } from './constants.js';
 import { getCliPackageProvenance, type CliPackageProvenance } from './setup-log.js';
 import type { GeneratedFile } from './generators/types.js';
 
@@ -88,7 +88,7 @@ Its presence does not guarantee that the installed templates are the latest avai
 - Run this read-only check once before setup-sensitive work:
 
 \`\`\`bash
-npx -p ${provenance.package}@stable ca-ai-tools-setup check .
+npx --yes --package=${RELEASE_TGZ_LATEST} ca-ai-tools-setup check .
 \`\`\`
 
 - Exit code \`0\`: the tracked setup matches the selected package release.
@@ -179,13 +179,20 @@ function parseCurrentMetadata(raw: Record<string, unknown>): SetupMetadata | nul
     return null;
   }
 
-  const assistants = raw.assistants.filter(isAssistant);
+  if (
+    raw.assistants.length === 0 ||
+    !raw.assistants.every(isAssistant) ||
+    new Set(raw.assistants).size !== raw.assistants.length
+  ) {
+    return null;
+  }
+
+  const assistants = raw.assistants as Assistant[];
   const provenance = raw.provenance;
   const qaAiRules = raw.qaAiRules;
   const fileRecords = parseFileRecords(raw.files);
 
   if (
-    assistants.length === 0 ||
     !isMcpTargets(raw.playwrightMcp) ||
     !isMcpTargets(raw.figmaMcp) ||
     !provenance ||

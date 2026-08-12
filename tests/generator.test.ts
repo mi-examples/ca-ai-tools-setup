@@ -265,7 +265,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(second.skipped.includes('.claude/settings.json'));
   assert.ok(second.merged.includes('AGENTS.md'));
   assert.ok(second.skipped.includes('.dev-environment.md'));
-  assert.ok(second.skipped.includes('.assistant-setup/ca-ai-tools-setup.json'));
+  assert.ok(second.overwritten.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
   assert.ok(second.skipped.includes('LINEAR_CLI.md'));
   assert.ok(second.skipped.includes('.claude/skills/ai-development/SKILL.md'));

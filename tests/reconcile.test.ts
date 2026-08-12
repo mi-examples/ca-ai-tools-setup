@@ -311,6 +311,21 @@ test('updateSetup force preserves protected or modified orphans while applying s
   assert.ok(result.orphaned.includes('.cursor/mcp.json'));
   assert.equal(fs.existsSync(structuredPath), true);
   assert.equal(fs.existsSync(missingPath), true);
+
+  const metadata = JSON.parse(fs.readFileSync(path.join(dir, SETUP_METADATA_PATH), 'utf8')) as {
+    files: Record<string, unknown>;
+  };
+
+  assert.ok(metadata.files['.cursor/mcp.json']);
+
+  const rechecked = checkSetup(
+    options(dir, {
+      files: filesWithoutMcp,
+      playwrightMcpInclude: false,
+    }),
+  );
+
+  assert.ok(rechecked.orphaned.includes('.cursor/mcp.json'));
 });
 
 test('checkSetup rejects malformed metadata', () => {
