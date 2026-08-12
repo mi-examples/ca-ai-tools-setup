@@ -46,9 +46,7 @@ export function setupLog(message: string, env: NodeJS.ProcessEnv = process.env):
   console.warn(`${LOG_PREFIX} ${message}`);
 }
 
-export function createSetupDebugLogger(
-  env: NodeJS.ProcessEnv = process.env,
-): ((message: string) => void) | undefined {
+export function createSetupDebugLogger(env: NodeJS.ProcessEnv = process.env): ((message: string) => void) | undefined {
   if (!isSetupDebugEnabled(env)) {
     return undefined;
   }
@@ -57,6 +55,30 @@ export function createSetupDebugLogger(
 }
 
 let cachedVersion: string | undefined;
+let cachedProvenance: CliPackageProvenance | undefined;
+
+export type CliPackageProvenance = {
+  package: string;
+  version: string;
+  releaseCommit: string;
+  templateRevision: string;
+};
+
+type PackageMetadata = {
+  name?: string;
+  version?: string;
+  gitHead?: string;
+};
+
+type ReleaseMetadata = {
+  releaseCommit?: string;
+};
+
+function readPackageMetadata(): PackageMetadata {
+  const packagePath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
+
+  return JSON.parse(readFileSync(packagePath, 'utf8')) as PackageMetadata;
+}
 
 /** Best-effort CLI version from package.json next to dist/. */
 export function getCliPackageVersion(): string {
@@ -65,8 +87,7 @@ export function getCliPackageVersion(): string {
   }
 
   try {
-    const pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: string };
+    const pkg = readPackageMetadata();
 
     cachedVersion = pkg.version ?? 'unknown';
   } catch {
@@ -74,4 +95,43 @@ export function getCliPackageVersion(): string {
   }
 
   return cachedVersion;
+}
+
+/** Stable package and release identity recorded in generated setup metadata. */
+export function getCliPackageProvenance(): CliPackageProvenance {
+  if (cachedProvenance !== undefined) {
+    return cachedProvenance;
+  }
+
+  try {
+    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+    const pkg = readPackageMetadata();
+    let release: ReleaseMetadata = {};
+
+    try {
+      release = JSON.parse(readFileSync(path.join(moduleDir, 'release-info.json'), 'utf8')) as ReleaseMetadata;
+    } catch {
+      // Source builds do not have release-info.json; package metadata remains a deterministic fallback.
+    }
+
+    const packageName = pkg.name ?? '@metricinsights/ca-ai-tools-setup';
+    const version = pkg.version ?? 'unknown';
+    const releaseCommit = release.releaseCommit ?? pkg.gitHead ?? 'unknown';
+
+    cachedProvenance = {
+      package: packageName,
+      version,
+      releaseCommit,
+      templateRevision: releaseCommit === 'unknown' ? `${packageName}@${version}` : releaseCommit,
+    };
+  } catch {
+    cachedProvenance = {
+      package: '@metricinsights/ca-ai-tools-setup',
+      version: 'unknown',
+      releaseCommit: 'unknown',
+      templateRevision: '@metricinsights/ca-ai-tools-setup@unknown',
+    };
+  }
+
+  return cachedProvenance;
 }

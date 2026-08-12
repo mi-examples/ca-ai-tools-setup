@@ -10,6 +10,33 @@ test('setup assistant templates keep MCP replacement marker', () => {
   assert.match(claudeSetup, /\*\*PLAYWRIGHT_MCP_BLOCK\*\*/);
 });
 
+test('setup health rule detects missing and stale tracked configuration', () => {
+  const healthRule = readTemplate('cursor/rules/assistant-setup-health.mdc');
+  const claudeInstructions = readTemplate('claude/CLAUDE.md');
+  const agents = readTemplate('AGENTS.md');
+
+  assert.match(healthRule, /alwaysApply: true/);
+  assert.match(healthRule, /\.assistant-setup\/SETUP_STATUS\.md/);
+  assert.match(healthRule, /Exit code \*\*`2`\*\*/);
+  assert.match(healthRule, /Never run `update` or `--force` without explicit developer approval/);
+  assert.match(claudeInstructions, /\.assistant-setup\/SETUP_STATUS\.md/);
+  assert.match(agents, /\.assistant-setup\/SETUP_STATUS\.md/);
+});
+
+test('developer environment guidance is tracked and keeps credentials local', () => {
+  const devEnvironment = readTemplate('assistant-setup/dev-environment.md');
+  const cursorSetup = readTemplate('setup-cursor-assistant.md');
+  const claudeSetup = readTemplate('setup-claude-assistant.md');
+
+  assert.match(devEnvironment, /Commit this file as shared repository guidance/);
+  assert.doesNotMatch(devEnvironment, /Keep it out of git/);
+
+  for (const setup of [cursorSetup, claudeSetup]) {
+    assert.match(setup, /Commit \*\*`.dev-environment.md`\*\*/);
+    assert.match(setup, /\.mi-credentials\.local\.env/);
+  }
+});
+
 test('playwright-cli skill and workflow ship the CLI browser-automation alternative', () => {
   const skill = readTemplate('skills/playwright-cli/SKILL.md');
   const workflow = readTemplate('claude/workflows/playwright-cli.md');
@@ -58,6 +85,7 @@ test('AGENTS template lists core Claude agents', () => {
   assert.match(agents, /`qa-tester\.md`/);
   assert.match(agents, /`ui-verifier\.md`/);
   assert.match(agents, /`linear-reporter\.md`/);
+  assert.match(agents, /content is preserved, including with \*\*`--force`\*\*/);
 });
 
 test('rules README documents deprecated ai-testing and ui-check stubs', () => {

@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import { QA_AI_RULES_PACKAGE, SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
 import { resolveFigmaMcpTargets, resolvePlaywrightMcpTargets, type GenerateResult } from './generator.js';
+import type { ReconcileResult } from './reconcile.js';
 
 export type QaAiRulesSummaryHook = 'inactive' | 'dry-run' | 'success' | 'skipped-no-package-json';
 
@@ -159,9 +160,10 @@ export function printSummary(
     printLine();
     printLine('Skipped existing files:');
     printLine(
-      '  - Mergeable files (.cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md): ' +
+      '  - Mergeable files (.cursor/mcp.json, .mcp.json, .claude/settings.json): ' +
         'run without --yes to choose skip/merge/overwrite',
     );
+    printLine('  - AGENTS.md is always merged conservatively and is never replaced');
     printLine('  - Any existing generated file: use --force to overwrite');
 
     for (const file of result.skipped) {
@@ -185,5 +187,94 @@ export function printSummary(
     for (const file of result.removedLegacy) {
       printLine(`  - ${file}`);
     }
+  }
+}
+
+export function printReconcileSummary(targetDir: string, result: ReconcileResult, dryRun: boolean): void {
+  const label =
+    result.mode === 'check'
+      ? 'Setup check completed.'
+      : !result.applied && result.conflicts.length > 0
+        ? 'Setup update blocked by conflicts.'
+        : dryRun
+          ? 'Setup update preview completed.'
+          : 'Setup update completed.';
+
+  p.outro(label);
+  printLine();
+  printLine(`Target repository: ${targetDir}`);
+  printLine(`Package version: ${result.previousVersion} -> ${result.desiredVersion}`);
+
+  if (result.metadataMigrationRequired) {
+    printLine('Metadata: schema 5 migration required');
+  } else if (result.metadataUpdated) {
+    printLine('Metadata: updated');
+  }
+
+  printLine();
+  printLine(`Created: ${result.created.length}`);
+  printLine(`Updated: ${result.updated.length}`);
+  printLine(`Merged: ${result.merged.length}`);
+  printLine(`Removed: ${result.removed.length}`);
+  printLine(`Preserved: ${result.preserved.length}`);
+  printLine(`Orphaned: ${result.orphaned.length}`);
+  printLine(`Conflicts: ${result.conflicts.length}`);
+  printLine(`Unchanged: ${result.unchanged.length}`);
+
+  const changedPaths = [
+    ...result.created.map((file) => `${file} (create)`),
+    ...result.updated.map((file) => `${file} (update)`),
+    ...result.merged.map((file) => `${file} (merge)`),
+    ...result.removed.map((file) => `${file} (remove)`),
+  ].sort();
+
+  if (changedPaths.length > 0) {
+    printLine();
+    printLine(result.mode === 'check' || dryRun ? 'Planned changes:' : 'Updated files:');
+
+    for (const file of changedPaths) {
+      printLine(`  - ${file}`);
+    }
+  }
+
+  if (result.preserved.length > 0) {
+    printLine();
+    printLine('Protected or repository-owned files preserved:');
+
+    for (const file of result.preserved) {
+      printLine(`  - ${file}`);
+    }
+  }
+
+  const preservedOrphans = result.orphaned.filter((file) => !result.removed.includes(file));
+
+  if (preservedOrphans.length > 0) {
+    printLine();
+    printLine('Obsolete files preserved for manual review:');
+
+    for (const file of preservedOrphans) {
+      printLine(`  - ${file}`);
+    }
+  }
+
+  if (result.conflicts.length > 0) {
+    printLine();
+    printLine('Conflicts:');
+
+    for (const file of result.plan.files.filter((entry) => entry.state === 'conflict')) {
+      printLine(`  - ${file.path}${file.reason ? ` — ${file.reason}` : ''}`);
+    }
+
+    printLine('Resolve these files or rerun update with --force to replace generated baselines.');
+  }
+
+  if (result.mode === 'update' && result.applied && !dryRun) {
+    printLine();
+    printLine('PR summary:');
+    printLine(`  - Update ca-ai-tools-setup ${result.previousVersion} -> ${result.desiredVersion}`);
+    printLine(
+      `  - Files: ${result.created.length} created, ${result.updated.length} updated, ` +
+        `${result.merged.length} merged, ${result.removed.length} removed`,
+    );
   }
 }

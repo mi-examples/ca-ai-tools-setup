@@ -184,11 +184,12 @@ export function mergeClaudeSettingsJson(existingContent: string, incomingContent
 }
 
 /**
- * Merge `AGENTS.md`: append table rows from incoming for agent files not already listed in existing.
- * Identifies data rows by the pattern `| \`filename\` |` and inserts new ones after the last existing row.
+ * Merge `AGENTS.md` without replacing repository-owned content.
+ * Missing generated agent rows are inserted into an existing registry table or appended as a new section.
  */
 export function mergeAgentsMd(existingContent: string, incomingContent: string): string {
-  const dataRowPattern = /^\| `([^`]+)` \|/;
+  const dataRowPattern = /^\|\s*`([^`]+)`\s*\|/;
+  const tableHeaderPattern = /^\|\s*File\s*\|\s*Purpose\s*\|/i;
 
   const existingLines = existingContent.split('\n');
   const incomingLines = incomingContent.split('\n');
@@ -211,7 +212,11 @@ export function mergeAgentsMd(existingContent: string, incomingContent: string):
     return existingContent;
   }
 
-  // Insert after the last existing data row
+  if (existingContent.trim().length === 0) {
+    return incomingContent;
+  }
+
+  // Prefer the end of an existing agent registry table.
   let insertAt = -1;
 
   for (let i = existingLines.length - 1; i >= 0; i--) {
@@ -221,8 +226,23 @@ export function mergeAgentsMd(existingContent: string, incomingContent: string):
     }
   }
 
+  // A table may exist without data rows yet; insert after its separator.
   if (insertAt === -1) {
-    return existingContent.trimEnd() + '\n' + newRows.join('\n') + '\n';
+    const headerIndex = existingLines.findIndex((line) => tableHeaderPattern.test(line));
+
+    if (headerIndex !== -1 && existingLines[headerIndex + 1]?.trimStart().startsWith('|')) {
+      insertAt = headerIndex + 2;
+    }
+  }
+
+  if (insertAt === -1) {
+    return (
+      `${existingContent.trimEnd()}\n\n` +
+      '## Registered agents added by ca-ai-tools-setup\n\n' +
+      '| File | Purpose |\n' +
+      '| ---- | ------- |\n' +
+      `${newRows.join('\n')}\n`
+    );
   }
 
   const result = [...existingLines];

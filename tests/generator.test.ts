@@ -32,6 +32,7 @@ test('generateSetup creates files for selected assistants', () => {
 
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/assistant-setup-health.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
@@ -50,6 +51,11 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
   assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/page-workflow-context.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/SETUP_STATUS.md')));
+  assert.match(
+    fs.readFileSync(path.join(dir, '.assistant-setup/SETUP_STATUS.md'), 'utf8'),
+    /ca-ai-tools-setup-status.*"schemaVersion":6/,
+  );
   assert.ok(result.created.includes('LINEAR_CLI.md'));
   assert.ok(fs.existsSync(path.join(dir, 'LINEAR_CLI.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'LINEAR_CLI.md'), 'utf8').includes('Linear CLI Reference'));
@@ -82,7 +88,7 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
 
   assert.ok(second.skipped.includes('.cursorrules'));
   assert.ok(second.skipped.includes('.cursor/skills/testing-with-linear/SKILL.md'));
-  assert.ok(second.skipped.includes('AGENTS.md'));
+  assert.ok(second.merged.includes('AGENTS.md'));
 
   const forced = generateSetup({
     targetDir: dir,
@@ -94,7 +100,7 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
 
   assert.ok(forced.overwritten.includes('.cursorrules'));
   assert.ok(forced.overwritten.includes('.cursor/skills/testing-with-linear/SKILL.md'));
-  assert.ok(forced.overwritten.includes('AGENTS.md'));
+  assert.ok(forced.merged.includes('AGENTS.md'));
 });
 
 test('generateSetup omits .cursor/mcp.json when Playwright MCP is declined', () => {
@@ -151,7 +157,11 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
-  assert.equal(meta.version, 5);
+  assert.equal(meta.version, 6);
+  assert.equal(meta.provenance.package, '@metricinsights/ca-ai-tools-setup');
+  assert.equal(meta.provenance.version, '0.1.0');
+  assert.ok(meta.files['.claude/skills/ai-development/SKILL.md']);
+  assert.equal(meta.generatedAt, undefined);
   assert.deepEqual(meta.qaAiRules, { enabled: false, package: '@metricinsights/qa-ai-rules' });
   assert.deepEqual(meta.devEnvironment, {
     file: '.dev-environment.md',
@@ -253,7 +263,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
   assert.ok(second.skipped.includes('CLAUDE.md'));
   assert.ok(second.skipped.includes('.claude/settings.json'));
-  assert.ok(second.skipped.includes('AGENTS.md'));
+  assert.ok(second.merged.includes('AGENTS.md'));
   assert.ok(second.skipped.includes('.dev-environment.md'));
   assert.ok(second.skipped.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
@@ -271,8 +281,33 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(forced.overwritten.includes('setup-claude-assistant.md'));
   assert.ok(forced.overwritten.includes('CLAUDE.md'));
   assert.ok(forced.overwritten.includes('.claude/settings.json'));
-  assert.ok(forced.overwritten.includes('AGENTS.md'));
+  assert.ok(forced.merged.includes('AGENTS.md'));
   assert.ok(forced.overwritten.includes('.claude/skills/ai-development/SKILL.md'));
+});
+
+test('generateSetup preserves existing AGENTS.md content and merges generated rows with --force', () => {
+  const dir = makeTempDir();
+  const agentsPath = path.join(dir, 'AGENTS.md');
+
+  fs.writeFileSync(
+    agentsPath,
+    '# Repository instructions\n\nKeep this custom guidance.\n\n| File | Purpose |\n| ---- | ------- |\n',
+    'utf8',
+  );
+
+  const result = generateSetup({
+    targetDir: dir,
+    assistants: ['claude'],
+    force: true,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+  const merged = fs.readFileSync(agentsPath, 'utf8');
+
+  assert.ok(result.merged.includes('AGENTS.md'));
+  assert.match(merged, /Keep this custom guidance\./);
+  assert.match(merged, /`code-style\.md`/);
+  assert.doesNotMatch(merged, /^# Claude Code — agent registry/m);
 });
 
 test('generateSetup writes both MCP files when Cursor and Claude selected and MCP enabled', () => {
@@ -337,10 +372,7 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.equal(claudeMcp.mcpServers.playwright, undefined);
   assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), true);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/SKILL.md')), true);
-  assert.equal(
-    fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/references/api.md')),
-    true,
-  );
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/references/api.md')), true);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), true);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/figma-code-connect/SKILL.md')), true);
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });

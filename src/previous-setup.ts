@@ -1,6 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { ASSISTANTS, DEFAULT_ASSISTANTS, type Assistant } from './constants.js';
+import { loadSetupMetadata } from './setup-metadata.js';
 
 export type InteractiveDefaults = {
   assistants: Assistant[];
@@ -8,8 +7,6 @@ export type InteractiveDefaults = {
   figmaMcpInclude: boolean;
   qaAiRulesInclude: boolean;
 };
-
-const METADATA_PATH = '.assistant-setup/ca-ai-tools-setup.json';
 
 function isAssistant(value: unknown): value is Assistant {
   return typeof value === 'string' && (ASSISTANTS as readonly string[]).includes(value);
@@ -58,25 +55,22 @@ function parseMcpInclude(meta: Record<string, unknown>, key: 'playwrightMcp' | '
  * can default to the previous run's choices.
  */
 export function loadPreviousInteractiveDefaults(targetDir: string): InteractiveDefaults | null {
-  const fullPath = path.join(targetDir, METADATA_PATH);
+  const loaded = loadSetupMetadata(targetDir);
 
-  if (!fs.existsSync(fullPath)) {
+  if (loaded.kind === 'missing' || loaded.kind === 'invalid') {
     return null;
   }
 
-  let raw: unknown;
-
-  try {
-    raw = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
-  } catch {
-    return null;
+  if (loaded.kind === 'current') {
+    return {
+      assistants: loaded.metadata.assistants,
+      playwrightMcpInclude: loaded.metadata.playwrightMcp.cursorFile || loaded.metadata.playwrightMcp.projectRootFile,
+      figmaMcpInclude: loaded.metadata.figmaMcp.cursorFile || loaded.metadata.figmaMcp.projectRootFile,
+      qaAiRulesInclude: loaded.metadata.qaAiRules.enabled,
+    };
   }
 
-  if (!raw || typeof raw !== 'object') {
-    return null;
-  }
-
-  const meta = raw as Record<string, unknown>;
+  const meta = loaded.raw;
   const assistants = parseAssistants(meta) ?? DEFAULT_ASSISTANTS;
 
   const playwright = parseMcpInclude(meta, 'playwrightMcp');

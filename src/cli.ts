@@ -3,8 +3,16 @@ import * as p from '@clack/prompts';
 import { QA_AI_RULES_PACKAGE } from './constants.js';
 import { generateSetup, getGeneratedFiles } from './generator.js';
 import { runQaAiRulesSetup } from './qa-ai-rules-setup.js';
-import { loadPreviousInteractiveDefaults } from './previous-setup.js';
-import { parseCliArgs } from './cli-args.js';
+import { loadPreviousInteractiveDefaults, type InteractiveDefaults } from './previous-setup.js';
+import {
+  cliMode,
+  mcpFigmaCliRaw,
+  mcpPlaywrightCliRaw,
+  parseCliArgs,
+  qaAiRulesCliRaw,
+  type CliArgs,
+  validateCliArgs,
+} from './cli-args.js';
 import {
   pickAssistants,
   pickFigmaMcpInclude,
@@ -13,11 +21,16 @@ import {
   pickTargetDir,
   promptExistingMcpActions,
 } from './cli-prompts.js';
-import { printSummary, type QaAiRulesSummaryHook } from './cli-summary.js';
+import { printReconcileSummary, printSummary, type QaAiRulesSummaryHook } from './cli-summary.js';
+import { parseAssistantsArg } from './assistants.js';
+import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
+import { parseFigmaMcpArg } from './figma-mcp-choice.js';
+import { parseQaAiRulesArg } from './qa-ai-rules-choice.js';
+import { checkSetup, updateSetup, type ReconcileConfiguration } from './reconcile.js';
+import { loadSetupMetadata } from './setup-metadata.js';
+import { getCliPackageVersion } from './setup-log.js';
 
-async function run(): Promise<void> {
-  const args = parseCliArgs();
-
+async function runGenerate(args: CliArgs): Promise<void> {
   p.intro('Create Linear Assistant Setup');
 
   const targetDir = await pickTargetDir(args);
@@ -86,6 +99,116 @@ async function run(): Promise<void> {
     result,
     Boolean(args.dryRun),
   );
+}
+
+function resolveReconcileConfiguration(args: CliArgs, previous: InteractiveDefaults): ReconcileConfiguration {
+  return {
+    assistants: parseAssistantsArg(args.assistants) ?? previous.assistants,
+    playwrightMcpInclude: parsePlaywrightMcpArg(mcpPlaywrightCliRaw(args)) ?? previous.playwrightMcpInclude,
+    figmaMcpInclude: parseFigmaMcpArg(mcpFigmaCliRaw(args)) ?? previous.figmaMcpInclude,
+    qaAiRulesInclude: parseQaAiRulesArg(qaAiRulesCliRaw(args)) ?? previous.qaAiRulesInclude,
+  };
+}
+
+function runExplicitQaSetup(targetDir: string, configuration: ReconcileConfiguration, args: CliArgs): void {
+  const explicitlyEnabled = parseQaAiRulesArg(qaAiRulesCliRaw(args)) === true;
+
+  if (!explicitlyEnabled || args.dryRun) {
+    return;
+  }
+
+  const qaResult = runQaAiRulesSetup(targetDir, configuration.assistants);
+
+  if (qaResult.ok) {
+    return;
+  }
+
+  if (qaResult.reason === 'no-package-json') {
+    console.warn(`[ca-ai-tools-setup] Skipped ${QA_AI_RULES_PACKAGE}: target repository has no package.json.`);
+
+    return;
+  }
+
+  throw new Error(
+    qaResult.reason === 'run-failed'
+      ? `${QA_AI_RULES_PACKAGE} init failed (${qaResult.runnerLabel ?? 'runner'})${
+          qaResult.detail ? `: ${qaResult.detail}` : ''
+        }`
+      : 'QA AI rules setup failed',
+  );
+}
+
+async function runReconcile(args: CliArgs, mode: 'check' | 'update'): Promise<void> {
+  p.intro(mode === 'check' ? 'Check Linear Assistant Setup' : 'Update Linear Assistant Setup');
+
+  const targetDir = await pickTargetDir({ ...args, yes: true });
+  const metadata = loadSetupMetadata(targetDir);
+  const previous = loadPreviousInteractiveDefaults(targetDir);
+
+  if (!previous) {
+    if (metadata.kind === 'invalid') {
+      throw new Error(`Invalid setup metadata: ${metadata.detail}`);
+    }
+
+    throw new Error(
+      `Setup metadata not found or unsupported: .assistant-setup/ca-ai-tools-setup.json. ` +
+        'Run the initial setup first.',
+    );
+  }
+
+  const configuration = resolveReconcileConfiguration(args, previous);
+  const files = getGeneratedFiles(
+    configuration.assistants,
+    configuration.playwrightMcpInclude,
+    configuration.figmaMcpInclude,
+    configuration.qaAiRulesInclude,
+  );
+  const commonOptions = {
+    targetDir,
+    files,
+    metadata,
+    force: Boolean(args.force),
+    ...configuration,
+  };
+  const result =
+    mode === 'check'
+      ? checkSetup(commonOptions)
+      : updateSetup({
+          ...commonOptions,
+          dryRun: Boolean(args.dryRun),
+        });
+
+  if (mode === 'update' && result.applied) {
+    runExplicitQaSetup(targetDir, configuration, args);
+  }
+
+  printReconcileSummary(targetDir, result, Boolean(args.dryRun));
+
+  if ((mode === 'check' && result.plan.hasChanges) || result.conflicts.length > 0) {
+    process.exitCode = 2;
+  }
+}
+
+async function run(): Promise<void> {
+  const args = parseCliArgs();
+
+  validateCliArgs(args);
+
+  if (args.version) {
+    process.stdout.write(`${getCliPackageVersion()}\n`);
+
+    return;
+  }
+
+  const mode = cliMode(args);
+
+  if (mode === 'generate') {
+    await runGenerate(args);
+
+    return;
+  }
+
+  await runReconcile(args, mode);
 }
 
 run().catch((error: unknown) => {

@@ -1,17 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  METADATA_VERSION,
-  QA_AI_RULES_PACKAGE,
-  SETUP_ASSISTANT_FILES,
-  type Assistant,
-} from './constants.js';
+import { SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
 import { generateCursorFiles } from './generators/cursor.js';
 import { generateClaudeFiles } from './generators/claude.js';
 import { buildCursorRuleFiles } from './generators/portal-page-ai.js';
 import { isMergeablePath, mergeFile } from './mcp-json-merge.js';
 import type { GeneratedFile } from './generators/types.js';
 import { readTemplate } from './templates.js';
+import {
+  createSetupMetadata,
+  createSetupStatusContent,
+  normalizeSetupPath,
+  serializeSetupMetadata,
+  SETUP_METADATA_PATH,
+  SETUP_STATUS_PATH,
+} from './setup-metadata.js';
 
 export type ExistingFileAction = 'skip' | 'merge' | 'overwrite';
 
@@ -142,30 +145,6 @@ export function getGeneratedFiles(
     files.push(...buildCursorRuleFiles(figmaTargets.projectRootFile));
   }
 
-  const sharedMetadata = {
-    version: METADATA_VERSION,
-    assistants,
-    playwrightMcp: mcpTargets,
-    figmaMcp: figmaTargets,
-    devEnvironment: {
-      file: '.dev-environment.md',
-      generated: true,
-    },
-    pageWorkflowContext: {
-      file: '.assistant-setup/page-workflow-context.md',
-      generated: true,
-    },
-    linearCliReference: {
-      file: 'LINEAR_CLI.md',
-      generated: true,
-    },
-    qaAiRules: {
-      enabled: qaAiRulesInclude,
-      package: QA_AI_RULES_PACKAGE,
-    },
-    generatedAt: new Date().toISOString(),
-  };
-
   files.push({
     path: '.assistant-setup/page-workflow-context.md',
     content: readTemplate('assistant-setup/page-workflow-context.md'),
@@ -177,11 +156,6 @@ export function getGeneratedFiles(
   });
 
   files.push({
-    path: '.assistant-setup/ca-ai-tools-setup.json',
-    content: JSON.stringify(sharedMetadata, null, 2) + '\n',
-  });
-
-  files.push({
     path: 'LINEAR_CLI.md',
     content: readTemplate('LINEAR_CLI.md'),
   });
@@ -189,6 +163,25 @@ export function getGeneratedFiles(
   files.push({
     path: 'AGENTS.md',
     content: readTemplate('AGENTS.md'),
+  });
+
+  const metadataConfiguration = {
+    assistants,
+    playwrightMcp: mcpTargets,
+    figmaMcp: figmaTargets,
+    qaAiRulesEnabled: qaAiRulesInclude,
+  };
+
+  files.push({
+    path: SETUP_STATUS_PATH,
+    content: createSetupStatusContent(metadataConfiguration),
+  });
+
+  const metadata = createSetupMetadata(metadataConfiguration, files);
+
+  files.push({
+    path: SETUP_METADATA_PATH,
+    content: serializeSetupMetadata(metadata),
   });
 
   return files;
@@ -298,6 +291,19 @@ function writeOneFile(
   const exists = fs.existsSync(destination);
   const actions = options.existingFileActions;
 
+  if (exists && normalizeSetupPath(file.path) === 'AGENTS.md') {
+    if (!options.dryRun) {
+      const existingContent = fs.readFileSync(destination, 'utf8');
+      const merged = mergeFile(file.path, existingContent, file.content);
+
+      fs.writeFileSync(destination, merged, 'utf8');
+    }
+
+    result.merged.push(file.path);
+
+    return;
+  }
+
   if (options.force) {
     if (!options.dryRun) {
       fs.mkdirSync(path.dirname(destination), { recursive: true });
@@ -404,10 +410,59 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
   migrateLegacyFiles(options.targetDir, { force: options.force, dryRun: options.dryRun }, result);
   removeObsoleteSetupFiles(options.targetDir, { dryRun: options.dryRun }, result);
 
-  for (const file of files) {
+  const metadataFile = files.find((file) => normalizeSetupPath(file.path) === SETUP_METADATA_PATH);
+  const setupFiles = files.filter((file) => normalizeSetupPath(file.path) !== SETUP_METADATA_PATH);
+
+  for (const file of setupFiles) {
     writeOneFile(
       options.targetDir,
       file,
+      {
+        force: options.force,
+        dryRun: options.dryRun,
+        existingFileActions: options.existingFileActions,
+      },
+      result,
+    );
+  }
+
+  if (metadataFile) {
+    const installedContent = new Map<string, string>();
+
+    for (const file of setupFiles) {
+      const normalizedPath = normalizeSetupPath(file.path);
+      const destination = path.join(options.targetDir, file.path);
+      const content =
+        !options.dryRun && fs.existsSync(destination) ? fs.readFileSync(destination, 'utf8') : file.content;
+
+      installedContent.set(normalizedPath, content);
+    }
+
+    const metadata = createSetupMetadata(
+      {
+        assistants: options.assistants,
+        playwrightMcp: resolvePlaywrightMcpTargets(options.assistants, options.playwrightMcpInclude),
+        figmaMcp: resolveFigmaMcpTargets(options.assistants, Boolean(options.figmaMcpInclude)),
+        qaAiRulesEnabled: Boolean(options.qaAiRulesInclude),
+      },
+      setupFiles,
+      installedContent,
+    );
+
+    for (const mergedPath of result.merged) {
+      const record = metadata.files[normalizeSetupPath(mergedPath)];
+
+      if (record) {
+        record.baseline = 'merged';
+      }
+    }
+
+    writeOneFile(
+      options.targetDir,
+      {
+        path: SETUP_METADATA_PATH,
+        content: serializeSetupMetadata(metadata),
+      },
       {
         force: options.force,
         dryRun: options.dryRun,

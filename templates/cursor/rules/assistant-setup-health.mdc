@@ -1,0 +1,21 @@
+---
+description: Detect missing or stale ca-ai-tools-setup configuration
+globs:
+alwaysApply: true
+---
+
+# AI assistant setup health
+
+Before non-trivial work that depends on repository rules, skills, agents, MCP, or setup conventions:
+
+1. Check for **`.assistant-setup/SETUP_STATUS.md`**.
+2. If it is missing, report that **`ca-ai-tools-setup` has not been installed or is incomplete** and propose
+   running the initial setup. Do not claim the repository AI configuration is current.
+3. If it exists, read its machine-readable marker and follow its **Agent check** instructions.
+4. Run the documented **read-only** `ca-ai-tools-setup check .` command once per session when setup freshness
+   matters.
+5. Exit code **`2`** means the tracked setup is stale, incomplete, or requires migration. Report that state and
+   propose a reviewable update PR.
+
+Never run `update` or `--force` without explicit developer approval. A missing package token or failed check is
+an error to report, not proof that the setup is current.
