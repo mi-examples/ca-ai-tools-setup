@@ -51,7 +51,8 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 **File overwrite policy (generator.ts):**
 
 - Setup assistant markdown files (`setup-cursor-assistant.md`, `setup-claude-assistant.md`) are always overwritten
-- `CLAUDE.md`, `.cursorrules`, `.cursor/skills/*`, `.claude/skills/*`, `.claude/settings.json`, `AGENTS.md`, `.dev-environment.md` — created on first run, skipped on subsequent runs unless `--force`
+- `CLAUDE.md`, `.cursorrules`, `.cursor/skills/*`, `.claude/skills/*`, `.claude/settings.json`, `.dev-environment.md` — created on first run, skipped on subsequent runs unless `--force`
+- Existing `AGENTS.md` is never replaced, including with `--force`; missing generated agent rows are merged while repository-owned content is preserved
 - Obsolete legacy QA paths (`ai-testing`, `ui-check` skills, `.claude/workflows/ui-check.md`) are removed on every re-run via `REMOVABLE_LEGACY_SETUP_PATHS`
 - MCP JSON files — interactive prompt (Skip/Merge/Overwrite) in interactive mode; left unchanged with `--yes`; fully replaced with `--force`
 
