@@ -84,14 +84,52 @@ pnpm --package="$CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup
   **`ca-ai-tools-setup`** only if your shell swallows flags meant for the CLI.
 - **Yarn / Bun:** prefer **`npx`** or **`pnpm`** for HTTPS tarball one-shots.
 
+### Windows
+
+The `export VAR=...` / `"$VAR"` syntax used throughout this README is Bash. On Windows, set and reference the
+variable using your shell's own syntax instead:
+
+**PowerShell:**
+
+```powershell
+$env:CA_AI_TOOLS_SETUP_TGZ = "https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz"
+# or pin a version:
+# $env:CA_AI_TOOLS_SETUP_TGZ = "https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz"
+
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup
+pnpm --package="$env:CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup
+```
+
+**cmd.exe:**
+
+```bat
+set CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz
+
+npx --yes --package="%CA_AI_TOOLS_SETUP_TGZ%" ca-ai-tools-setup
+pnpm --package="%CA_AI_TOOLS_SETUP_TGZ%" exec ca-ai-tools-setup
+```
+
+Every Bash example below that uses `export VAR=...` / `"$VAR"` has a PowerShell equivalent shown right after it,
+using the `$env:CA_AI_TOOLS_SETUP_TGZ` form above.
+
+Git Bash / WSL on Windows can use the original Bash examples unchanged.
+
 ### Interactive (prompts for assistants, MCP, QA rules)
 
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup
 ```
 
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup
+```
+
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app
+```
+
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app
 ```
 
 ### Non-interactive — defaults (`--yes`)
@@ -103,12 +141,24 @@ npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-ap
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes
 ```
 
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes
+```
+
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
 ```
 
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+```
+
 ```bash
 pnpm --package="$CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
+```
+
+```powershell
+pnpm --package="$env:CA_AI_TOOLS_SETUP_TGZ" exec ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes
 ```
 
 ### Preview only (`--dry-run`)
@@ -119,14 +169,26 @@ No files written; QA AI rules init is **not** executed.
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
 ```
 
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --dry-run
+```
+
 ### One assistant only
 
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor --yes
 ```
 
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor --yes
+```
+
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants claude --yes
+```
+
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants claude --yes
 ```
 
 ### MCP — disable Playwright or enable Figma
@@ -137,10 +199,18 @@ Disable Playwright MCP (no **`.cursor/mcp.json`** / **`.mcp.json`** from this ru
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
 ```
 
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
+```
+
 Enable **both** Playwright and Figma MCP (requires **`FIGMA_API_KEY`** where Figma is used):
 
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
+```
+
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
 ```
 
 ### QA AI rules (`@metricinsights/qa-ai-rules`)
@@ -153,14 +223,26 @@ in the target repo.
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --qa-ai-rules yes
 ```
 
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --qa-ai-rules yes
+```
+
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor --yes --qa-ai-rules yes
+```
+
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor --yes --qa-ai-rules yes
 ```
 
 ### Overwrite existing generated files
 
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --force
+```
+
+```powershell
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../my-app --assistants cursor,claude --yes --force
 ```
 
 ### Local clone (development)
@@ -188,25 +270,46 @@ npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup \
   --target ../my-app --assistants cursor,claude --yes
 ```
 
+```powershell
+$env:CA_AI_TOOLS_SETUP_TGZ = "https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.1.0/ca-ai-tools-setup.tgz"
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup `
+  --target ../my-app --assistants cursor,claude --yes
+```
+
 ### Check for changes
 
 `check` is read-only. It returns exit code `0` when the tracked setup is synchronized, `2` when files or metadata
-need attention, and `1` for invalid input or I/O failures:
+need attention, and `1` for invalid input or I/O failures. Use the **`latest`** release asset here — the point of
+`check` is to see whether a newer release exists at all, so pinning to a specific tag defeats the purpose (that
+tag may be older than what's tracked, or not exist yet):
 
 ```bash
-export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.2.0/ca-ai-tools-setup.tgz
+export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup check ../my-app
+```
+
+```powershell
+$env:CA_AI_TOOLS_SETUP_TGZ = "https://github.com/mi-examples/ca-ai-tools-setup/releases/latest/download/ca-ai-tools-setup.tgz"
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup check ../my-app
 ```
 
 ### Prepare an update PR
 
 Run a preview, apply the update, review `git diff`, resolve any reported protected-file conflicts, validate the
-target repository, and open a normal PR. `update --dry-run` also exits `2` when changes or conflicts are pending:
+target repository, and open a normal PR. `update --dry-run` also exits `2` when changes or conflicts are pending.
+Once `check` tells you which release is newer, pin **`update`** to that exact tag (not `latest`) so the PR stays
+reproducible and reviewable:
 
 ```bash
 export CA_AI_TOOLS_SETUP_TGZ=https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.2.0/ca-ai-tools-setup.tgz
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app --dry-run
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app
+```
+
+```powershell
+$env:CA_AI_TOOLS_SETUP_TGZ = "https://github.com/mi-examples/ca-ai-tools-setup/releases/download/v0.2.0/ca-ai-tools-setup.tgz"
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app --dry-run
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup update ../my-app
 ```
 
 Update ownership rules:
