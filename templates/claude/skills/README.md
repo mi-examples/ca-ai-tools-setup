@@ -5,6 +5,19 @@ Canonical **Cursor** skills live under **`.cursor/skills/`**. The following are 
 - **`ai-development`** — Linear CLI + dev gate, greenfield pp-dev, Figma MCP, Form Builder / schema (MI backend), PR review, DoD + **`DOD-FULL.md`**.
 - **`figma-code-connect`** — Figma **Code Connect** template authoring (`.figma.ts`) via Figma MCP, plus reference docs under `references/`.
 
+### Customer documentation (canonical here, mirrored to Cursor)
+
+- **`customer-app-docs`** — customer-facing documentation for delivered apps: run order, source
+  model, fact ledgers and handover checklist in `SKILL.md`; section contracts in
+  `references/sections.md`; extraction and audit detail in `references/verify.md`; the HTML template
+  that doubles as the worked example in `assets/example.html`.
+
+Run it with `/customer-docs <EPIC_OR_APP>` when **a person** decides a flow is ready — the skill
+never gates on epic or test state and never self-starts. Fact extraction (one per app, parallel) and
+the pre-handover audit run as read-only subagents the skill prompts for — no separate agent files.
+Linear (description + comments), the code and `test-documentation/` are all read per app and
+compared claim by claim — no source is authoritative alone, and conflicts go to the user.
+
 ### QA (use Cursor canonical skills or Claude workflows)
 
 | Purpose | Claude workflow | Cursor skill |

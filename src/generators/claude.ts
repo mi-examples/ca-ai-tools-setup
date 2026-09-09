@@ -21,6 +21,7 @@ const CLAUDE_COMMAND_TEMPLATES = [
   'claude/commands/linear-report.md',
   'claude/commands/start-working-with-task.md',
   'claude/commands/test-documentation.md',
+  'claude/commands/customer-docs.md',
 ] as const;
 
 const CLAUDE_AGENT_TEMPLATES = [

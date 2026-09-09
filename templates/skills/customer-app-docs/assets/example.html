@@ -1,0 +1,696 @@
+<!doctype html>
+<!--
+  Customer documentation — template AND worked example.
+
+  Copy this file to docs/customer/<customer-slug>/<flow-slug>.html, then replace everything inside
+  <body> with the real flow and set --accent in :root. Do NOT edit the rest of the <style> block:
+  it is the presentation contract, identical for every customer, and you do not need to read it to
+  use it.
+
+  The content below is a fictional customer with realistic structure — the level of detail, voice
+  and section order are what a real handover document looks like. Never copy its sentences into
+  another customer's document without re-verifying them against that customer's apps.
+
+  Print with:
+    chrome --headless --disable-gpu --no-pdf-header-footer \
+      --print-to-pdf="<flow-slug>.pdf" "file://$PWD/<flow-slug>.html"
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Northwind Construction — External access requests</title>
+    <style>
+      :root {
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+        --sans: "Helvetica Neue", Helvetica, Arial, "Segoe UI", system-ui, sans-serif;
+        --mono: "SF Mono", "JetBrains Mono", "Cascadia Mono", Menlo, Consolas, "Courier New", monospace;
+
+        --ink: #1a1a1a;
+        --ink-soft: #3d3d3d;
+        --muted: #6b6b6b;
+        --rule: #d8d5d0;
+        --rule-strong: #b8b4ae;
+        --paper: #ffffff;
+
+        /* One accent per engagement; used on app slugs and ticket refs only. */
+        --accent: #8a5a1f;
+
+        --warn: #9a6206;
+        --warn-bg: #fdf6e7;
+        --note: #1f5f8a;
+        --note-bg: #eef5fa;
+        --alert: #9a2020;
+        --alert-bg: #fbeeee;
+        --grey-bg: #f4f3f1;
+
+        --pill-amber: #9a6206;
+        --pill-amber-bg: #fdf1d8;
+        --pill-green: #2c6b3f;
+        --pill-green-bg: #e9f3ec;
+        --pill-red: #9a2020;
+        --pill-red-bg: #fbeaea;
+        --pill-grey: #5a5a5a;
+        --pill-grey-bg: #efeeec;
+      }
+
+      @page {
+        size: Letter;
+        margin: 17mm;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0 auto;
+        max-width: 178mm;
+        padding: 17mm 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--serif);
+        font-size: 10.5pt;
+        line-height: 1.5;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        orphans: 2;
+        widows: 2;
+      }
+
+      @media print {
+        body {
+          max-width: none;
+          padding: 0;
+        }
+      }
+
+      p {
+        margin: 0 0 0.7em;
+      }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.86em;
+        padding: 0.05em 0.25em;
+        background: var(--grey-bg);
+        border-radius: 2px;
+        white-space: nowrap;
+      }
+
+      b,
+      strong {
+        font-weight: 600;
+      }
+
+      i,
+      em {
+        font-style: italic;
+        color: var(--ink-soft);
+      }
+
+      a {
+        color: var(--ink);
+        text-decoration: underline;
+      }
+
+      /* ---------- Cover page ---------- */
+
+      .cover {
+        break-after: page;
+        page-break-after: always;
+      }
+
+      .cover__eyebrow {
+        font-family: var(--sans);
+        font-size: 8.5pt;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink);
+        margin: 0 0 0.5em;
+      }
+
+      .cover__kind {
+        font-family: var(--mono);
+        font-size: 7.5pt;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 2.4em;
+      }
+
+      .cover h1 {
+        font-family: var(--serif);
+        font-size: 25pt;
+        font-weight: 400;
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+        margin: 0 0 0.6em;
+      }
+
+      .cover__lede {
+        font-size: 12pt;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        max-width: 118mm;
+        margin: 0 0 2.2em;
+      }
+
+      .cover__meta {
+        font-family: var(--mono);
+        font-size: 8pt;
+        line-height: 1.9;
+        color: var(--muted);
+        border-top: 1px solid var(--rule);
+        border-bottom: 1px solid var(--rule);
+        padding: 0.9em 0;
+        margin: 0 0 2.4em;
+      }
+
+      .cover__meta .slug,
+      .cover__meta .refs,
+      .app__meta .slug,
+      .app__meta .refs {
+        color: var(--accent);
+      }
+
+      .cover__meta .label {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--rule-strong);
+        margin-right: 0.8em;
+      }
+
+      .stages {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.6em 2.4em;
+      }
+
+      .stage {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border-top: 2px solid var(--rule-strong);
+        padding-top: 0.7em;
+      }
+
+      .stage__index {
+        font-family: var(--mono);
+        font-size: 7.5pt;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.35em;
+      }
+
+      .stage h3 {
+        font-family: var(--serif);
+        font-size: 13pt;
+        font-weight: 400;
+        margin: 0 0 0.3em;
+      }
+
+      .stage p {
+        font-size: 9.5pt;
+        color: var(--ink-soft);
+        margin: 0;
+      }
+
+      /* ---------- App sections ---------- */
+
+      .app {
+        break-before: page;
+        page-break-before: always;
+      }
+
+      /* On screen there is no page break, so each app section needs its own boundary. */
+      @media screen {
+        .app {
+          border-top: 1px solid var(--rule);
+          margin-top: 14mm;
+          padding-top: 9mm;
+        }
+      }
+
+      .app__meta {
+        font-family: var(--mono);
+        font-size: 7.5pt;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 0.7em;
+        margin: 0 0 1.6em;
+      }
+
+      .app__meta .index {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .app h2 {
+        font-family: var(--serif);
+        font-size: 19pt;
+        font-weight: 400;
+        line-height: 1.2;
+        margin: 0 0 0.5em;
+      }
+
+      .app__lede {
+        font-size: 11pt;
+        line-height: 1.55;
+        color: var(--ink-soft);
+        max-width: 128mm;
+        margin: 0 0 2em;
+      }
+
+      h3.section {
+        font-family: var(--sans);
+        font-size: 8pt;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink);
+        border-bottom: 1px solid var(--rule);
+        padding-bottom: 0.5em;
+        margin: 2.1em 0 1em;
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      h3.section:first-of-type {
+        margin-top: 0;
+      }
+
+      /* ---------- Lists and steps ---------- */
+
+      ul {
+        margin: 0 0 0.9em;
+        padding-left: 1.1em;
+      }
+
+      ul li {
+        margin-bottom: 0.35em;
+      }
+
+      ul ul {
+        margin: 0.35em 0 0.2em;
+      }
+
+      ol.steps {
+        list-style: none;
+        counter-reset: step;
+        margin: 0 0 1em;
+        padding: 0;
+      }
+
+      ol.steps > li {
+        counter-increment: step;
+        position: relative;
+        padding-left: 2.1em;
+        margin-bottom: 1em;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      ol.steps > li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: 0.1em;
+        font-family: var(--mono);
+        font-size: 8pt;
+        color: var(--muted);
+        border: 1px solid var(--rule-strong);
+        border-radius: 50%;
+        width: 1.55em;
+        height: 1.55em;
+        line-height: 1.5em;
+        text-align: center;
+      }
+
+      ol.steps > li > ul {
+        margin-top: 0.4em;
+      }
+
+      /* ---------- Tables ---------- */
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 1.2em;
+        font-size: 9.5pt;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      th {
+        font-family: var(--mono);
+        font-size: 7.5pt;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        text-align: left;
+        vertical-align: bottom;
+        border-bottom: 1px solid var(--rule-strong);
+        padding: 0 1.2em 0.5em 0;
+      }
+
+      td {
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--rule);
+        padding: 0.55em 1.2em 0.55em 0;
+      }
+
+      th:last-child,
+      td:last-child {
+        padding-right: 0;
+      }
+
+      tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      /* ---------- Pills ---------- */
+
+      .pills {
+        margin: 0 0 1em;
+      }
+
+      .pill {
+        display: inline-block;
+        font-family: var(--sans);
+        font-size: 7.5pt;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.25em 0.7em;
+        margin: 0 0.4em 0.4em 0;
+        border-radius: 999px;
+      }
+
+      .pill--amber {
+        color: var(--pill-amber);
+        background: var(--pill-amber-bg);
+      }
+
+      .pill--green {
+        color: var(--pill-green);
+        background: var(--pill-green-bg);
+      }
+
+      .pill--red {
+        color: var(--pill-red);
+        background: var(--pill-red-bg);
+      }
+
+      .pill--grey {
+        color: var(--pill-grey);
+        background: var(--pill-grey-bg);
+      }
+
+      /* ---------- Callouts ---------- */
+
+      .callout {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border-left: 3px solid var(--rule-strong);
+        background: var(--grey-bg);
+        padding: 0.9em 1.1em;
+        margin: 1.2em 0;
+        font-size: 9.5pt;
+      }
+
+      .callout h4 {
+        font-family: var(--sans);
+        font-size: 7.5pt;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 0.5em;
+      }
+
+      .callout p:last-child,
+      .callout ul:last-child {
+        margin-bottom: 0;
+      }
+
+      .callout--warn {
+        border-left-color: var(--warn);
+        background: var(--warn-bg);
+      }
+
+      .callout--warn h4 {
+        color: var(--warn);
+      }
+
+      .callout--note {
+        border-left-color: var(--note);
+        background: var(--note-bg);
+      }
+
+      .callout--note h4 {
+        color: var(--note);
+      }
+
+      .callout--alert {
+        border-left-color: var(--alert);
+        background: var(--alert-bg);
+      }
+
+      .callout--alert h4 {
+        color: var(--alert);
+      }
+
+      /* ---------- Footer ---------- */
+
+      .doc-footer {
+        font-size: 9pt;
+        color: var(--muted);
+        border-top: 1px solid var(--rule);
+        padding-top: 0.9em;
+        margin-top: 2.4em;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="cover">
+      <p class="cover__eyebrow">Northwind Construction · Access requests</p>
+      <p class="cover__kind">Customer documentation · Custom Apps</p>
+
+      <h1>External access requests, end to end</h1>
+      <p class="cover__lede">
+        Three Custom Apps let a trade partner request access to a job site and a Northwind site
+        contact grant it — with the account, its job group and its credentials email created
+        automatically on approval.
+      </p>
+
+      <div class="cover__meta">
+        <div>
+          <span class="label">Apps</span>
+          <span class="slug">login · signup-form · admin-approval-page</span>
+          <span class="label" style="margin-left: 1.6em">Epic</span>
+          <span class="refs">NW-1000</span>
+        </div>
+        <div><span class="label">Platform</span>Metric Insights 7.2.2</div>
+      </div>
+
+      <div class="stages">
+        <div class="stage">
+          <div class="stage__index">Stage 01</div>
+          <h3>Arrive</h3>
+          <p>One login URL routes the visitor to SSO or credential login by email domain, or on to sign-up.</p>
+        </div>
+        <div class="stage">
+          <div class="stage__index">Stage 02</div>
+          <h3>Request</h3>
+          <p>The public form captures name, email, project, role, company and reason behind a CAPTCHA.</p>
+        </div>
+        <div class="stage">
+          <div class="stage__index">Stage 03</div>
+          <h3>Notify</h3>
+          <p>A 10-minute custom script fires one burst per batch of new requests to the approvers.</p>
+        </div>
+        <div class="stage">
+          <div class="stage__index">Stage 04</div>
+          <h3>Decide</h3>
+          <p>The approver approves — account, job group and credentials email — or denies.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="app">
+      <p class="app__meta">
+        <span class="index">App 02</span> · Custom App · <span class="slug">signup-form</span> ·
+        <span class="refs">NW-1020 · NW-1021</span>
+      </p>
+
+      <h2>Sign Up Form</h2>
+      <p class="app__lede">
+        A public page where an external user requests access to a job site. No login, protected by
+        CAPTCHA, and every submission becomes a row in the <code>Sign Up Form</code> dataset that the
+        Approval Page reads.
+      </p>
+
+      <h3 class="section">Fields</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Behaviour</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Full name</td>
+            <td>Required.</td>
+          </tr>
+          <tr>
+            <td>Email address</td>
+            <td>Required and format-checked. A work email is expected.</td>
+          </tr>
+          <tr>
+            <td>Project Number</td>
+            <td>
+              Prefilled and locked when the link carries it (<code>…/p/signup-form/501200</code>);
+              otherwise a dropdown from the <code>Jobs</code> entity.
+            </td>
+          </tr>
+          <tr>
+            <td>Company / organization</td>
+            <td>
+              Shown only for roles flagged <code>Require Company Selection = Y</code>. Options come from
+              the <code>Companies</code> entity filtered to the chosen Project Number; a single match is
+              selected and locked. Changing the Project Number clears it.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ul>
+        <li>
+          <b>Request Access</b> stays disabled until every visible field is valid and the CAPTCHA is
+          solved. Values are trimmed, and blank-only entries do not count as filled.
+        </li>
+        <li>
+          On success one row is appended with <code>status = Pending</code>, <code>date</code> as the
+          submission time in Unix seconds, plus <code>role</code>, <code>full_name</code>,
+          <code>email</code> and <code>job_id</code>.
+        </li>
+      </ul>
+
+      <h3 class="section">Notifications</h3>
+
+      <p>
+        Two different emails are involved, and the form itself sends neither. Metric Insights has no
+        instant-notification trigger, so approvers are notified by a poll assembled from three pieces —
+        a flag column, a burst, and a custom script that decides whether to send.
+      </p>
+
+      <ol class="steps">
+        <li>
+          <b>The dataset carries a <code>notified</code> flag</b> — the <code>Sign Up Form</code>
+          dataset has an extra <code>notified</code> column (<code>Y</code> or empty) marking the rows
+          approvers have already been told about.
+        </li>
+        <li>
+          <b>A custom script decides, every 10 minutes</b> — <code>notify-approver</code> runs on an
+          enabled 10-minute Notification Schedule. Each run:
+          <ul>
+            <li>reads the rows — <code>GET api/dataset_data?dataset={datasetId}</code>;</li>
+            <li>
+              if no row is <code>pending</code> with <code>notified ≠ Y</code>, reports <i>No new
+              requests</i> and sends nothing;
+            </li>
+            <li>
+              otherwise sends the burst now — <code>PUT api/burst/id/{burstId}</code> with
+              <code>{"call":"send","send_to":"all"}</code>.
+            </li>
+          </ul>
+        </li>
+      </ol>
+
+      <p class="pills">
+        <span class="pill pill--amber">Pending</span>
+        <span class="pill pill--green">Approved</span>
+        <span class="pill pill--red">Denied</span>
+        <span class="pill pill--grey">History</span>
+      </p>
+
+      <aside class="callout">
+        <h4>Prerequisites for the notification chain</h4>
+        <p>
+          <code>CUSTOM_SCRIPT_ENABLED = Y</code> and the image-generator service running.
+          <code>PRIV_CREATE_HIGH_FREQUENCY_SCHEDULES</code> for the sub-hourly schedule. Working
+          outbound mail (<code>SEND_MAIL_*</code> system variables) and at least one burst subscriber.
+        </p>
+      </aside>
+
+      <aside class="callout callout--warn">
+        <h4>Known constraint</h4>
+        <p>
+          Keep the burst's element filtered to <code>status = pending</code> rather than "not yet
+          notified": rows are flagged as soon as the send is triggered while burst rendering is
+          asynchronous, so a "not notified" filter can render an empty email.
+        </p>
+      </aside>
+
+      <aside class="callout callout--note">
+        <h4>Repointing an entity</h4>
+        <p>
+          <code>Companies</code> can be sourced from a governed warehouse view (<code>dim_company_v</code>)
+          by repointing the entity's SQL, as long as the projected column names stay the same.
+        </p>
+      </aside>
+
+      <h3 class="section">Variables</h3>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Variable</th>
+            <th>Type</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Recaptcha Site Key</code></td>
+            <td>Text</td>
+            <td>Google reCAPTCHA v2 checkbox site key.</td>
+          </tr>
+          <tr>
+            <td><code>Roles Configuration</code></td>
+            <td>List</td>
+            <td>
+              Roles offered, and which of them ask for a company:
+              <code>{"Role":"Sub/Vendor","Require Company Selection":"Y"}</code>. Also read by the
+              Approval Page for its Role override.
+            </td>
+          </tr>
+          <tr>
+            <td><code>Login Page</code></td>
+            <td>Text</td>
+            <td>URL behind "Sign in". Empty hides the link.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <footer class="doc-footer">
+      Metric Insights · Northwind Construction pilot. Variables are set per app under
+      <b>Admin → Apps → app → Variables</b>; system variables under <b>Admin → System Variables</b>.
+    </footer>
+  </body>
+</html>

@@ -88,6 +88,77 @@ test('AGENTS template lists core Claude agents', () => {
   assert.match(agents, /content is preserved, including with \*\*`--force`\*\*/);
 });
 
+test('customer docs skill keeps the source-precedence and verification contract', () => {
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const sections = readTemplate('skills/customer-app-docs/references/sections.md');
+  const verify = readTemplate('skills/customer-app-docs/references/verify.md');
+
+  // A person decides when to run it; the skill never gates or self-starts.
+  assert.match(skill, /Run it when asked/);
+  assert.doesNotMatch(skill, /Entry gate/);
+  assert.match(skill, /Never gate, delay or self-start a run/);
+
+  // Three sources, compared — no single one is authoritative.
+  assert.match(skill, /Sources — gather all three, then compare/);
+  assert.match(skill, /No source is authoritative on its own/);
+  assert.match(skill, /LINEAR/);
+  assert.match(skill, /TEST DOCS/);
+  assert.match(skill, /COMPARE — one claim at a time/);
+  assert.match(skill, /sources disagree/);
+
+  // Differences are settled with the user in their own step, before any writing.
+  assert.match(skill, /### 3\. Reconcile — settle every difference before writing a word/);
+  assert.match(skill, /Do not start writing while any conflict\nis unresolved/);
+  assert.match(skill, /Never resolve a conflict between sources on your own/);
+  assert.match(skill, /test-documentation\/<CONTEXT_KEY>\//);
+  assert.match(skill, /docs\/customer\/<customer-slug>\//);
+  assert.match(skill, /TODO confirm/);
+
+  // Extraction and audit are delegated; printing waits for approval.
+  assert.match(skill, /one subagent per app, in parallel/i);
+  assert.match(skill, /Audit — one subagent/);
+  assert.match(skill, /--print-to-pdf/);
+  assert.match(skill, /--no-pdf-header-footer/);
+
+  // Section order is fixed even though the spine is per app, not per app kind.
+  assert.match(sections, /VARIABLES/);
+  assert.match(sections, /DATASET ENTITIES/);
+  assert.match(sections, /callout/);
+
+  // The ledger is what makes a statement auditable.
+  assert.match(verify, /facts\/<app-slug>\.md/);
+  assert.match(verify, /confirmed/);
+  assert.match(verify, /PP_VARIABLES/);
+  assert.match(verify, /bugs\.md/);
+  assert.match(verify, /Audit pass/);
+
+  // The ledger holds one column per source, and the verdict comes from comparing them.
+  assert.match(verify, /\| # \| Claim \| Value \| Linear \| Code \| Test docs \| Verdict \|/);
+  assert.match(verify, /Fill all three source columns for every row/);
+  assert.match(verify, /`conflict` \| Two or more sources disagree/);
+  assert.match(verify, /git log -1 --format=%ad -- test-documentation/);
+  assert.match(verify, /Closed since the file was written/);
+});
+
+test('customer docs template is self-contained and carries the page rules', () => {
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const template = readTemplate('skills/customer-app-docs/assets/example.html');
+
+  assert.match(skill, /assets\/example\.html/);
+
+  // Styles are inline, so a rendered document needs no sibling asset to look right.
+  assert.match(template, /<style>/);
+  assert.doesNotMatch(template, /<link[^>]+stylesheet/);
+  assert.match(template, /size: Letter/);
+  assert.match(template, /break-inside: avoid/);
+  assert.match(template, /--accent/);
+
+  // The class vocabulary the skill tells the writer to use must exist in the template.
+  for (const className of ['cover', 'stage', 'app__meta', 'section', 'steps', 'pill', 'callout', 'doc-footer']) {
+    assert.ok(template.includes(className), `template is missing .${className}`);
+  }
+});
+
 test('rules README documents deprecated ai-testing and ui-check stubs', () => {
   const rulesReadme = readTemplate('cursor/rules/README.md');
 

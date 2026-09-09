@@ -44,6 +44,9 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/playwright-cli/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/playwright-mcp/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/customer-app-docs/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/customer-app-docs/references/sections.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/customer-app-docs/assets/example.html')));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/README.md')), false);
@@ -195,6 +198,14 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(fs.existsSync(path.join(dir, '.claude/agents/qa-tester.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/agents/code-style.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/commands/testing-flow.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/references/sections.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/references/verify.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/assets/example.html')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/commands/customer-docs.md')));
+  assert.ok(
+    fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('skills/customer-app-docs/SKILL.md'),
+  );
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('testing-with-linear.md'));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('workflows/testing-with-linear.md'));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('code-style.md'));

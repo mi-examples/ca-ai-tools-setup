@@ -63,6 +63,20 @@ For publishing QA results to Linear, read and follow:
 
 `./.claude/workflows/linear-qa-report.md`
 
+## Customer Documentation
+
+Customer-facing documentation for delivered apps is written **when a person asks for it** — never on
+your own initiative, and never gated on how finished the work looks. Read and follow:
+
+`./.claude/skills/customer-app-docs/SKILL.md`
+
+It carries the run order (extraction and audit run as read-only subagents), the section contracts,
+and the HTML template that prints to PDF. Output goes to `docs/customer/<customer-slug>/`, with one
+fact ledger per app under `facts/`. Three sources are read for every app — Linear description and
+comments, the code, and `test-documentation/` — and compared claim by claim; none is authoritative
+alone, and a disagreement between them goes to the user, never resolved silently. Never send or
+publish a customer document — hand back the file paths.
+
 ## Slash Commands
 
 Use project commands from `./.claude/commands/` when available:
@@ -73,6 +87,7 @@ Use project commands from `./.claude/commands/` when available:
 - `/linear-report <ISSUE_KEY_OR_URL>`
 - `/start-working-with-task <ISSUE_KEY_OR_URL>`
 - `/test-documentation <CONTEXT>`
+- `/customer-docs <EPIC_OR_APP>`
 
 ## Specialized Agents
 
