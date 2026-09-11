@@ -98,18 +98,31 @@ test('customer docs skill keeps the source-precedence and verification contract'
   assert.doesNotMatch(skill, /Entry gate/);
   assert.match(skill, /Never gate, delay or self-start a run/);
 
-  // Three sources, compared — no single one is authoritative.
-  assert.match(skill, /Sources — gather all three, then compare/);
-  assert.match(skill, /No source is authoritative on its own/);
+  // Three sources, typed by claim, with the owner carrying the tie.
+  assert.match(skill, /Sources — gather all three, type the claim, then compare/);
   assert.match(skill, /LINEAR/);
   assert.match(skill, /TEST DOCS/);
-  assert.match(skill, /COMPARE — one claim at a time/);
-  assert.match(skill, /sources disagree/);
+  assert.match(skill, /OWNS: behavior/);
+  assert.match(skill, /TYPE THE CLAIM, THEN COMPARE/);
+  assert.match(skill, /OWNER silent/);
+  assert.match(skill, /`reported`, never `confirmed`/);
 
-  // Differences are settled with the user in their own step, before any writing.
-  assert.match(skill, /### 3\. Reconcile — settle every difference before writing a word/);
-  assert.match(skill, /Do not start writing while any conflict\nis unresolved/);
+  // Test-doc notes survive the recency rule; only closed bugs drop out.
+  assert.match(skill, /Notes and decisions in test docs are \*\*not\*\* excluded/);
+
+  // Differences are triaged, then settled with the user, before any writing.
+  assert.match(skill, /### 3\. Reconcile — triage, then settle the ones that matter/);
+  assert.match(skill, /user-visible/i);
   assert.match(skill, /Never resolve a conflict between sources on your own/);
+
+  // Re-runs patch what moved; the approved first document becomes the golden.
+  assert.match(skill, /### 7\. Regenerate on change/);
+  assert.match(skill, /only the sections whose rows moved/);
+  assert.match(skill, /first approved document becomes the golden/);
+  assert.match(skill, /evals\/customer-app-docs\/golden\//);
+
+  // Provenance for the customer is a version stamp, not citations.
+  assert.match(skill, /Version stamp, not citations/);
   assert.match(skill, /test-documentation\/<CONTEXT_KEY>\//);
   assert.match(skill, /docs\/customer\/<customer-slug>\//);
   assert.match(skill, /TODO confirm/);
@@ -132,10 +145,31 @@ test('customer docs skill keeps the source-precedence and verification contract'
   assert.match(verify, /bugs\.md/);
   assert.match(verify, /Audit pass/);
 
-  // The ledger holds one column per source, and the verdict comes from comparing them.
-  assert.match(verify, /\| # \| Claim \| Value \| Linear \| Code \| Test docs \| Verdict \|/);
+  // Claims are typed and owned before anything is compared.
+  assert.match(verify, /## Type the claim first/);
+  assert.match(verify, /\*\*behavior\*\* — what the app does \| \*\*code\*\*/);
+  assert.match(verify, /a behavioral claim the code is silent on is `reported`, never\n`confirmed`/);
+
+  // The ledger carries the run's scope, a column per source, and who settled each row.
+  assert.match(
+    verify,
+    /\| # \| Claim \| Type \| Value \| Linear \| Code \| Test docs \| Verdict \| User-visible \| Resolution \|/,
+  );
+  assert.match(verify, /Code globs/);
+  assert.match(verify, /Doc version/);
   assert.match(verify, /Fill all three source columns for every row/);
-  assert.match(verify, /`conflict` \| Two or more sources disagree/);
+  assert.match(verify, /Cite and date every cell/);
+  assert.match(verify, /`agent` \(auto during extraction\) or `human`/);
+
+  // Scope stays in the header until a named trigger graduates it to a file.
+  assert.match(verify, /### Graduating the header into a config file/);
+  assert.match(verify, /three or more apps for one customer/);
+
+  // Absent test docs are distinguished, and the audit re-derives the risky rows.
+  assert.match(verify, /absent \(not expected — legacy repo\)/);
+  assert.match(verify, /absent \(expected/);
+  assert.match(verify, /## Conflict triage/);
+  assert.match(verify, /\*\*Pass 2 — re-derivation\.\*\*/);
   assert.match(verify, /git log -1 --format=%ad -- test-documentation/);
   assert.match(verify, /Closed since the file was written/);
 });

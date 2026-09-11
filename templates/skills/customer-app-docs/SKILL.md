@@ -19,8 +19,8 @@ The skill is four files:
    customer-app-docs/   ·   mirrored to .cursor/skills/ and .claude/skills/
    ┌─────────────────────────────────────────────────────────────────────────────────┐
    │ SKILL.md   ·   ALWAYS READ                                                      │
-   │ the source schema · run order, 6 steps · writing rules                          │
-   │ reuse-across-customers rules · handover checklist                               │
+   │ the source schema · claim types and ownership · run order, 7 steps              │
+   │ writing rules · reuse-across-customers rules · handover checklist               │
    └────────────┬───────────────────────────┬───────────────────────────┬────────────┘
                 │                           │                           │
            steps 2 & 5                   step 4                    step 4 · cp
@@ -31,50 +31,68 @@ The skill is four files:
    │ read by the extraction  │ │ read while writing      │ │ copied with cp, then    │
    │ and audit subagents     │ │ each app section        │ │ its body is replaced    │
    ├─────────────────────────┤ ├─────────────────────────┤ ├─────────────────────────┤
-   │ all three sources, one  │ │ which sections an app   │ │ template + the worked   │
-   │ ledger column each      │ │ gets, and their order   │ │ example in one file     │
-   │ verdicts and conflicts  │ │ table and callout       │ │ inline <style> is the   │
-   │ where each fact lives   │ │ contracts               │ │ presentation contract   │
-   │ the audit pass          │ │ the block vocabulary    │ │ — never edited          │
+   │ claim types and owners  │ │ which sections an app   │ │ template + the worked   │
+   │ silence counts against  │ │ gets, and their order   │ │ example in one file     │
+   │ the claim               │ │ table and callout       │ │ inline <style> is the   │
+   │ citations + as-of dates │ │ contracts               │ │ presentation contract   │
+   │ conflict triage         │ │ the block vocabulary    │ │ — never edited          │
+   │ audit re-derives the    │ │ how reported claims     │ │ version stamp on the    │
+   │ high-risk rows          │ │ read in the prose       │ │ cover, no citations     │
    └────────────┬────────────┘ └────────────┬────────────┘ └────────────┬────────────┘
                 ▼                           ▼                           ▼
        facts/<app-slug>.md       the document's sections     <flow-slug>.html → .pdf
                 └───────────────────────────┴───────────────────────────┘
                                             ▼
                   docs/customer/<customer-slug>/   ·   the deliverables
+                  step 7 re-runs diff the ledger and patch what moved;
+                the first approved document is frozen as the eval golden
 ```
 
-## Sources — gather all three, then compare
+## Sources — gather all three, type the claim, then compare
 
-No source is authoritative on its own. Read Linear, the code and the test docs for **every** app,
-compare them fact by fact, and only then write. Never stop at whichever source answered first: a
-fact only one source knows is exactly the fact most likely to be wrong.
+Read Linear, the code and the test docs for **every** app. They are not interchangeable: each claim
+is **typed** first, and the source that owns that type carries the tie. **Silence from the owning
+source counts against the claim** — the document tells a customer what they can do today, not what
+was planned.
 
 ```text
    ┌───────────────────────────┐ ┌───────────────────────────┐ ┌───────────────────────────┐
    │ LINEAR                    │ │ CODE                      │ │ TEST DOCS                 │
-   │ epic + issues:            │ │ index.html, src/api,      │ │ test-cases.md, bugs.md    │
-   │ description + ALL comments│ │ components, hooks, utils  │ │ + implementation notes    │
+   │ desc + ALL comments       │ │ globs from ledger header  │ │ cases, OPEN bugs, notes   │
    ├───────────────────────────┤ ├───────────────────────────┤ ├───────────────────────────┤
-   │ intent, decisions, why,   │ │ mechanism as shipped:     │ │ observed behaviour, exact │
-   │ ticket refs, what changed │ │ validation, gating,       │ │ on-screen wording, roles, │
-   │ late in the build         │ │ payloads, variables read  │ │ asked-vs-shipped gaps     │
+   │ OWNS: intent, why, refs   │ │ OWNS: behavior            │ │ OWNS: wording, states     │
+   │ informs: behavior         │ │ informs: wording          │ │ informs: intent           │
+   ├───────────────────────────┤ ├───────────────────────────┤ ├───────────────────────────┤
+   │ risk: plans not shipped   │ │ risk: dead code, mocks    │ │ risk: stale, bug closed   │
+   │ rule: newest wins         │ │ rule: silence counts      │ │ rule: may be absent       │
    └─────────────┬─────────────┘ └─────────────┬─────────────┘ └─────────────┬─────────────┘
-                 └──────────────────────┬──────┴─────────────────────────────┘
-                                        ▼
-                        ┌───────────────────────────────┐
-                        │  COMPARE — one claim at a time │
-                        └───────────────┬───────────────┘
-        ┌──────────────────────┬────────┴────────┬──────────────────────────┐
-        ▼                      ▼                 ▼                          ▼
-  all agree            two agree, third    only one source        sources disagree
-  → confirmed          silent → confirmed  → reported             → conflict
-        └──────────────────────┴─────────────────┴──────────────────────────┘
-                                        ▼
-                  ledger rows  →  RECONCILE with the user (step 3)
-                                        ▼
-                        document  →  audit  →  approve  →  PDF
+                 └─────────────────────────────┴─────────────────────────────┘
+                                               ▼
+                                TYPE THE CLAIM, THEN COMPARE
+                            one claim at a time, every row cited
+        ┌────────────────┬────────────────┬─────┴──────────┬────────────────┐
+   all three        owner agrees,      OWNER silent       only one        sources
+     agree           rest silent       on its type       source has it    disagree
+  → confirmed       → confirmed        → reported        → reported      → conflict
+                                                                         ↳ triage
+                                               ▼
+                  ledger rows  →  RECONCILE triaged conflicts (step 3)
+                                               ▼
+                 document  →  audit (re-derives) →  approve  →  PDF  →  step 7
 ```
+
+**Ownership.** Code owns *behavior* — what the app does. Linear owns *intent* — why, and what was
+decided. Test docs own *wording and states* — labels, empty states, error copy. A source may inform
+a type it does not own; it just cannot settle it alone.
+
+**Silence.** A behavioral claim the code does not support is `reported`, never `confirmed`, however
+firmly Linear and the test docs agree: both are forward-looking and can agree on work descoped
+before release.
+
+**Recency.** Newest wins inside a source — the last Linear comment supersedes earlier ones, code is
+read at the release tag being documented, bugs closed since the test docs were written are excluded.
+Notes and decisions in test docs are **not** excluded: they are often the only record of a decision
+made verbally or by design. Every row records the date each source is as of.
 
 Two more sources sit outside the comparison: **the instance** (variable names, types and defaults as
 an admin sees them under **Admin → Apps → app → Variables** — they exist nowhere in git, so they are
@@ -116,14 +134,19 @@ docs/customer/<customer-slug>/
 ### 1. Scope
 
 Confirm with the user before extracting: customer name and slug; flow name and slug; the apps, their
-deployed slugs and the order a user meets them; the epic key, per-app ticket refs and the
-`CONTEXT_KEY`s under `test-documentation/`; the platform version the behaviour is being documented
-against; the engagement name for the footer; the customer's own words for the scope field and the
-roles; and whether an existing document is the starting point.
+deployed slugs and the order a user meets them; the release tag or sha the behaviour is documented
+at; the code globs for this app shape; the epic key, per-app ticket refs and the `CONTEXT_KEY`s under
+`test-documentation/`; the platform version; the engagement name for the footer; the customer's own
+words for the scope field and the roles; and whether an existing document is the starting point.
+
+All of it goes into the **ledger header** — that is where per-customer scope lives, not in a config
+file. `references/verify.md` carries the two triggers for graduating the header into
+`config/<customer>.yml`; until one fires, six header lines per app are cheaper than a format to
+maintain.
 
 Ask for what is missing rather than inferring it, and never treat a missing input as a reason to
-stop. No test documentation for an app means its facts come from code and Linear alone — say so at
-handover, and expect more `TODO confirm:` lines.
+stop. Missing test docs are recorded as `absent (not expected)` for a legacy repo or
+`absent (expected)` when the work should have had them — the second is worth raising at handover.
 
 ### 2. Extract — one subagent per app, in parallel
 
@@ -131,33 +154,39 @@ Launch them in a single message so they run concurrently. Each writes
 `docs/customer/<customer-slug>/facts/<app-slug>.md` and returns a short summary. Prompt each with:
 
 > Read-only. Read `.claude/skills/customer-app-docs/references/verify.md` and follow it to extract
-> every documentable fact about the app `<slug>` (`<kind>`) into a fact ledger at `<ledger path>`.
-> Read all three sources before judging any claim: Linear `<refs>` description **and every comment**,
-> the app code, and `test-documentation/<CONTEXT_KEY>/`. Fill one ledger column per source, then set
-> the verdict from how they compare. Write only that file. Return the row count, the verdict counts,
-> every `conflict` row with its evidence, and every claim only one source supports.
+> every documentable fact about the app `<slug>` (`<kind>`) into a fact ledger at `<ledger path>`,
+> header first. Read all three sources before judging any claim: Linear `<refs>` description **and
+> every comment**, the code at `<tag>` under `<globs>`, and `test-documentation/<CONTEXT_KEY>/`.
+> **Type each claim** — behavior, intent, or wording — fill one column per source with a citation
+> and an as-of date, then set the verdict from the comparison: the owning source silent means
+> `reported`, never `confirmed`. Mark each row `User-visible` yes or no. Write only that file. Return
+> the row count, the verdict counts, every `conflict` row with its evidence and dates, every
+> user-visible single-source claim, and anything that looks like a defect rather than a behaviour.
 
 A subagent earns its place here: it reads a whole app's source and returns one table. Do not skip the
 ledgers and write from your own reading in this session — the ledger is what the audit step and the
 next engineer verify against.
 
-### 3. Reconcile — settle every difference before writing a word
+### 3. Reconcile — triage, then settle the ones that matter
 
-Collect what the extractions disagreed about, across all apps, and bring it to the user in **one
-pass** rather than a question at a time. Group it:
+Only differences that change a **user-visible** claim reach a person; the rest resolve to the owning
+source and are logged for review. Step 3 is the human bottleneck, and a flood is how it gets skipped.
 
-1. **Conflicts** — sources that disagree. For each: the claim, what each source says, where each
-   came from, and which evidence is newer (a comment dated after the code change, a test doc
-   committed before the fix). Ask which shipped.
-2. **Single-source claims** — supported by one source with the others silent. Ask whether each is
-   documentable as-is, left out, or held as `TODO confirm:`.
+Escalate in **one batch**, with a recommended default already filled in for each:
+
+1. **User-visible conflicts** — the claim, what each source says with its date, and the default
+   (normally the owning source's value; a test-doc note saying the shipped behaviour was intentional
+   is strong grounds for defaulting to the code). Ask which shipped.
+2. **User-visible single-source claims** — documentable as-is, left out, or held as `TODO confirm:`?
 3. **`unknown` questions** — what no source settled.
-4. **Suspected defects** — where the code does something no ticket asked for and no test covers.
-   These are Linear issues, not document sentences; ask before writing around them.
+4. **Suspected defects** — the code does something no ticket asked for and no test covers. These are
+   Linear issues, not document sentences; ask before writing around them.
 
-Then write the decisions back into the ledger rows — the resolved value, the source it came from, and
-that a person decided it. A ledger that still shows an open `conflict` after the document exists is a
-finding at audit time.
+Everything not user-visible resolves to the owning source, with `agent` in the row's `Resolution`
+cell so a wrong call stays findable. Decisions from this batch go back into the rows as
+`human` plus the date — the ledger is committed, so `git blame` supplies the person.
+
+A ledger showing an unresolved `conflict` after the document exists is a finding at audit time.
 
 Answers that arrive verbally are `reported`, not `confirmed`. Do not start writing while any conflict
 is unresolved.
@@ -175,15 +204,24 @@ not need to read it to use it.
 Build the cover page, then one section per app per `references/sections.md`, then the footer. Every
 sentence traces to a ledger row.
 
+**Version stamp, not citations.** The cover carries `Documented against Metric Insights <version> ·
+<flow> <doc version> · <date>`, matching the ledger header. That is what tells a reader whether the
+document still applies. Citations stay in the ledger — a customer has no use for `file:line`.
+
 ### 5. Audit — one subagent, blind to the drafting
 
 > Read-only. Read `.claude/skills/customer-app-docs/SKILL.md`, `references/sections.md` and the
 > "Audit pass" section of `references/verify.md`. Audit `<document path>` against the ledgers in
-> `<facts dir>`, claim by claim. The previous customer, if this was adapted from one, was
-> `<name>`. Report findings most severe first — quoted statement, why it fails, smallest fix — then
-> one line of verdict.
+> `<facts dir>` in **two passes**: every statement must trace to a ledger row, and every high-risk
+> row — `conflict`, `reported`, single-source, or owning source silent — must be **re-derived from
+> the sources themselves**, not taken from the ledger. The previous customer, if this was adapted
+> from one, was `<name>`. Report findings most severe first — quoted statement, why it fails,
+> smallest fix — then one line of verdict.
 
 Fix findings in the HTML. Do not print the PDF while a factual finding is open.
+
+Checking the prose against the ledger alone only catches transcription drift; re-derivation is what
+catches extraction error, the more dangerous class.
 
 ### 6. Approve and print
 
@@ -205,6 +243,29 @@ callout or step is split across a break, no heading sits alone at the foot of a 
 stamp appears. Hand back the file paths — never send, publish or attach a customer document
 yourself.
 
+**The first approved document becomes the golden.** Once the user approves it, freeze the document,
+its ledgers and its inputs as ground truth for the skill itself — in `ca-ai-tools-setup` under
+`evals/customer-app-docs/golden/<customer>-<flow>/`, which carries the scoring contract
+(confirmed-claim precision, missed-claim recall, false-conflict rate). That is a maintainer gate on
+changes to these templates, not part of a customer run; rules this judgment-heavy drift silently
+without it.
+
+### 7. Regenerate on change
+
+Re-runs are the normal case, and a full rewrite every time is how they stop happening. The ledger is
+the diffable artefact:
+
+1. Re-run step 2 for the affected apps only, into a new ledger.
+2. Diff it against the committed one — new rows, changed values, changed verdicts, new conflicts.
+3. Triage and settle the changed rows per step 3.
+4. Rewrite **only the sections whose rows moved**, then re-audit those sections plus every high-risk
+   row in the whole document — a behaviour change often invalidates a sentence elsewhere.
+5. Bump the doc version and the as-of date on the cover, and reprint.
+
+Full regeneration is the fallback, not the default. A rule check right after generation — citations
+present, claims typed, verdicts consistent, spine intact, no unclosed `TODO` — is worth wiring as a
+hook so it is never skipped.
+
 ## Writing rules
 
 - **Present tense, third person, no instructions to the reader.** "Request Access stays disabled
@@ -217,8 +278,10 @@ yourself.
   equivalent but isn't, volume assumption, an id that must match a real object.
 - **Prefer the customer's own noun** in prose — their word for a scope or a role; the identifier
   stays in `<code>`.
-- No marketing voice, no "simply", no "just", no roadmap. No screenshots — they rot faster than the
-  text and every customer's branding differs.
+- No marketing voice, no "simply", no "just", no roadmap.
+- **No screenshots.** They rot faster than the text, every customer's branding differs, framing and
+  zoning are hard to keep consistent, and each re-run in step 7 would imply a re-shoot. Describe the
+  control by its label in `<b>` instead.
 - No credentials, tokens, instance URLs, usernames or PII, not even in examples. Use placeholder ids
   that are obviously placeholders.
 
@@ -237,13 +300,16 @@ means it is not ready.
 
 ## Before handing over
 
-- [ ] Every statement traces to a ledger row; no `TODO` left unflagged.
-- [ ] All three sources were read for every app — a blank Linear or test-doc column means "checked,
-      says nothing", never "not looked at".
-- [ ] Every `conflict` row was resolved with the user, and no conflict was decided silently.
-- [ ] Statements only one source supports are marked `reported` and read as such, or left out.
-- [ ] Cover page states what the flow does, its stages in order, the app slugs, epic and platform
-      version — and reads on its own to someone who has never seen the apps.
+- [ ] Every statement traces to a ledger row, typed and cited with an as-of date; no `TODO` left
+      unflagged.
+- [ ] All three sources were read for every app — `—` means "checked, says nothing", never "not
+      looked at".
+- [ ] No behavioral claim reads as confident where the code is silent on it.
+- [ ] Every user-visible `conflict` was settled by a person; the rest resolved to the owning source
+      and say `agent` in the row.
+- [ ] Cover page states what the flow does, its stages in order, the app slugs, epic and the version
+      stamp — and reads on its own to someone who has never seen the apps.
+- [ ] No `path:line` citation leaked out of the ledger into the document.
 - [ ] Section order per `references/sections.md`; `VARIABLES` second to last, `DATASET ENTITIES` last.
 - [ ] Variable tables match what each app actually reads — none stale, none missing.
 - [ ] Every open `BUG-nn` a customer could hit appears as a callout or a stated limit — after

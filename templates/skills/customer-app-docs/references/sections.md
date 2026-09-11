@@ -13,8 +13,10 @@ apps and epic → platform version → stages.
 - **Lede**: two or three sentences, under 55 words — what the flow lets whom do, and what happens
   automatically. No feature list.
 - **Apps line**: the deployed slugs in flow order, `·`-separated, then the epic key.
-- **Platform**: the version the behaviour was confirmed against. Not decoration — it is what tells a
-  reader in a year whether the document still applies. Bump it whenever the document is re-verified.
+- **Platform and version stamp**: the MI version the behaviour was confirmed against, then the
+  document's own version and date (`v1 · 11 Sep 2026`), matching the ledger header. Not decoration —
+  it is what tells a reader in a year whether the document still applies, and it is the *only*
+  provenance the customer gets; citations stay in the ledger. Bump both on every re-verification.
 - **Stages**: four or five, each a one-word verb (`Arrive`, `Request`, `Notify`, `Decide`) and one or
   two sentences. Stages are the user's journey, not the app list: two apps can share a stage and one
   app can own two. More than five means the flow needs splitting into two documents.
@@ -128,6 +130,21 @@ especially, because those fail silently at provisioning time.
 
 Optional closing `note` callout: how an entity can be repointed at a governed source without a code
 change, and what must stay stable for that (projected column names).
+
+## Marking `reported` claims in the prose
+
+A `reported` claim — the owning source silent, or only one source has it — may still be worth saying,
+but never in the same voice as a confirmed one. Attribute it or bound it:
+
+- "The approver notification is scheduled at about ten minutes" for a cadence confirmed in Linear but
+  not visible in this repo — an approximation, stated as one.
+- "The empty-state message is not part of this release" rather than describing a message no code
+  renders.
+- Leave it out entirely when hedging it would read as evasive. A missing sentence costs less than a
+  sentence a customer cannot rely on.
+
+Never resolve the hedge by dropping the qualifier in a later edit — the verdict lives in the ledger,
+and the prose has to keep matching it.
 
 ## Callouts and pills
 
