@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { buildClaudeSettingsJson } from '../src/generators/claude.js';
 import { generateSetup, getGeneratedFiles } from '../src/generator.js';
+import { getCliPackageVersion } from '../src/setup-log.js';
 
 function makeTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'linear-assistant-setup-'));
@@ -162,7 +163,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
   assert.equal(meta.version, 6);
   assert.equal(meta.provenance.package, '@metricinsights/ca-ai-tools-setup');
-  assert.equal(meta.provenance.version, '0.1.0');
+  assert.equal(meta.provenance.version, getCliPackageVersion());
   assert.ok(meta.files['.claude/skills/ai-development/SKILL.md']);
   assert.equal(meta.generatedAt, undefined);
   assert.deepEqual(meta.qaAiRules, { enabled: false, package: '@metricinsights/qa-ai-rules' });
