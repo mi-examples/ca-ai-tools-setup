@@ -27,6 +27,14 @@ const PORTAL_PAGE_RULES = [
 /** Shared skills mirrored under `.cursor/skills/` and `.claude/skills/`. */
 const SHARED_PORTAL_SKILLS = ['skills/ai-development/SKILL.md', 'skills/ai-development/DOD-FULL.md'] as const;
 
+/** Customer-facing documentation skill, mirrored under both skill roots. */
+const CUSTOMER_DOCS_SKILLS = [
+  'skills/customer-app-docs/SKILL.md',
+  'skills/customer-app-docs/references/sections.md',
+  'skills/customer-app-docs/references/verify.md',
+  'skills/customer-app-docs/assets/example.html',
+] as const;
+
 /** Cursor-only skills (Claude Code uses `.claude/workflows/` for QA orchestration). */
 const CURSOR_ONLY_SKILLS = [
   'skills/testing-flow/SKILL.md',
@@ -41,16 +49,15 @@ const CURSOR_ONLY_SKILLS = [
   'skills/form-builder/SKILL.md',
 ] as const;
 
+/** `skills/<name>/<...path>` → `<name>/<...path>`, at any nesting depth. */
 function skillTemplateToOutputPath(templateRel: string): string {
-  const parts = templateRel.split('/');
-
-  return `${parts[1]}/${parts[2]}`;
+  return templateRel.replace(/^skills\//, '');
 }
 
 function buildSkillFilesForAssistant(assistant: 'cursor' | 'claude', includeFigmaMcp: boolean): GeneratedFile[] {
   const skillsRoot = assistant === 'cursor' ? '.cursor/skills' : '.claude/skills';
 
-  const files: GeneratedFile[] = SHARED_PORTAL_SKILLS.map((rel) => ({
+  const files: GeneratedFile[] = [...SHARED_PORTAL_SKILLS, ...CUSTOMER_DOCS_SKILLS].map((rel) => ({
     path: `${skillsRoot}/${skillTemplateToOutputPath(rel)}`,
     content: readTemplate(rel),
   }));

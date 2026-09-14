@@ -56,6 +56,10 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 
 ## Testing
 
+Changes under `templates/skills/customer-app-docs/**` are also scored against
+`evals/customer-app-docs/` (a golden document + its ledgers, semantic comparison by subagent) before
+shipping — see that README for the metrics and the current status.
+
 Tests use Node's built-in test runner via `tsx`. The build step compiles templates access; tests run against `dist/`. `generator.test.ts` is the most comprehensive — it tests file-generation combinations including skip/merge/overwrite behavior and MCP inclusion.
 
 ## Distribution
