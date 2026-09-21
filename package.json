@@ -1,6 +1,6 @@
 {
   "name": "@metricinsights/ca-ai-tools-setup",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Bootstrap Cursor and Claude Linear CLI setup files in a repository",
   "repository": {
