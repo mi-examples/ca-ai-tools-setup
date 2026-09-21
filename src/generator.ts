@@ -18,6 +18,14 @@ import {
 
 export type ExistingFileAction = 'skip' | 'merge' | 'overwrite';
 
+/**
+ * Files the repository owns outright, so an existing copy is always merged into — never skipped,
+ * and never replaced, not even by --force. AGENTS.md carries repository-authored rows; .gitignore
+ * carries whatever the team decided to ignore, and losing either to a setup run would be a real
+ * regression rather than a refreshed template.
+ */
+const ALWAYS_MERGED_PATHS = new Set(['AGENTS.md', '.gitignore']);
+
 export type GenerateOptions = {
   targetDir: string;
   assistants: Assistant[];
@@ -153,6 +161,14 @@ export function getGeneratedFiles(
   files.push({
     path: '.dev-environment.md',
     content: readTemplate('assistant-setup/dev-environment.md'),
+  });
+
+  // .dev-environment.md is regenerated per developer machine — it records the local instance URL,
+  // shell profile and paths — so it must never be committed. Merged into whatever .gitignore the
+  // repository already has rather than written over it.
+  files.push({
+    path: '.gitignore',
+    content: readTemplate('gitignore'),
   });
 
   files.push({
@@ -291,7 +307,7 @@ function writeOneFile(
   const exists = fs.existsSync(destination);
   const actions = options.existingFileActions;
 
-  if (exists && normalizeSetupPath(file.path) === 'AGENTS.md') {
+  if (exists && ALWAYS_MERGED_PATHS.has(normalizeSetupPath(file.path))) {
     if (!options.dryRun) {
       const existingContent = fs.readFileSync(destination, 'utf8');
       const merged = mergeFile(file.path, existingContent, file.content);
@@ -343,7 +359,7 @@ function writeOneFile(
       if (!isMergeablePath(file.path)) {
         throw new Error(
           `Merge is not supported for "${file.path}". ` +
-            'Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md.',
+            'Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md, .gitignore.',
         );
       }
 

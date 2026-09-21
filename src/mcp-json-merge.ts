@@ -1,5 +1,5 @@
 const MCP_CONFIG_PATHS = new Set<string>(['.cursor/mcp.json', '.mcp.json']);
-const MERGEABLE_PATHS = new Set<string>([...MCP_CONFIG_PATHS, '.claude/settings.json', 'AGENTS.md']);
+const MERGEABLE_PATHS = new Set<string>([...MCP_CONFIG_PATHS, '.claude/settings.json', 'AGENTS.md', '.gitignore']);
 
 export function isMcpConfigPath(relativePath: string): boolean {
   return MCP_CONFIG_PATHS.has(relativePath.replace(/\\/g, '/'));
@@ -184,6 +184,49 @@ export function mergeClaudeSettingsJson(existingContent: string, incomingContent
 }
 
 /**
+ * Merge `.gitignore` by appending only the patterns it does not already ignore.
+ *
+ * Repositories own this file outright — it carries build output, local tooling and whatever else
+ * the team decided — so nothing is ever reordered, rewritten or removed. A pattern already present
+ * anywhere in the file, in any form, is left alone: re-adding it would be noise in every diff.
+ */
+export function mergeGitignore(existingContent: string, incomingContent: string): string {
+  const patternsOf = (content: string): string[] =>
+    content
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'));
+
+  const existing = new Set(patternsOf(existingContent).map((pattern) => pattern.replace(/^\/+|\/+$/gu, '')));
+  const missing = incomingContent
+    .split(/\r?\n/)
+    .filter((line) => {
+      const pattern = line.trim();
+
+      return pattern.length > 0 && !pattern.startsWith('#') && !existing.has(pattern.replace(/^\/+|\/+$/gu, ''));
+    })
+    .map((line) => line.trim());
+
+  if (missing.length === 0) {
+    return existingContent;
+  }
+
+  if (existingContent.trim().length === 0) {
+    return incomingContent;
+  }
+
+  // The comment block from the template travels with the patterns, so a reader finds out why the
+  // entry is there without leaving the file.
+  const comments = incomingContent
+    .split(/\r?\n/)
+    .filter((line) => line.trim().startsWith('#'))
+    .map((line) => line.trim());
+  const separator = existingContent.endsWith('\n') ? '\n' : '\n\n';
+
+  return `${existingContent}${separator}${[...comments, ...missing].join('\n')}\n`;
+}
+
+/**
  * Merge `AGENTS.md` without replacing repository-owned content.
  * Missing generated agent rows are inserted into an existing registry table or appended as a new section.
  */
@@ -270,8 +313,12 @@ export function mergeFile(relativePath: string, existingContent: string, incomin
     return mergeAgentsMd(existingContent, incomingContent);
   }
 
+  if (normalPath === '.gitignore') {
+    return mergeGitignore(existingContent, incomingContent);
+  }
+
   throw new Error(
     `Merge is not supported for "${relativePath}". ` +
-      'Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md.',
+      'Supported paths: .cursor/mcp.json, .mcp.json, .claude/settings.json, AGENTS.md, .gitignore.',
   );
 }

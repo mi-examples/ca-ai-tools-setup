@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   isMcpConfigPath,
+  mergeGitignore,
   isMergeablePath,
   mergeMcpJson,
   mergeClaudeSettingsJson,
@@ -343,4 +344,42 @@ test('mergeFile dispatches to mergeAgentsMd for AGENTS.md', () => {
 
 test('mergeFile throws for unsupported path', () => {
   assert.throws(() => mergeFile('CLAUDE.md', 'a', 'b'), /Merge is not supported/);
+});
+
+// .gitignore is owned by the repository outright — the tool only ever adds the one pattern it
+// needs, and never reorders, rewrites or drops anything already there.
+test('mergeGitignore appends the missing pattern and keeps existing content verbatim', () => {
+  const existing = 'node_modules/\ndist/\n';
+  const merged = mergeGitignore(existing, '# ca-ai-tools-setup\n.dev-environment.md\n');
+
+  assert.ok(merged.startsWith(existing));
+  assert.match(merged, /^\.dev-environment\.md$/mu);
+  assert.match(merged, /# ca-ai-tools-setup/u);
+});
+
+test('mergeGitignore is a no-op when the pattern is already ignored', () => {
+  const existing = 'node_modules/\n.dev-environment.md\ndist/\n';
+
+  assert.equal(mergeGitignore(existing, '# comment\n.dev-environment.md\n'), existing);
+});
+
+// A repo may write the same rule as /path or path/ — re-adding it would be pure diff noise.
+test('mergeGitignore treats leading and trailing slashes as the same pattern', () => {
+  for (const variant of ['/.dev-environment.md\n', '.dev-environment.md/\n']) {
+    assert.equal(mergeGitignore(variant, '.dev-environment.md\n'), variant);
+  }
+});
+
+test('mergeGitignore ignores commented-out patterns when deciding what is missing', () => {
+  const existing = '# .dev-environment.md\nnode_modules/\n';
+  const merged = mergeGitignore(existing, '.dev-environment.md\n');
+
+  assert.match(merged, /^\.dev-environment\.md$/mu);
+});
+
+test('mergeGitignore returns the template when the repository has no .gitignore content', () => {
+  const incoming = '# ca-ai-tools-setup\n.dev-environment.md\n';
+
+  assert.equal(mergeGitignore('', incoming), incoming);
+  assert.equal(mergeGitignore('\n  \n', incoming), incoming);
 });
