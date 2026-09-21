@@ -494,6 +494,16 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
       record.baseline = 'merged';
     } else if (filePlan.state === 'preserved' || filePlan.state === 'modified') {
       record.baseline = 'adopted';
+    } else if (filePlan.state === 'clean' && filePlan.previous?.baseline === 'merged') {
+      // `merged` has to survive a run that changes nothing, or update stops being idempotent.
+      // createSetupMetadata() recomputes every baseline as generated/adopted from the content
+      // hashes alone, and merged content never equals the generated source — so without this a
+      // clean, already-merged AGENTS.md silently downgrades to `adopted`. collisionPlan() then
+      // matches its `baseline === 'adopted' && currentHash !== desiredHash` rule and plans the
+      // merge again, so `check` reports pending changes on a repository nothing touched. Observed
+      // as an adopted/merged oscillation on mi-pp/report-cleanup (2026-09-21), where it failed
+      // the org rollout's post-update validation.
+      record.baseline = 'merged';
     }
   }
 
