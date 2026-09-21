@@ -9,6 +9,7 @@ export type CliArgs = {
   dryRun?: boolean;
   force?: boolean;
   version?: boolean;
+  json?: boolean;
   'mcp-playwright'?: string;
   'mcp-figma'?: string;
   'qa-ai-rules'?: string;
@@ -19,7 +20,7 @@ export type CliMode = 'generate' | 'check' | 'update';
 export function parseCliArgs(argv = process.argv.slice(2)): CliArgs {
   return minimist(argv, {
     string: ['target', 'assistants', 'mcp-playwright', 'mcp-figma', 'qa-ai-rules', '_'],
-    boolean: ['yes', 'dry-run', 'dryRun', 'force', 'version'],
+    boolean: ['yes', 'dry-run', 'dryRun', 'force', 'version', 'json'],
     alias: {
       y: 'yes',
       dryRun: 'dry-run',
@@ -36,6 +37,14 @@ export function cliMode(args: CliArgs): CliMode {
 
 export function validateCliArgs(args: CliArgs): void {
   const mode = cliMode(args);
+
+  // check and update never prompt (pickTargetDir is called with yes: true), but generate does —
+  // and a clack prompt on stdout would splice terminal control codes into the JSON document.
+  // Refusing is better than silently answering the prompts with defaults the caller never chose.
+  if (args.json && mode === 'generate' && !args.yes) {
+    throw new Error('--json requires a non-interactive run: pass --yes with the generate command.');
+  }
+
   const maximumPositionals = mode === 'generate' ? 1 : 2;
 
   if (args._.length <= maximumPositionals) {

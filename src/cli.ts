@@ -22,6 +22,7 @@ import {
   promptExistingMcpActions,
 } from './cli-prompts.js';
 import { printReconcileSummary, printSummary, type QaAiRulesSummaryHook } from './cli-summary.js';
+import { buildErrorJson, buildGenerateJson, buildReconcileJson, CliError, writeCliJson } from './cli-json.js';
 import { parseAssistantsArg } from './assistants.js';
 import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
 import { parseFigmaMcpArg } from './figma-mcp-choice.js';
@@ -31,7 +32,11 @@ import { loadSetupMetadata } from './setup-metadata.js';
 import { getCliPackageVersion } from './setup-log.js';
 
 async function runGenerate(args: CliArgs): Promise<void> {
-  p.intro('Create Linear Assistant Setup');
+  const json = Boolean(args.json);
+
+  if (!json) {
+    p.intro('Create Linear Assistant Setup');
+  }
 
   const targetDir = await pickTargetDir(args);
   const previousDefaults = args.yes ? null : loadPreviousInteractiveDefaults(targetDir);
@@ -88,6 +93,24 @@ async function runGenerate(args: CliArgs): Promise<void> {
     }
   }
 
+  if (json) {
+    writeCliJson(
+      buildGenerateJson(
+        targetDir,
+        assistants,
+        playwrightMcpInclude,
+        figmaMcpInclude,
+        qaAiRulesInclude,
+        qaAiRulesHook,
+        qaAiRulesRunnerLabel,
+        result,
+        Boolean(args.dryRun),
+      ),
+    );
+
+    return;
+  }
+
   printSummary(
     targetDir,
     assistants,
@@ -139,7 +162,11 @@ function runExplicitQaSetup(targetDir: string, configuration: ReconcileConfigura
 }
 
 async function runReconcile(args: CliArgs, mode: 'check' | 'update'): Promise<void> {
-  p.intro(mode === 'check' ? 'Check Linear Assistant Setup' : 'Update Linear Assistant Setup');
+  const json = Boolean(args.json);
+
+  if (!json) {
+    p.intro(mode === 'check' ? 'Check Linear Assistant Setup' : 'Update Linear Assistant Setup');
+  }
 
   const targetDir = await pickTargetDir({ ...args, yes: true });
   const metadata = loadSetupMetadata(targetDir);
@@ -147,10 +174,11 @@ async function runReconcile(args: CliArgs, mode: 'check' | 'update'): Promise<vo
 
   if (!previous) {
     if (metadata.kind === 'invalid') {
-      throw new Error(`Invalid setup metadata: ${metadata.detail}`);
+      throw new CliError('setup-metadata-invalid', `Invalid setup metadata: ${metadata.detail}`);
     }
 
-    throw new Error(
+    throw new CliError(
+      'setup-metadata-missing',
       `Setup metadata not found or unsupported: .assistant-setup/ca-ai-tools-setup.json. ` +
         'Run the initial setup first.',
     );
@@ -182,6 +210,15 @@ async function runReconcile(args: CliArgs, mode: 'check' | 'update'): Promise<vo
     runExplicitQaSetup(targetDir, configuration, args);
   }
 
+  if (json) {
+    const payload = buildReconcileJson(targetDir, result, Boolean(args.dryRun));
+
+    writeCliJson(payload);
+    process.exitCode = payload.exitCode;
+
+    return;
+  }
+
   printReconcileSummary(targetDir, result, Boolean(args.dryRun));
 
   if (
@@ -192,9 +229,7 @@ async function runReconcile(args: CliArgs, mode: 'check' | 'update'): Promise<vo
   }
 }
 
-async function run(): Promise<void> {
-  const args = parseCliArgs();
-
+async function run(args: CliArgs): Promise<void> {
   validateCliArgs(args);
 
   if (args.version) {
@@ -214,8 +249,21 @@ async function run(): Promise<void> {
   await runReconcile(args, mode);
 }
 
-run().catch((error: unknown) => {
+const cliArgs = parseCliArgs();
+
+run(cliArgs).catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+
+  // A --json caller parses stdout unconditionally, so a failure has to arrive there as JSON too —
+  // otherwise the only signal is exit 1 with an empty document. The message still goes to stderr
+  // for anyone tailing the log.
+  if (cliArgs.json) {
+    writeCliJson(buildErrorJson(cliMode(cliArgs), error));
+    console.error(message);
+    process.exit(1);
+  }
+
   p.cancel('Operation failed.');
-  console.error(error instanceof Error ? error.message : error);
+  console.error(message);
   process.exit(1);
 });

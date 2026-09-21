@@ -403,8 +403,18 @@ function resultFromPlan(
     updated: byAction('overwrite'),
     merged: byAction('merge'),
     removed: byAction('remove'),
+    // A file belongs here only if its repository-owned content actually survives the run. Under
+    // --force a modified managed file is planned as state 'modified' + action 'overwrite', so
+    // filtering on state alone reported a file as preserved in the same run that replaced it —
+    // and the human summary printed it under "repository-owned files preserved". 'merge' stays:
+    // AGENTS.md keeps its repository content and only gains the missing generated rows.
     preserved: plan.files
-      .filter((file) => file.state === 'preserved' || file.state === 'modified')
+      .filter(
+        (file) =>
+          (file.state === 'preserved' || file.state === 'modified') &&
+          file.action !== 'overwrite' &&
+          file.action !== 'remove',
+      )
       .map((file) => file.path),
     unchanged: byState('clean'),
     conflicts: byState('conflict'),

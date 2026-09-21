@@ -42,6 +42,7 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 - `src/generators/cursor.ts` — builds `GeneratedFile` array for Cursor (.cursorrules, .cursor/rules/\*, .cursor/mcp.json, `.cursor/skills/{ui-check,ai-testing,ai-development}/`)
 - `src/generators/mcp.ts` — constructs MCP JSON config objects
 - `src/mcp-json-merge.ts` — union-merges existing `.mcp.json` / `.cursor/mcp.json` with generated config (generated names win on conflict)
+- `src/cli-json.ts` — the `--json` payload contract (`CLI_JSON_SCHEMA_VERSION`, currently `1`) and the `CliError` codes automated callers branch on. Bump the schema version on any breaking shape change: `mi-pp/repo-standards`' org-wide rollout (PP-4239) pins against it instead of parsing the prose summary from `cli-summary.ts`
 - `src/previous-setup.ts` — reads `.cursor/ca-ai-tools-setup.json` or `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)
 - `src/qa-ai-rules-setup.ts` / `src/qa-ai-rules-choice.ts` — optional `@metricinsights/qa-ai-rules` post-setup in the target repo
 - `src/package-manager.ts` — detects npm / pnpm / Yarn (Berry vs classic) / Bun to choose `npx`, `pnpm dlx`, `yarn dlx`, or `bunx`

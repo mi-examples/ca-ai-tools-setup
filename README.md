@@ -10,20 +10,20 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 
 **Cursor rules (Cursor and/or Claude):** `.cursor/rules/*.mdc` — Claude Code follows the same rules. Emitted for **Claude-only** runs too.
 
-| Path                                                                                                                                                                                                                                                     | When                 |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| `setup-cursor-assistant.md`                                                                                                                                                                                                                              | Cursor selected      |
-| `.cursorrules`, `.cursorignore`                                                                                                                                                                                                                          | Cursor selected      |
-| `.cursor/rules/*` (assistant-setup-health, code-style, linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP)                                                                | Cursor and/or Claude |
+| Path                                                                                                                                                                                                                                                                                            | When                 |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `setup-cursor-assistant.md`                                                                                                                                                                                                                                                                     | Cursor selected      |
+| `.cursorrules`, `.cursorignore`                                                                                                                                                                                                                                                                 | Cursor selected      |
+| `.cursor/rules/*` (assistant-setup-health, code-style, linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP)                                                                                                       | Cursor and/or Claude |
 | `.cursor/skills/*` (ai-development + DOD-FULL, customer-app-docs + references/assets, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-mcp, figma-implementation, form-builder; figma-code-connect + references if Figma MCP) | Cursor selected      |
-| `.cursor/prompts/react-component-unit.md`                                                                                                                                                                                                                | Cursor selected      |
-| `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json`                                                                                                                                                                                                     | Cursor + MCP option  |
-| `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                                                                                        | Claude selected      |
-| `.claude/skills/*` (ai-development + DOD-FULL, customer-app-docs, README; figma-code-connect if Figma MCP)                                                                                                                                               | Claude selected      |
-| `.claude/workflows/*`, `.claude/commands/*` (incl. `/customer-docs`)                                                                                                                                                                                     | Claude selected      |
-| `.claude/agents/code-style.md`                                                                                                                                                                                                                           | Claude selected      |
-| `.claude/agents/figma-mcp.md`                                                                                                                                                                                                                            | Claude + Figma MCP   |
-| `.mcp.json` (repo root)                                                                                                                                                                                                                                  | Claude + MCP option  |
+| `.cursor/prompts/react-component-unit.md`                                                                                                                                                                                                                                                       | Cursor selected      |
+| `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json`                                                                                                                                                                                                                                            | Cursor + MCP option  |
+| `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                                                                                                                               | Claude selected      |
+| `.claude/skills/*` (ai-development + DOD-FULL, customer-app-docs, README; figma-code-connect if Figma MCP)                                                                                                                                                                                      | Claude selected      |
+| `.claude/workflows/*`, `.claude/commands/*` (incl. `/customer-docs`)                                                                                                                                                                                                                            | Claude selected      |
+| `.claude/agents/code-style.md`                                                                                                                                                                                                                                                                  | Claude selected      |
+| `.claude/agents/figma-mcp.md`                                                                                                                                                                                                                                                                   | Claude + Figma MCP   |
+| `.mcp.json` (repo root)                                                                                                                                                                                                                                                                         | Claude + MCP option  |
 
 Skip/`--force` behavior: setup assistant markdown is always refreshed; most other paths are created once, then skipped unless `--force` (see package docs below).
 
@@ -346,9 +346,68 @@ freshness matters and to request approval before any update.
 - `--dry-run`: preview generation or update changes without writing; for `update`, exits `2` when changes or conflicts are pending
 - `--force`: overwrite generated managed/structured baselines; protected files remain preserved in `update` mode
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
+- `--json`: emit the run as a single machine-readable JSON document on stdout instead of the human summary; see [Machine-readable output](#machine-readable-output-json)
 - `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
 - `--mcp-figma <yes|no>`: add or skip Figma MCP files for the assistants you selected (`yes` / `true` / `1` / `figma` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **no** (requires `FIGMA_API_KEY`)
 - `--qa-ai-rules <yes|no>`: after generating files, run **`@metricinsights/qa-ai-rules`** setup in the target repo (`yes` / `true` / `1` / `on` vs `none` / `no` / `false` / `0` / `off`). Uses **`--cursor`** / **`--claude`** flags aligned with **`--assistants`**. The CLI picks a one-shot runner from **`package.json`** **`packageManager`** (Corepack) and lockfiles: **`pnpm dlx`** when pnpm, **`yarn dlx`** for Yarn 2+ / Berry layout, **`bunx`** when Bun, otherwise **`npx`**. Skipped when **`--dry-run`** is set. If there is no **`package.json`** in the target, the CLI skips with a warning (you can run **`npx`** / **`pnpm dlx`** / **`yarn dlx`** / **`bunx`** manually). With **`--yes`** and no flag, defaults to **no**
+
+## Machine-readable output (`--json`)
+
+`--json` replaces the human summary with a single JSON document on stdout. Everything else the CLI
+would print — banners, the prose summary, skip warnings — is suppressed or goes to stderr, so stdout
+always parses as one document, including when the run fails. Exit codes are unchanged, and the
+payload repeats the exit code in its own `exitCode` field so a caller can read either one.
+
+Automated callers should pin against `schemaVersion` (currently `1`) rather than parsing the human
+summary, which is free to change at any time.
+
+```bash
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup check ../my-app --json
+```
+
+```json
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "mode": "check",
+  "targetDir": "/repos/my-app",
+  "cli": { "package": "@metricinsights/ca-ai-tools-setup", "version": "0.1.0", "…": "…" },
+  "previousVersion": "0.1.0",
+  "desiredVersion": "0.2.0",
+  "hasChanges": true,
+  "hasConflicts": false,
+  "counts": { "created": 1, "updated": 3, "conflicts": 0, "…": 0 },
+  "created": [".cursor/rules/code-style.mdc"],
+  "conflicts": [],
+  "plan": [{ "path": ".cursor/rules/code-style.mdc", "ownership": "managed", "state": "missing", "action": "create" }],
+  "exitCode": 2
+}
+```
+
+`plan` carries each file's classification only — never its content, which the caller already has in
+the working tree. The named buckets (`created`, `updated`, `merged`, `removed`, `preserved`,
+`unchanged`, `conflicts`, `missing`, `outdated`, `orphaned`) hold the same paths grouped for
+convenience.
+
+A failure is reported the same way, with a stable `error.code` so a caller can branch without
+matching on prose:
+
+```json
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "mode": "check",
+  "error": { "code": "setup-metadata-missing", "message": "…" },
+  "exitCode": 1
+}
+```
+
+`setup-metadata-missing` means the repository has no tracked setup yet — install rather than update.
+`setup-metadata-invalid` means the metadata file exists but could not be read. Anything else is
+`unknown`.
+
+Because `generate` prompts, `--json` requires `--yes` in that mode; `check` and `update` never prompt
+and need no extra flag.
 
 ## Page Workflow Context
 
