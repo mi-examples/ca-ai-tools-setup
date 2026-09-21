@@ -337,3 +337,38 @@ test('checkSetup rejects malformed metadata', () => {
 
   assert.throws(() => checkSetup(options(dir)), /Invalid setup metadata/);
 });
+
+// Under --force a modified managed file is planned as state 'modified' + action 'overwrite'.
+// Filtering the preserved bucket on state alone reported such a file as preserved in the very run
+// that replaced it — which an automated update PR would repeat to a reviewer as "your changes were
+// kept". The bucket means "repository-owned content survived", so a write disqualifies it.
+test('updateSetup --force does not report an overwritten managed file as preserved', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const managedPath = path.join(dir, '.cursor/rules/code-style.mdc');
+
+  fs.writeFileSync(managedPath, 'Local edit.\n', 'utf8');
+
+  const result = updateSetup({ ...options(dir), force: true });
+
+  assert.ok(result.updated.includes('.cursor/rules/code-style.mdc'));
+  assert.equal(result.preserved.includes('.cursor/rules/code-style.mdc'), false);
+  assert.notEqual(fs.readFileSync(managedPath, 'utf8'), 'Local edit.\n');
+});
+
+test('updateSetup --force still reports a protected file as preserved', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const protectedPath = path.join(dir, '.cursorrules');
+
+  fs.writeFileSync(protectedPath, 'Custom repository rules.\n', 'utf8');
+
+  const result = updateSetup({ ...options(dir), force: true });
+
+  assert.ok(result.preserved.includes('.cursorrules'));
+  assert.equal(fs.readFileSync(protectedPath, 'utf8'), 'Custom repository rules.\n');
+});
