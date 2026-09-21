@@ -204,9 +204,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/references/verify.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/assets/example.html')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/commands/customer-docs.md')));
-  assert.ok(
-    fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('skills/customer-app-docs/SKILL.md'),
-  );
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('skills/customer-app-docs/SKILL.md'));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('testing-with-linear.md'));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('workflows/testing-with-linear.md'));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('code-style.md'));
@@ -730,4 +728,60 @@ test('generateSetup removes legacy metadata files with --force', () => {
   assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), true);
   assert.ok(result.removedLegacy.includes('.assistant-setup/linear-cli-setup.json'));
   assert.ok(result.removedLegacy.includes('.cursor/linear-cli-setup.json'));
+});
+
+test('generateSetup merges an existing .gitignore instead of replacing it, even with --force', () => {
+  const targetDir = makeTempDir();
+  const gitignorePath = path.join(targetDir, '.gitignore');
+  const repoOwned = 'node_modules/\ndist/\n.env.local\n';
+
+  fs.writeFileSync(gitignorePath, repoOwned, 'utf8');
+
+  const result = generateSetup({
+    targetDir,
+    assistants: ['cursor'],
+    force: true,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  const merged = fs.readFileSync(gitignorePath, 'utf8');
+
+  assert.ok(merged.startsWith(repoOwned), 'repository-owned patterns must survive verbatim');
+  assert.match(merged, /^\.dev-environment\.md$/mu);
+  assert.ok(result.merged.includes('.gitignore'));
+  assert.equal(result.overwritten.includes('.gitignore'), false);
+});
+
+test('generateSetup creates .gitignore ignoring the machine-specific dev environment file', () => {
+  const targetDir = makeTempDir();
+
+  generateSetup({
+    targetDir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  const content = fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8');
+
+  assert.match(content, /^\.dev-environment\.md$/mu);
+});
+
+// The file records the local instance URL and shell profile, so a committed copy leaks one
+// developer's environment into everyone else's checkout.
+test('.dev-environment.md is generated but ignored', () => {
+  const targetDir = makeTempDir();
+
+  generateSetup({
+    targetDir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+  });
+
+  assert.ok(fs.existsSync(path.join(targetDir, '.dev-environment.md')));
+  assert.match(fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8'), /\.dev-environment\.md/u);
 });

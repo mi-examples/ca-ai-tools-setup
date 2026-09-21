@@ -18,6 +18,13 @@ import {
 import { getCliPackageProvenance } from './setup-log.js';
 import { REMOVABLE_LEGACY_SETUP_PATHS, resolveFigmaMcpTargets, resolvePlaywrightMcpTargets } from './generator.js';
 
+/**
+ * Repository-owned files that are merged into, never replaced — not by --force either. Mirrors
+ * ALWAYS_MERGED_PATHS in generator.ts: AGENTS.md carries repository-authored rows, .gitignore
+ * carries the team's own ignore rules, and overwriting either would be a real regression.
+ */
+const ALWAYS_MERGED_PATHS = new Set(['AGENTS.md', '.gitignore']);
+
 export type ReconcileState = 'clean' | 'missing' | 'outdated' | 'modified' | 'conflict' | 'preserved' | 'orphaned';
 
 export type ReconcileAction = 'none' | 'create' | 'overwrite' | 'merge' | 'remove';
@@ -107,7 +114,7 @@ function collisionPlan(
   const ownership = ownershipForPath(file.path);
   const currentHash = hashContent(currentContent);
   const desiredHash = hashContent(file.content);
-  const agentsMergePlan = (reason: string): ReconcileFilePlan => ({
+  const mergePlan = (reason: string): ReconcileFilePlan => ({
     path: file.path,
     ownership,
     state: 'modified',
@@ -130,8 +137,8 @@ function collisionPlan(
       };
     }
 
-    if (file.path === 'AGENTS.md') {
-      return agentsMergePlan('Existing AGENTS.md will be preserved while missing generated rows are added.');
+    if (ALWAYS_MERGED_PATHS.has(file.path)) {
+      return mergePlan(`Existing ${file.path} will be preserved while missing generated entries are added.`);
     }
 
     if (ownership === 'protected') {
@@ -162,8 +169,8 @@ function collisionPlan(
   }
 
   if (currentHash !== previous.contentHash) {
-    if (file.path === 'AGENTS.md') {
-      return agentsMergePlan('Repository changes in AGENTS.md will be preserved during the generated row merge.');
+    if (ALWAYS_MERGED_PATHS.has(file.path)) {
+      return mergePlan(`Repository changes in ${file.path} will be preserved during the generated merge.`);
     }
 
     if (ownership === 'protected') {
@@ -203,8 +210,8 @@ function collisionPlan(
     };
   }
 
-  if (file.path === 'AGENTS.md' && previous.baseline === 'adopted' && currentHash !== desiredHash) {
-    return agentsMergePlan('Adopted AGENTS.md content will be preserved during the generated row merge.');
+  if (ALWAYS_MERGED_PATHS.has(file.path) && previous.baseline === 'adopted' && currentHash !== desiredHash) {
+    return mergePlan(`Adopted ${file.path} content will be preserved during the generated merge.`);
   }
 
   if (previous.baseline === 'adopted' && currentHash !== desiredHash && ownership !== 'protected') {
@@ -494,6 +501,16 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
       record.baseline = 'merged';
     } else if (filePlan.state === 'preserved' || filePlan.state === 'modified') {
       record.baseline = 'adopted';
+    } else if (filePlan.state === 'clean' && filePlan.previous?.baseline === 'merged') {
+      // `merged` has to survive a run that changes nothing, or update stops being idempotent.
+      // createSetupMetadata() recomputes every baseline as generated/adopted from the content
+      // hashes alone, and merged content never equals the generated source — so without this a
+      // clean, already-merged AGENTS.md silently downgrades to `adopted`. collisionPlan() then
+      // matches its `baseline === 'adopted' && currentHash !== desiredHash` rule and plans the
+      // merge again, so `check` reports pending changes on a repository nothing touched. Observed
+      // as an adopted/merged oscillation on mi-pp/report-cleanup (2026-09-21), where it failed
+      // the org rollout's post-update validation.
+      record.baseline = 'merged';
     }
   }
 

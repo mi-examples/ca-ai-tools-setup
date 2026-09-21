@@ -27,30 +27,31 @@ function makeTempDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'qa-ai-rules-setup-'));
 }
 
-function makeDeps(overrides: {
-  existsSync?: (path: fs.PathLike) => boolean;
-  detectPackageRunner?: (targetDir: string) => PackageRunnerId;
-  buildPackageRunInvocation?: (
-    runner: PackageRunnerId,
-    packageName: string,
-    forwardArgs: string[],
-  ) => PackageRunInvocation;
-  spawnPackageArgv?: (
-    argv: readonly string[],
-    options?: { cwd?: string; stdio?: 'inherit'; env?: NodeJS.ProcessEnv },
-  ) => { error?: Error; status?: number | null };
-} = {}) {
+function makeDeps(
+  overrides: {
+    existsSync?: (path: fs.PathLike) => boolean;
+    detectPackageRunner?: (targetDir: string) => PackageRunnerId;
+    buildPackageRunInvocation?: (
+      runner: PackageRunnerId,
+      packageName: string,
+      forwardArgs: string[],
+    ) => PackageRunInvocation;
+    spawnPackageArgv?: (
+      argv: readonly string[],
+      options?: { cwd?: string; stdio?: 'inherit'; env?: NodeJS.ProcessEnv },
+    ) => { error?: Error; status?: number | null };
+  } = {},
+) {
   return {
     existsSync: overrides.existsSync ?? fs.existsSync,
     detectPackageRunner: overrides.detectPackageRunner ?? (() => 'npm'),
     buildPackageRunInvocation:
       overrides.buildPackageRunInvocation ??
-      ((runner, packageName, forwardArgs) =>
-        buildPackageRunInvocation(runner, packageName, forwardArgs)) as (
+      (((runner, packageName, forwardArgs) => buildPackageRunInvocation(runner, packageName, forwardArgs)) as (
         runner: PackageRunnerId,
         packageName: string,
         forwardArgs: string[],
-      ) => PackageRunInvocation,
+      ) => PackageRunInvocation),
     spawnPackageArgv:
       overrides.spawnPackageArgv ??
       ((() => ({

@@ -372,3 +372,51 @@ test('updateSetup --force still reports a protected file as preserved', () => {
   assert.ok(result.preserved.includes('.cursorrules'));
   assert.equal(fs.readFileSync(protectedPath, 'utf8'), 'Custom repository rules.\n');
 });
+
+// createSetupMetadata() recomputes every baseline from content hashes alone, and merged content
+// never equals the generated source — so a clean, already-merged AGENTS.md was being downgraded to
+// 'adopted', which collisionPlan() then re-planned as a merge. The result was an oscillation:
+// update, check clean, update, check dirty, with the file's bytes never changing. It failed the
+// org rollout's post-update validation on mi-pp/report-cleanup.
+test('updateSetup keeps a merged AGENTS.md baseline across a no-op run', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const agentsPath = path.join(dir, 'AGENTS.md');
+
+  fs.writeFileSync(agentsPath, '# Repository agents\n\nHand-written rows.\n', 'utf8');
+
+  // First update merges the generated rows in and records baseline: 'merged'.
+  const merged = updateSetup(options(dir));
+
+  assert.ok(merged.merged.includes('AGENTS.md'));
+
+  const afterMerge = loadSetupMetadata(dir);
+
+  assert.equal(afterMerge.kind, 'current');
+
+  if (afterMerge.kind === 'current') {
+    assert.equal(afterMerge.metadata.files['AGENTS.md'].baseline, 'merged');
+  }
+
+  const contentAfterMerge = fs.readFileSync(agentsPath, 'utf8');
+
+  // A second update changes nothing, so the baseline must survive it untouched.
+  updateSetup(options(dir));
+
+  const afterNoOp = loadSetupMetadata(dir);
+
+  assert.equal(fs.readFileSync(agentsPath, 'utf8'), contentAfterMerge);
+  assert.equal(afterNoOp.kind, 'current');
+
+  if (afterNoOp.kind === 'current') {
+    assert.equal(afterNoOp.metadata.files['AGENTS.md'].baseline, 'merged');
+  }
+
+  // And the repository must read as synchronized rather than needing another merge.
+  const checked = checkSetup(options(dir));
+
+  assert.equal(checked.plan.hasChanges, false);
+  assert.deepEqual(checked.merged, []);
+});
