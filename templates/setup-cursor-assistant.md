@@ -308,20 +308,23 @@ Invoke the CLI as **`npx playwright-cli ...`** (resolves the pinned local versio
 
 ### Step 3: Developer environment profile (finalize after setup)
 
-After installing tools, update the tracked **`.dev-environment.md`** with the shared repository profile
-(generator metadata remains in **`.assistant-setup/ca-ai-tools-setup.json`**):
+After installing tools, update **`.dev-environment.md`** with your local profile. **This file is personal
+and gitignored** — it is regenerated per machine and records your own instance URL, shell and paths, so
+committing it would leak your environment into everyone else's checkout (generator metadata remains in
+**`.assistant-setup/ca-ai-tools-setup.json`**, which *is* tracked):
 
-- If the file is missing, create it from the generated template and add it to the setup PR.
+- If the file is missing, create it from the generated template. Do not add it to the setup PR.
 - **Local app URL convention** (`http://localhost:<port>` — default **3000**, otherwise next free port; record
   the configured default and how developers discover overrides).
 - **Authentication** section: **`MI_ACCESS_TOKEN`** status, validation notes (`/data/page/index/auth/info`), session vs token, and **Credentials** line — **usernames only** in **`.dev-environment.md`**; passwords belong in **`.mi-credentials.local.env`** (add **`/.mi-credentials.local.env`** to **`.gitignore`**).
 - **API compatibility notes** for your Metric Insights instance (confirmed endpoint/field differences;
   see Step 1.2).
-- **Last verification date** for the shared profile (when URL, auth, and API checks were last confirmed).
+- **Last verification date** for your profile (when URL, auth, and API checks were last confirmed).
 - **Supported OS, architectures, and shells** (PowerShell, cmd, bash, zsh, etc.) so future commands use the
   correct syntax for each platform.
 - Keep platform notes explicit (for example: "PowerShell users should avoid `&&` and Bash heredocs").
-- Commit **`.dev-environment.md`**; keep machine-specific credentials and tokens in ignored local files.
+- Never commit **`.dev-environment.md`** — `ca-ai-tools-setup` adds it to **`.gitignore`** for exactly
+  this reason. Credentials and tokens belong in **`.mi-credentials.local.env`**, also ignored.
 
 ### Step 4: Final verification
 

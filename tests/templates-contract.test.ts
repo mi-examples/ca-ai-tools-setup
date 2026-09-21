@@ -23,17 +23,25 @@ test('setup health rule detects missing and stale tracked configuration', () => 
   assert.match(agents, /\.assistant-setup\/SETUP_STATUS\.md/);
 });
 
-test('developer environment guidance is tracked and keeps credentials local', () => {
+// The file is regenerated per machine and records one developer's instance URL, shell and paths, so
+// committing it leaks that environment into everyone else's checkout. The generated .gitignore and
+// the prose must agree: shipping a .gitignore entry next to a "commit this file" instruction is
+// exactly what led the org rollout's conflict triage to approve replacing a repository's own,
+// correct convention (mi-pp/novant-scorecard, 2026-09-21).
+test('developer environment guidance says the file is personal, never committed', () => {
   const devEnvironment = readTemplate('assistant-setup/dev-environment.md');
   const cursorSetup = readTemplate('setup-cursor-assistant.md');
   const claudeSetup = readTemplate('setup-claude-assistant.md');
 
-  assert.match(devEnvironment, /Commit this file as shared repository guidance/);
-  assert.doesNotMatch(devEnvironment, /Keep it out of git/);
+  assert.match(readTemplate('gitignore'), /^\.dev-environment\.md$/mu);
+  assert.match(devEnvironment, /personal and gitignored/iu);
+  assert.doesNotMatch(devEnvironment, /Commit this file/iu);
 
   for (const setup of [cursorSetup, claudeSetup]) {
-    assert.match(setup, /Commit \*\*`.dev-environment.md`\*\*/);
-    assert.match(setup, /\.mi-credentials\.local\.env/);
+    assert.match(setup, /Never commit \*\*`\.dev-environment\.md`\*\*/u);
+    assert.doesNotMatch(setup, /^- Commit \*\*`\.dev-environment\.md`\*\*/mu);
+    assert.match(setup, /Do not add it to the setup PR/u);
+    assert.match(setup, /\.mi-credentials\.local\.env/u);
   }
 });
 

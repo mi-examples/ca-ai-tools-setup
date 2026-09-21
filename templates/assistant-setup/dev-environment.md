@@ -1,7 +1,11 @@
 # Developer Local Environment
 
-> Commit this file as shared repository guidance for supported local setups and platform-specific variations.
-> Do not store tokens, passwords, session values, or other per-developer secrets here.
+> **This file is personal and gitignored — never commit it.** It is regenerated per machine and records
+> your own instance URL, shell and paths, so committing it leaks your environment into everyone else's
+> checkout. `ca-ai-tools-setup` adds it to `.gitignore` for that reason.
+>
+> Do not store tokens, passwords, session values, or other secrets here either — those belong in
+> `.mi-credentials.local.env`, also ignored.
 
 ## System and Shell Context
 
