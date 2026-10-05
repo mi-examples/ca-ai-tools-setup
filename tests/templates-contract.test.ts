@@ -201,6 +201,30 @@ test('customer docs template is self-contained and carries the page rules', () =
   }
 });
 
+// PP-4465: generated customer docs leaked Linear keys and GitHub details. The ledger keeps them; the
+// document, and the worked example it is copied from, must not.
+test('customer docs keep ticket keys and GitHub info out of the document', () => {
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const sections = readTemplate('skills/customer-app-docs/references/sections.md');
+  const verify = readTemplate('skills/customer-app-docs/references/verify.md');
+  const template = readTemplate('skills/customer-app-docs/assets/example.html');
+
+  assert.match(skill, /\*\*No internal references\.\*\*/);
+  assert.match(skill, /no ticket or issue keys/);
+  assert.match(skill, /no GitHub or git information/);
+  assert.match(skill, /Never put a ticket key, repo, branch, commit or PR reference in the document/);
+  assert.doesNotMatch(sections, /then the epic key/);
+  assert.match(sections, /no ticket refs/);
+  assert.match(verify, /Grep for internal references/);
+  assert.match(verify, /\*\*ledger header and citations only\*\*/);
+
+  const body = template.slice(template.indexOf('<body>'));
+
+  assert.doesNotMatch(body, /\b[A-Z]{2,}-\d+\b/u);
+  assert.doesNotMatch(body, /github|\bcommit\b|\bbranch\b|pull request/iu);
+  assert.doesNotMatch(body, /class="refs"/);
+});
+
 test('rules README documents deprecated ai-testing and ui-check stubs', () => {
   const rulesReadme = readTemplate('cursor/rules/README.md');
 

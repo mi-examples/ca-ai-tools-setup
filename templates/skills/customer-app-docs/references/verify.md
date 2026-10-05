@@ -186,9 +186,10 @@ linear-cli i get PP-3825 --output json       # epic: title, description, childre
 linear-cli cm list PP-3826 --output json     # comments override the description
 ```
 
-Take the epic key for the cover, per-app ticket refs for app headers, the reason a design choice was
-made (the sentence that opens `NOTIFICATIONS`), and the engagement name for the footer. The Linear
-MCP tools are equivalent when configured.
+Take the epic key and per-app ticket refs for the **ledger header and citations only** — they never
+appear in the document. For the document, take the reason a design choice was made (the sentence
+that opens `NOTIFICATIONS`) and the engagement name for the footer. The Linear MCP tools are
+equivalent when configured.
 
 Read the **description and every comment**, not just the description: comments override it and the
 newest comment overrides an older one. Linear's own failure mode is describing a plan that never
@@ -225,12 +226,16 @@ Then continue on the document:
    limit, and that no fixed bug is presented as a live limitation.
 8. Grep for contamination and leaks: the previous customer's name and scope vocabulary, credentials,
    tokens, instance URLs, real usernames, `QA_USER_*`, PII.
-9. Confirm the version stamp on the cover matches the ledger header, and that no `path:line` citation
-   leaked into the document.
-10. Confirm the `<style>` block is unchanged from `assets/example.html` and only `--accent` differs.
+9. Grep for internal references: ticket keys (`[A-Z]+-[0-9]+`, which also catches `BUG-nn` and
+   `TC-nn` — check each hit is not a product identifier), the epic, `CONTEXT_KEY`s, and any GitHub
+   or git trace — `github`, repo or org names, branch names, tags, commit shas, PR numbers or links.
+   Every hit is a finding; the fix is to delete it or rephrase by effect.
+10. Confirm the version stamp on the cover matches the ledger header, and that no `path:line`
+    citation leaked into the document.
+11. Confirm the `<style>` block is unchanged from `assets/example.html` and only `--accent` differs.
 
 Findings, most severe first, each with the quoted statement, why it fails and the smallest fix.
 Severity: unverifiable claim > wrong claim > unresolved conflict between sources > leaked
-credential or PII > another customer's vocabulary > missing known constraint > structural violation >
+credential or PII > another customer's vocabulary > leaked ticket key or GitHub reference > missing known constraint > structural violation >
 wording. Do not pad the list; if a
 section is clean, say so in one line.

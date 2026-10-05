@@ -32,7 +32,7 @@
         --rule-strong: #b8b4ae;
         --paper: #ffffff;
 
-        /* One accent per engagement; used on app slugs and ticket refs only. */
+        /* One accent per engagement; used on app slugs only. */
         --accent: #8a5a1f;
 
         --warn: #9a6206;
@@ -168,9 +168,7 @@
       }
 
       .cover__meta .slug,
-      .cover__meta .refs,
-      .app__meta .slug,
-      .app__meta .refs {
+      .app__meta .slug {
         color: var(--accent);
       }
 
@@ -499,8 +497,6 @@
         <div>
           <span class="label">Apps</span>
           <span class="slug">login · signup-form · admin-approval-page</span>
-          <span class="label" style="margin-left: 1.6em">Epic</span>
-          <span class="refs">NW-1000</span>
         </div>
         <div>
           <span class="label">Platform</span>Metric Insights 7.2.2
@@ -534,8 +530,7 @@
 
     <section class="app">
       <p class="app__meta">
-        <span class="index">App 02</span> · Custom App · <span class="slug">signup-form</span> ·
-        <span class="refs">NW-1020 · NW-1021</span>
+        <span class="index">App 02</span> · Custom App · <span class="slug">signup-form</span>
       </p>
 
       <h2>Sign Up Form</h2>

@@ -8,11 +8,12 @@ The document's structure. Read with `../SKILL.md`; the presentation is already h
 ## Cover page
 
 One page, in this order: customer · flow name (eyebrow) → fixed doc kind → flow title → lede →
-apps and epic → platform version → stages.
+apps → platform version → stages.
 
 - **Lede**: two or three sentences, under 55 words — what the flow lets whom do, and what happens
   automatically. No feature list.
-- **Apps line**: the deployed slugs in flow order, `·`-separated, then the epic key.
+- **Apps line**: the deployed slugs in flow order, `·`-separated. No epic key — see "No internal
+  references" in `../SKILL.md`.
 - **Platform and version stamp**: the MI version the behaviour was confirmed against, then the
   document's own version and date (`v1 · 11 Sep 2026`), matching the ledger header. Not decoration —
   it is what tells a reader in a year whether the document still applies, and it is the *only*
@@ -23,8 +24,8 @@ apps and epic → platform version → stages.
 
 ## App section header and lede
 
-Header line: `APP 0n` · kind (`CUSTOM APP` or `PORTAL PAGE`) · slug, exactly as in the URL ·
-ticket refs. Nothing else — the epic and the platform version live on the cover.
+Header line: `APP 0n` · kind (`CUSTOM APP` or `PORTAL PAGE`) · slug, exactly as in the URL.
+Nothing else — no ticket refs, and the platform version lives on the cover.
 
 Title is the app's human name. Lede is one to three sentences, under 45 words: what the page is,
 whether it needs a login, what an action there becomes, and which app reads it next.

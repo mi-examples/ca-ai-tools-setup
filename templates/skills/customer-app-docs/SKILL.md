@@ -208,6 +208,18 @@ sentence traces to a ledger row.
 <flow> <doc version> · <date>`, matching the ledger header. That is what tells a reader whether the
 document still applies. Citations stay in the ledger — a customer has no use for `file:line`.
 
+**No internal references.** The ledger is internal; the document is not. Nothing from the
+engineering trail reaches the HTML or the PDF:
+
+- no ticket or issue keys — Linear (`PP-1234`), epics, `BUG-nn`, `TC-nn`, `CONTEXT_KEY`s;
+- no GitHub or git information — repo names or URLs, organisations, branches, tags, commit shas,
+  PR numbers or links;
+- no internal tool names used as provenance — "per the Linear comment", "in the test docs".
+
+A known bug a customer could hit is described by its effect, never by its id. The release tag or
+sha the behaviour was read at stays in the ledger header; the cover's version stamp is the only
+provenance the customer gets.
+
 ### 5. Audit — one subagent, blind to the drafting
 
 > Read-only. Read `.claude/skills/customer-app-docs/SKILL.md`, `references/sections.md` and the
@@ -284,6 +296,7 @@ hook so it is never skipped.
   control by its label in `<b>` instead.
 - No credentials, tokens, instance URLs, usernames or PII, not even in examples. Use placeholder ids
   that are obviously placeholders.
+- No ticket keys and no GitHub information — see "No internal references" under step 4.
 
 ## Reuse across customers
 
@@ -292,7 +305,7 @@ failure is carrying the previous customer's vocabulary across:
 
 - the scope field is whatever the customer calls it — project number, site, region, contract;
 - group conventions, role strings and role-to-suffix overrides are per customer;
-- ticket refs, platform version, epic and footer are per engagement;
+- platform version and footer are per engagement;
 - cadences are per customer — confirm the schedule, never assume ten minutes.
 
 Search the draft for the previous customer's name and scope vocabulary before handing over. A hit
@@ -307,13 +320,15 @@ means it is not ready.
 - [ ] No behavioral claim reads as confident where the code is silent on it.
 - [ ] Every user-visible `conflict` was settled by a person; the rest resolved to the owning source
       and say `agent` in the row.
-- [ ] Cover page states what the flow does, its stages in order, the app slugs, epic and the version
+- [ ] Cover page states what the flow does, its stages in order, the app slugs and the version
       stamp — and reads on its own to someone who has never seen the apps.
 - [ ] No `path:line` citation leaked out of the ledger into the document.
+- [ ] No ticket keys (`PP-`, epic, `BUG-nn`, `TC-nn`) and no GitHub information (repo, org, branch,
+      tag, sha, PR) anywhere in the HTML — grep for them before printing.
 - [ ] Section order per `references/sections.md`; `VARIABLES` second to last, `DATASET ENTITIES` last.
 - [ ] Variable tables match what each app actually reads — none stale, none missing.
-- [ ] Every open `BUG-nn` a customer could hit appears as a callout or a stated limit — after
-      checking it is still open.
+- [ ] Every open `BUG-nn` a customer could hit appears as a callout or a stated limit, described
+      by its effect without the id — after checking it is still open.
 - [ ] No previous customer's name or vocabulary; no credentials, tokens, real usernames or PII.
 - [ ] The `<style>` block is untouched; only `--accent` differs from the template.
 
@@ -325,5 +340,7 @@ means it is not ready.
 - Never resolve a conflict between sources on your own — the user decides which shipped.
 - Never gate, delay or self-start a run: a person decides when a flow is ready to document.
 - Never copy a paragraph from another customer's document without re-verifying it against these apps.
+- Never put a ticket key, repo, branch, commit or PR reference in the document — they stay in the
+  ledger.
 - Never fix content in the printed PDF — fix the HTML and reprint.
 - Never send or publish the document; hand back the paths and let the user decide.
