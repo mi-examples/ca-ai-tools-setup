@@ -1,6 +1,6 @@
 ---
 name: customer-app-docs
-description: Writes customer-facing Custom App / Portal Page documentation — one HTML document per delivered flow, cover page plus one section per app, every statement traced to app source, test-documentation or Linear, then printed to PDF. Use when creating or updating customer documentation, a handover doc, an app documentation sheet, "how the app works" pages, or docs/customer/** files.
+description: Writes customer-facing Custom App documentation — one HTML document per delivered flow, cover page plus one section per app, every statement traced to app source, test-documentation or Linear, then printed to PDF. Use when creating or updating customer documentation, a handover doc, an app documentation sheet, "how the app works" pages, or docs/customer/** files.
 ---
 
 # Customer app documentation
@@ -220,6 +220,23 @@ A known bug a customer could hit is described by its effect, never by its id. Th
 sha the behaviour was read at stays in the ledger header; the cover's version stamp is the only
 provenance the customer gets.
 
+**Platform: version only.** The document refers to the platform as `Metric Insights <version>`
+(`Metric Insights 7.2.1`) and nothing more. No environment names — staging, QA, dev, UAT, sandbox,
+test or demo instance — and no internal hostnames or URLs, not even the one the version was read
+from. Which instance confirmed the behaviour stays in the ledger.
+
+The version is the **public release** number customers see in release notes — `7.2.1`, digits and
+dots, nothing else. An instance often reports a build string instead (`101.7.3760.staging_7`); that
+is not a release version, and neither is anything with a build counter, `-rc`, `-beta`, `_n` or an
+environment suffix. Never trim or translate a build string into a release yourself — the mapping is
+not guessable. If the only version you can find is a build string, put `TODO confirm: release
+version` in the ledger header and ask the user.
+
+**Custom App, never Portal Page.** The customer's term is "Custom App" (plural "Custom Apps"). Use
+it for every app, every time, and never write "Portal Page" in any capitalisation or plural — even
+where the source code, a Linear team or a ticket says Portal Page. Two names for one thing make a
+reader wonder whether they are two things. Translate while drafting; do not leave it to the audit.
+
 ### 5. Audit — one subagent, blind to the drafting
 
 > Read-only. Read `.claude/skills/customer-app-docs/SKILL.md`, `references/sections.md` and the
@@ -297,6 +314,7 @@ hook so it is never skipped.
 - No credentials, tokens, instance URLs, usernames or PII, not even in examples. Use placeholder ids
   that are obviously placeholders.
 - No ticket keys and no GitHub information — see "No internal references" under step 4.
+- "Custom App", never "Portal Page"; the platform as its version only — see step 4.
 
 ## Reuse across customers
 
@@ -325,6 +343,9 @@ means it is not ready.
 - [ ] No `path:line` citation leaked out of the ledger into the document.
 - [ ] No ticket keys (`PP-`, epic, `BUG-nn`, `TC-nn`) and no GitHub information (repo, org, branch,
       tag, sha, PR) anywhere in the HTML — grep for them before printing.
+- [ ] No "Portal Page" in any capitalisation or plural; "Custom App" throughout.
+- [ ] The platform appears as its public release number only (`7.2.1`) — no build string or
+      suffix, no staging, QA or dev environment names, no internal hostnames or URLs.
 - [ ] Section order per `references/sections.md`; `VARIABLES` second to last, `DATASET ENTITIES` last.
 - [ ] Variable tables match what each app actually reads — none stale, none missing.
 - [ ] Every open `BUG-nn` a customer could hit appears as a callout or a stated limit, described
@@ -342,5 +363,9 @@ means it is not ready.
 - Never copy a paragraph from another customer's document without re-verifying it against these apps.
 - Never put a ticket key, repo, branch, commit or PR reference in the document — they stay in the
   ledger.
+- Never call an app a Portal Page in the document — it is a Custom App.
+- Never name the environment or host the behaviour was read on — the version number is enough.
+- Never put a build string (`101.7.3760.staging_7`) in the document, and never derive a release
+  number from one — ask.
 - Never fix content in the printed PDF — fix the HTML and reprint.
 - Never send or publish the document; hand back the paths and let the user decide.
