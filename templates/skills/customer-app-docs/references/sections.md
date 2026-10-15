@@ -14,7 +14,9 @@ apps → platform version → stages.
   automatically. No feature list.
 - **Apps line**: the deployed slugs in flow order, `·`-separated. No epic key — see "No internal
   references" in `../SKILL.md`.
-- **Platform and version stamp**: the MI version the behaviour was confirmed against, then the
+- **Platform and version stamp**: the MI version number the behaviour was confirmed against
+  (`Metric Insights 7.2.1`) — the public release, never a build string such as
+  `101.7.3760.staging_7`, and never the environment or host it was read on — then the
   document's own version and date (`v1 · 11 Sep 2026`), matching the ledger header. Not decoration —
   it is what tells a reader in a year whether the document still applies, and it is the *only*
   provenance the customer gets; citations stay in the ledger. Bump both on every re-verification.
@@ -24,8 +26,8 @@ apps → platform version → stages.
 
 ## App section header and lede
 
-Header line: `APP 0n` · kind (`CUSTOM APP` or `PORTAL PAGE`) · slug, exactly as in the URL.
-Nothing else — no ticket refs, and the platform version lives on the cover.
+Header line: `APP 0n` · `CUSTOM APP` · slug, exactly as in the URL. Always `CUSTOM APP` — never
+`PORTAL PAGE`, whatever the source calls it. Nothing else — no ticket refs, and the platform version lives on the cover.
 
 Title is the app's human name. Lede is one to three sentences, under 45 words: what the page is,
 whether it needs a login, what an action there becomes, and which app reads it next.
