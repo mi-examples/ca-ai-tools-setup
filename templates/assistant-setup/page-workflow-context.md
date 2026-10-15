@@ -13,6 +13,23 @@ Keep entries concise and update them when routes or core behavior change.
 
 Document key routes and one representative flow per route.
 
+### MI page location
+
+Where the page behind this repository lives in Metric Insights. `mi.url` and `app.id` (the page id) come from
+`pp-dev.config.ts`. `GET <mi.url>/api/page/id/<page-id>` returns the page `internal_name` and `template_id`.
+
+- Instance: `<mi.url>`
+- Page `<page-id>`: view `<mi.url>/p/<internal-name>` · edit `<mi.url>/editor/page/<page-id>`
+- Template `<template-id>`: edit `<mi.url>/editor/page/template/<template-id>`
+
+Example (MI 7.x):
+
+- View page: `https://stg70.metricinsights.com/p/mi-file-manager`
+- Edit page: `https://stg70.metricinsights.com/editor/page/10559`
+- Edit template: `https://stg70.metricinsights.com/editor/page/template/3981`
+
+Instances before 7.0 use the legacy admin UI: edit page `<mi.url>/admin/page/edit/id/<page-id>`.
+
 ### Route: `<route-pattern>`
 
 - Example URL: `<example-url>`
