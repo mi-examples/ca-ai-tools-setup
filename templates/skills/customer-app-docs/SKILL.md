@@ -225,10 +225,11 @@ provenance the customer gets.
 test or demo instance — and no internal hostnames or URLs, not even the one the version was read
 from. Which instance confirmed the behaviour stays in the ledger.
 
-The version is the **public release** number customers see in release notes — `7.2.1`, digits and
-dots, nothing else. An instance often reports a build string instead (`101.7.3760.staging_7`); that
-is not a release version, and neither is anything with a build counter, `-rc`, `-beta`, `_n` or an
-environment suffix. Never trim or translate a build string into a release yourself — the mapping is
+The version is the **public release** number customers see in release notes — digits and dots,
+optionally one trailing release letter: `7.2.1`, `7.2.0a`. A lettered release is its own release;
+never drop the letter. An instance often reports a build string instead (`101.7.3760.staging_7`);
+that is not a release version, and neither is anything with a build counter, `-rc`, `-beta`, `_n`
+or an environment suffix. Never trim or translate a build string into a release yourself — the mapping is
 not guessable. If the only version you can find is a build string, put `TODO confirm: release
 version` in the ledger header and ask the user.
 
@@ -344,8 +345,8 @@ means it is not ready.
 - [ ] No ticket keys (`PP-`, epic, `BUG-nn`, `TC-nn`) and no GitHub information (repo, org, branch,
       tag, sha, PR) anywhere in the HTML — grep for them before printing.
 - [ ] No "Portal Page" in any capitalisation or plural; "Custom App" throughout.
-- [ ] The platform appears as its public release number only (`7.2.1`) — no build string or
-      suffix, no staging, QA or dev environment names, no internal hostnames or URLs.
+- [ ] The platform appears as its public release number only (`7.2.1`, `7.2.0a`) — no build
+      string or other suffix, no staging, QA or dev environment names, no internal hostnames or URLs.
 - [ ] Section order per `references/sections.md`; `VARIABLES` second to last, `DATASET ENTITIES` last.
 - [ ] Variable tables match what each app actually reads — none stale, none missing.
 - [ ] Every open `BUG-nn` a customer could hit appears as a callout or a stated limit, described

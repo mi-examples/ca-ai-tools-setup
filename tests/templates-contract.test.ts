@@ -244,13 +244,16 @@ test('customer docs say Custom App and show the platform as a version only', () 
   assert.match(skill, /\*\*public release\*\* number/);
   assert.match(skill, /Never trim or translate a build string into a release yourself/);
   assert.match(sections, /never a build string/);
+  // Lettered releases (7.2.0a) are real public releases, not suffixes to reject.
+  assert.match(skill, /optionally one trailing release letter: `7\.2\.1`, `7\.2\.0a`/);
+  assert.match(verify, /optionally one trailing release letter/);
   assert.match(verify, /is a confirmed public release/);
 
   const body = template.slice(template.indexOf('<body>'));
 
   assert.doesNotMatch(body, /portal[ -]?pages?/iu);
   assert.doesNotMatch(body, /staging|\bQA\b|\bdev\b|\bUAT\b|sandbox|https?:\/\//iu);
-  assert.match(body, /<span class="label">Platform<\/span>Metric Insights \d+\.\d+\.\d+\s*</u);
+  assert.match(body, /<span class="label">Platform<\/span>Metric Insights \d+\.\d+\.\d+[a-z]?\s*</u);
 });
 
 test('rules README documents deprecated ai-testing and ui-check stubs', () => {

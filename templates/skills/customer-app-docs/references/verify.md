@@ -115,7 +115,7 @@ These repos share a layout (`pp-dev.config.ts`, `index.html`, `src/`). Look here
 | On-screen wording | The component that renders it, but prefer wording quoted in an **executed** test case: that proves the string is reachable. |
 | Routing and link forms | `src/routes/*`, `src/hooks/use*FromUrl.ts`, `src/utils/*-path.ts` — every accepted form (trailing path segment, prefixed path, query parameter) and what clears a stored value. |
 | Scripts, bursts, schedules | Rarely in the repo. Confirm from the instance and the issue that added them; mark those rows `reported` unless a test case exercised the chain. |
-| Platform version | `.dev-environment.md`, or the target instance. Never guess it. Only the public release number (`7.2.1`) reaches the document; the instance name and host stay in the ledger. A build string (`101.7.3760.staging_7`) is not a release — record it in the ledger, mark the release `TODO confirm` and ask; never derive one from it. |
+| Platform version | `.dev-environment.md`, or the target instance. Never guess it. Only the public release number (`7.2.1`, `7.2.0a`) reaches the document; the instance name and host stay in the ledger. A build string (`101.7.3760.staging_7`) is not a release — record it in the ledger, mark the release `TODO confirm` and ask; never derive one from it. |
 
 **The mock-data trap.** `src/data/mockData.ts` and `src/data/fallbackData.ts` exist so the app runs
 without a configured instance. A value that reaches the screen from there is *not* a documentable
@@ -235,7 +235,8 @@ Then continue on the document:
     and any `http://` or `https://` URL or internal hostname. Check a `dev`-like hit is not ordinary
     prose. Every real hit is a finding; the platform is referred to by its version number only.
 11. Confirm the version stamp on the cover matches the ledger header, is a confirmed public release
-    (digits and dots only — no build counter, `staging`, `-rc`, `_n` or other suffix), and that no
+    (digits and dots, optionally one trailing release letter such as `7.2.0a` — no build counter,
+    `staging`, `-rc`, `_n` or other suffix), and that no
     `path:line` citation leaked into the document.
 12. Confirm the `<style>` block is unchanged from `assets/example.html` and only `--accent` differs.
 
