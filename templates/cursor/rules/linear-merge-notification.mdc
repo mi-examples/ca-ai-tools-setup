@@ -50,8 +50,29 @@ Tell the user where the Portal Page / template behind this repo lives:
 
 If **`linear-cli`** is configured (`linear-cli auth status`, or a successful `linear-cli i get <ISSUE_KEY>`):
 
-1. Check existing comments on the issue itself and on directly related issues (parent/sub-issues, linked duplicates) for one that already states this page location. If found, don't suggest posting again — just mention it's already there.
-2. Otherwise, propose posting a short comment with the edit/view links and **ask before posting** — see **`.cursor/skills/linear-workflow/SKILL.md`** for `linear-cli i comment`. Never post automatically.
+1. Check existing comments on the issue itself and on directly related issues (parent/sub-issues, linked duplicates) for a links comment in the format below with the current URLs. If found, don't suggest posting again — just mention it's already there. Links buried in another comment or hidden behind labels don't count; offer the separate comment anyway.
+2. Otherwise, propose posting the links comment below and **ask before posting** — see **`.cursor/skills/linear-workflow/SKILL.md`** for `linear-cli i comment`. Never post automatically.
+
+### Links comment format
+
+This follows the team's Ready to Test checklist (https://wiki.mtrc.in/doc/ready-to-test-checklist-TMcZPWcJ6J). Before moving the issue to **Ready to Test**, the PR is merged into the target branch, all assets are updated, and the change is verified on the real server, not only locally.
+
+- Post the links as **their own comment**. Don't put them inside a release summary, QA report or any other comment.
+- Write every link as the **full plain URL**. Don't hide it behind a markdown label (`[view](…)`, `[edit](…)`), so the reader sees exactly where each one goes.
+- Use these four labels, in this order and spelled like this:
+
+```markdown
+**Repository (Repo):** https://github.com/<org>/<repo>
+
+**Template:** <mi.url>/editor/page/template/<template-id>
+
+**App Editor:** <mi.url>/editor/page/<page-id>
+
+**Application (App):** <mi.url>/p/<internal-name>
+```
+
+- **Repository** is the `origin` remote as an `https://github.com/...` URL. **Template**, **App Editor** and **Application** come from **MI page location** in `page-workflow-context.md`; on instances before 7.0, **App Editor** is the legacy admin URL. For a standalone `'page'` with no template, write `**Template:** none (standalone page)`.
+- Notes for QA (known limitations, testing steps, feature flags, dependencies) go after the four links in the same comment, as plain text. Leave them out when there is nothing to add.
 
 ## Cross-reference
 
