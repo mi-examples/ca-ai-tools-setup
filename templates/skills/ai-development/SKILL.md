@@ -1,6 +1,6 @@
 ---
 name: ai-development
-description: Portal Page AI development—Linear CLI + gates, implement from Linear (Waiting AI Development), greenfield Vite+pp-dev setup, Figma MCP, MI backend form/schema notes, PR review, Definition of Done. Use for dev tasks, Figma-to-code, new pp-dev projects, PRs, DoD, or Linear issue implementation.
+description: Portal Page AI development—Linear CLI + gates, implement from Linear (Waiting AI Development), greenfield Vite+pp-dev setup, Figma MCP, PR review, Definition of Done. Use for dev tasks, Figma-to-code, new pp-dev projects, PRs, DoD, or Linear issue implementation.
 ---
 
 # AI development (Portal Page / Custom App)
@@ -283,63 +283,6 @@ Open the URL printed in the terminal (often `http://localhost:3000/...`).
 5. **Auto-layout → CSS** — Map auto-layout to Flexbox/Grid (`space-between`, hug/fill, gaps).
 6. **Reuse in-repo UI** — Prefer existing components in **`src/components/`** before adding new primitives.
 7. **Token-safe review** — Reject diffs that replace semantic tokens with arbitrary constants unless explicitly allowed.
-
----
-
-## Form Builder (MI backend)
-
-> **Portal Page / custom app repos (this type of project):** day-to-day work is **frontend in `src/`** with **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** above. Do **not** add PHP or `backend/` paths here unless the repository actually contains a Laravel app.
-
-### Task context (global to the “start with task” message — not in files)
-
-The active Linear issue is **never** read from this section alone. It is **only** defined when the user sends:
-
-`cursor start working with task <Task link>`
-
-| Symbol | What it is |
-|--------|------------|
-| **`<Task link>`** | Full issue URL (or issue key) **from that user message** — different each time. |
-| **`<ISSUE_KEY>`** | Parsed from `<Task link>` (path segment after `/issue/`) or from a bare key in the same message. |
-
-### When to use this section
-
-Use only in a **full Metric Insights** codebase that has `backend/app/Data/...` and FormBuilder, not in a standalone Portal SPA.
-
-### Workflow (backend repo)
-
-1. Read `.cursor/rules/form-generation.mdc`
-2. Check existing forms: `ls backend/app/Data/{Module}/`
-3. Create `Form.php` returning `$fb->toArray()` per MI conventions
-
-### If the user said “start working with task” (frontend-only repo)
-
-If the user invokes **`cursor` / `claude start working with task <Task link>`** and this repo is **frontend-only**, follow **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** and route by gate — this skill for **`Waiting AI Development`**, **`testing-with-linear`** for **`Waiting AI Test`** (see **`.cursor/rules/linear-task-gates.mdc`**). Ignore Form Builder unless the issue explicitly points to a backend repo.
-
----
-
-## Schema discovery (MI backend)
-
-> **Portal Page / custom app repos:** tasks are **frontend** in **`src/`**. Use **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** and this skill for development; **`testing-with-linear`** for QA. There is **no** `backend/` database or migrations in this workflow unless the user is in a different repository.
-
-### Task context (from the user message)
-
-The current issue is whatever **`<Task link>`** / **`<ISSUE_KEY>`** the user passed with `cursor start working with task …` — not a fixed ticket in this file. Parse **`<ISSUE_KEY>`** from the link (see **Linear CLI workflow**). Schema commands below apply only when the **loaded issue** is about backend work.
-
-### When to use this section
-
-Use only in a **full MI** app that has `backend/db/schema.sql` or `backend/database/migrations/`.
-
-### Workflow (backend repo)
-
-Before creating a migration:
-
-1. Run: `grep -A 20 "CREATE TABLE.*{table_name}" backend/db/schema.sql` (or live DB as per that repo’s `AGENTS.md`)
-2. Run: `ls backend/database/migrations/ | grep -i "{table_name}"`
-3. If the table already exists, use an **ALTER** migration, not a new **CREATE** for the same table.
-
-### If the user said “start working with task” (Portal-only clone)
-
-For **`cursor` / `claude start working with task <Task link>`** in a **Portal-only** clone, follow **Linear CLI workflow** and route by gate — this skill for implementation (**`Waiting AI Development`**), **`testing-with-linear`** for QA (**`Waiting AI Test`**). Do **not** run schema or migration steps unless the **fetched** issue requires a **backend** repo.
 
 ---
 

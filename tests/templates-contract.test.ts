@@ -1,6 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { readTemplate } from '../src/templates.js';
+
+function listFiles(dir: string): string[] {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .flatMap((entry) => (entry.isDirectory() ? listFiles(path.join(dir, entry.name)) : [path.join(dir, entry.name)]));
+}
+
+// PP-4664: six templates sat in the package for months with nothing reading them, and one of them
+// was later scheduled for a rewrite. A template the generator does not name is dead weight at best.
+test('every template file is read by the generator', () => {
+  const sources = listFiles('src')
+    .map((file) => fs.readFileSync(file, 'utf8'))
+    .join('\n');
+  const unused = listFiles('templates')
+    .map((file) => path.relative('templates', file).split(path.sep).join('/'))
+    .filter((template) => !sources.includes(`'${template}'`));
+
+  assert.deepEqual(unused, []);
+});
 
 test('setup assistant templates keep MCP replacement marker', () => {
   const cursorSetup = readTemplate('setup-cursor-assistant.md');

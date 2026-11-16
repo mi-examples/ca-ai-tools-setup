@@ -85,18 +85,6 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
       path: '.cursorignore',
       content: readTemplate('cursor/cursorignore'),
     },
-    {
-      path: '.cursor/ca-ai-tools-setup.json',
-      content: readTemplate('cursor/ca-ai-tools-setup.json'),
-    },
-    {
-      path: '.cursor/prompts/react-component-unit.md',
-      content: readTemplate('cursor/prompts/react-component-unit.md'),
-    },
-    {
-      path: '.cursor/prompts/form-prompt.md',
-      content: readTemplate('cursor/prompts/form-prompt.md'),
-    },
     ...buildCursorRuleFiles(options.includeFigmaMcp),
     ...buildPortalPageSkillFiles('cursor', options.includeFigmaMcp),
   ];

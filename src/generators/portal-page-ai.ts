@@ -19,8 +19,6 @@ const PORTAL_PAGE_RULES = [
   'cursor/rules/linear-task-gates.mdc',
   'cursor/rules/linear-merge-notification.mdc',
   'cursor/rules/portal-env-credentials.mdc',
-  'cursor/rules/test-case-rules.mdc',
-  'cursor/rules/test-suite-template.mdc',
   'cursor/rules/README.md',
 ] as const;
 
@@ -46,7 +44,6 @@ const CURSOR_ONLY_SKILLS = [
   'skills/linear-workflow/SKILL.md',
   'skills/test-documentation/SKILL.md',
   'skills/figma-implementation/SKILL.md',
-  'skills/form-builder/SKILL.md',
 ] as const;
 
 /** `skills/<name>/<...path>` → `<name>/<...path>`, at any nesting depth. */
@@ -61,13 +58,6 @@ function buildSkillFilesForAssistant(assistant: 'cursor' | 'claude', includeFigm
     path: `${skillsRoot}/${skillTemplateToOutputPath(rel)}`,
     content: readTemplate(rel),
   }));
-
-  if (assistant === 'claude') {
-    files.unshift({
-      path: `${skillsRoot}/README.md`,
-      content: readTemplate('claude/skills/README.md'),
-    });
-  }
 
   if (assistant === 'cursor') {
     for (const rel of CURSOR_ONLY_SKILLS) {

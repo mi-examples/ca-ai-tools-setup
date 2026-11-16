@@ -13,7 +13,7 @@ Test case, page suite, and bug report rules are managed by the **`@metricinsight
 - `.cursor/rules/qa-ai-rules--test-suite-template.mdc` — starter `{{page}}` template
 - `.cursor/rules/qa-ai-rules--bug-report-rules.mdc` — `BUG-01..BUG-N`, severity, reproduction, expected/actual, evidence
 
-These files are gitignored and regenerated on `npm install`. **Follow them as the primary reference** for TC and bug report format. If a generated rule file is absent in the current checkout, use the matching local pointer under `.cursor/rules/` and keep the same naming/structure.
+These files are gitignored and regenerated on `npm install`. **Follow them as the primary reference** for TC and bug report format. If a generated rule file is absent, QA AI rules are not installed in this checkout: say so, and keep the `TC-01` / `BUG-01` numbering and the folder layout described here.
 
 ## QA user roles
 

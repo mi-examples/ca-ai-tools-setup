@@ -38,7 +38,7 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/react-component-unit.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/prompts')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursorignore')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ai-development/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-flow/SKILL.md')));
@@ -51,7 +51,9 @@ test('generateSetup creates files for selected assistants', () => {
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/README.md')), false);
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/form-prompt.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/form-builder')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/test-case-rules.mdc')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
   assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/page-workflow-context.md')));
@@ -186,7 +188,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
   assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ai-development/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/README.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/README.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/workflows/ui-check.md')), false);
@@ -660,11 +662,12 @@ test('generateSetup migrates legacy setup metadata files to new names', () => {
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), true);
+  // The Cursor copy has no successor any more: nothing reads it, so it is removed, not renamed.
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), false);
   assert.ok(
     result.migratedLegacy.includes('.assistant-setup/linear-cli-setup.json -> .assistant-setup/ca-ai-tools-setup.json'),
   );
-  assert.ok(result.migratedLegacy.includes('.cursor/linear-cli-setup.json -> .cursor/ca-ai-tools-setup.json'));
+  assert.ok(result.removedLegacy.includes('.cursor/linear-cli-setup.json'));
 });
 
 test('generateSetup removes obsolete legacy QA skills on re-run', () => {
@@ -725,7 +728,7 @@ test('generateSetup removes legacy metadata files with --force', () => {
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), false);
   assert.ok(result.removedLegacy.includes('.assistant-setup/linear-cli-setup.json'));
   assert.ok(result.removedLegacy.includes('.cursor/linear-cli-setup.json'));
 });

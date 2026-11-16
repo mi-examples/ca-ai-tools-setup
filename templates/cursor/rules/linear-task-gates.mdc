@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Linear task gates (mandatory)
 
-Before **any** work driven by **`cursor start working with task <ISSUE_KEY>`** (or equivalent), run:
+Before **any** work driven by a Linear issue, run:
 
 ```bash
 linear-cli i get <ISSUE_KEY> -o json

@@ -1,5 +1,0 @@
----
-alwaysApply: false
----
-
-Page test-suite structure and template: **`.cursor/skills/test-documentation/SKILL.md`** and **`.cursor/rules/qa-ai-rules--test-suite-template.mdc`**. Rules and formatting: **`qa-ai-rules--test-case-rules.mdc`**.

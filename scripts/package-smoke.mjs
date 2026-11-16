@@ -88,14 +88,12 @@ try {
 
   const generatedFiles = listFiles(targetRoot);
 
-  assert.equal(generatedFiles.length, 81, 'packed CLI should generate the complete setup');
+  assert.equal(generatedFiles.length, 74, 'packed CLI should generate the complete setup');
   assert.ok(fs.existsSync(path.join(targetRoot, '.cursor', 'skills', 'ai-development', 'SKILL.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.cursor', 'rules', 'assistant-setup-health.mdc')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'ai-development', 'SKILL.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'customer-app-docs', 'SKILL.md')));
-  assert.ok(
-    fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'customer-app-docs', 'assets', 'example.html')),
-  );
+  assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'customer-app-docs', 'assets', 'example.html')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'commands', 'customer-docs.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.assistant-setup', 'SETUP_STATUS.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.assistant-setup', 'ca-ai-tools-setup.json')));

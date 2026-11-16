@@ -78,23 +78,34 @@ export type FigmaMcpTargets = {
 
 const LEGACY_FILE_MAPPINGS = [
   {
-    legacyPath: '.cursor/linear-cli-setup.json',
-    currentPath: '.cursor/ca-ai-tools-setup.json',
-  },
-  {
     legacyPath: '.assistant-setup/linear-cli-setup.json',
     currentPath: '.assistant-setup/ca-ai-tools-setup.json',
   },
 ] as const;
 
-/** Obsolete setup artifacts removed on every re-run (PP-3640 legacy AI QA flow). */
+/**
+ * Paths older releases generated and this one does not. A tracked repository does not need this
+ * list — its metadata already names every file it was given, and `update` / a re-run remove the
+ * ones that are gone. The list is for repositories with schema 5 metadata or none at all, where
+ * nothing else says the file was ever ours. Add a path here whenever a release stops generating it.
+ */
 export const REMOVABLE_LEGACY_SETUP_PATHS = [
+  // PP-3640: legacy AI QA flow.
   '.cursor/skills/ai-testing/SKILL.md',
   '.cursor/skills/ui-check/SKILL.md',
   '.claude/skills/ai-testing/SKILL.md',
   '.claude/skills/ui-check/SKILL.md',
   '.claude/workflows/ui-check.md',
   '.cursor/skills/README.md',
+  // PP-4664: templates that never applied to Portal Page projects, and files nothing reads.
+  '.cursor/skills/form-builder/SKILL.md',
+  '.cursor/prompts/form-prompt.md',
+  '.cursor/prompts/react-component-unit.md',
+  '.cursor/rules/test-case-rules.mdc',
+  '.cursor/rules/test-suite-template.mdc',
+  '.cursor/ca-ai-tools-setup.json',
+  '.cursor/linear-cli-setup.json',
+  '.claude/skills/README.md',
 ] as const;
 
 function shouldAlwaysOverwrite(filePath: string): boolean {
