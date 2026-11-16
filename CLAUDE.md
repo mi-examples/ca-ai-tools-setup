@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo does
 
-`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/skills/ui-check/SKILL.md`, `CLAUDE.md`, `.claude/skills/ui-check/SKILL.md`, `.claude/settings.json`, `.mcp.json`, `LINEAR_CLI.md`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
+`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/skills/ui-check/SKILL.md`, `CLAUDE.md`, `.claude/skills/ui-check/SKILL.md`, `.claude/settings.json`, `.mcp.json`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
 
 ## Commands
 

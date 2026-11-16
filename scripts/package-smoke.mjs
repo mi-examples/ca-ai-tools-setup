@@ -77,7 +77,7 @@ try {
 
   const generatedFiles = listFiles(targetRoot);
 
-  assert.equal(generatedFiles.length, 72, 'packed CLI should generate the complete setup');
+  assert.equal(generatedFiles.length, 70, 'packed CLI should generate the complete setup');
   assert.ok(fs.existsSync(path.join(targetRoot, '.cursor', 'skills', 'ai-development', 'SKILL.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.cursor', 'rules', 'assistant-setup-health.mdc')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'ai-development', 'SKILL.md')));

@@ -2,8 +2,7 @@
 
 This repository targets **Metric Insights Portal Page / Custom App**
 development (see `pp-dev.config` and `@metricinsights/pp-dev`). Treat
-`setup-claude-assistant.md` as the full bootstrap playbook and `LINEAR_CLI.md`
-as the `linear-cli` command reference.
+`setup-claude-assistant.md` as the full bootstrap playbook.
 
 ## Scope
 

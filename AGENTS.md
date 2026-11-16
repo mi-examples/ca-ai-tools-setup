@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## What this repo does
 
-`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/rules/*.mdc`, modular QA skills under `.cursor/skills/`, `CLAUDE.md`, `.claude/workflows/`, `.claude/settings.json`, `.mcp.json`, `LINEAR_CLI.md`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
+`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/rules/*.mdc`, modular QA skills under `.cursor/skills/`, `CLAUDE.md`, `.claude/workflows/`, `.claude/settings.json`, `.mcp.json`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
 
 ## Commands
 

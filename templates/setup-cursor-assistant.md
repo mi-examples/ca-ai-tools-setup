@@ -14,7 +14,7 @@ The developer may be on **macOS**, **Linux**, or **Windows**.
 
 **CI:** Some repositories still have no automated pipeline; that can be normal today, but **CI for build, lint, and tests** is the intended direction for maintained apps. If `.github/workflows/` (or equivalent) is absent, do not treat it as a setup failure. When CI exists or is added, ensure install steps (`npm ci`, etc.) and the Node version align with this repo and pp-dev.
 
-**Cursor integrated terminal:** After installing CLI tools or changing `PATH` (for example `~/bin` or `%USERPROFILE%\bin`), binaries such as **`gh`**, **`linear-cli`**, or even **`node`** may still be missing inside Cursor’s terminal until the user **fully quits and restarts Cursor** (closing the terminal tab is not enough). This behavior is **consistently reproducible on Windows and macOS**. If commands fail with “not found” right after a successful install, treat **restart Cursor** as the first remediation before concluding the install failed.
+**Cursor integrated terminal:** After installing CLI tools or changing `PATH`, binaries such as **`gh`** or even **`node`** may still be missing inside Cursor’s terminal until the user **fully quits and restarts Cursor** (closing the terminal tab is not enough). This behavior is **consistently reproducible on Windows and macOS**. If commands fail with “not found” right after a successful install, treat **restart Cursor** as the first remediation before concluding the install failed.
 
 First, detect the OS:
 
@@ -148,119 +148,22 @@ gh auth login
 gh auth status
 ```
 
-**2.3. linear-cli**
+**2.3. Linear (MCP)**
 
-Check first whether `linear-cli` is already installed:
+Linear is used through the **Linear MCP** connector, not a CLI. Do not install `linear-cli`: its OAuth sign-in
+is disabled.
 
-- **macOS/Linux**: `command -v linear-cli && linear-cli --version`
-- **Windows (PowerShell)**: `Get-Command linear-cli -ErrorAction SilentlyContinue; if ($?) { linear-cli --version }`
+Check that the Linear tools are available in this session — for example `get_issue`, `list_issues`,
+`list_comments`, `save_comment` (the client may show them with its own server prefix). Then list the
+developer's assigned issues with `list_issues` (assignee `me`) to confirm the connection works.
 
-If `linear-cli` is already available, skip installation and continue with PATH/auth checks. Install only when the command is missing.
+- **The tools respond:** record `Linear MCP: connected` and continue.
+- **The tools are missing or return an error:** Linear MCP is not connected in this client. Ask the developer
+  to connect or reconnect Linear in the client's connector / MCP settings; if that does not work, access has to
+  come from a workspace admin. Record `Linear MCP: not connected` and **continue with the rest of the setup** —
+  this is not a setup failure.
 
-Detect OS and architecture. Fetch releases from the GitHub API (newest first) and download the platform archive from [https://github.com/Finesssee/linear-cli/releases](https://github.com/Finesssee/linear-cli/releases). **The latest release may not ship every platform binary.** If the asset is missing for your OS/arch (404), iterate through older releases until a download succeeds—use the first tag that provides the expected filename.
-
-**macOS:**
-
-```bash
-ARCH=$(uname -m)
-if [ "$ARCH" = "arm64" ]; then
-  ASSET="linear-cli-aarch64-apple-darwin.tar.gz"
-else
-  ASSET="linear-cli-x86_64-apple-darwin.tar.gz"
-fi
-mkdir -p ~/bin
-LINEAR_CLI_VERSION=""
-for tag in $(curl -sL "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'); do
-  if curl -fsL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${tag}/${ASSET}"; then
-    LINEAR_CLI_VERSION=$tag
-    break
-  fi
-done
-if [ -z "$LINEAR_CLI_VERSION" ]; then
-  echo "No release found with ${ASSET} (checked recent releases)." >&2
-  exit 1
-fi
-echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
-tar -xzf /tmp/linear-cli.tar.gz -C ~/bin/
-chmod +x ~/bin/linear-cli
-rm /tmp/linear-cli.tar.gz
-~/bin/linear-cli --version
-```
-
-**Linux:**
-
-```bash
-ARCH=$(uname -m)
-if [ "$ARCH" = "aarch64" ]; then
-  ASSET="linear-cli-aarch64-unknown-linux-gnu.tar.gz"
-else
-  ASSET="linear-cli-x86_64-unknown-linux-gnu.tar.gz"
-fi
-mkdir -p ~/bin
-LINEAR_CLI_VERSION=""
-for tag in $(curl -sL "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'); do
-  if curl -fsL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${tag}/${ASSET}"; then
-    LINEAR_CLI_VERSION=$tag
-    break
-  fi
-done
-if [ -z "$LINEAR_CLI_VERSION" ]; then
-  echo "No release found with ${ASSET} (checked recent releases)." >&2
-  exit 1
-fi
-echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
-tar -xzf /tmp/linear-cli.tar.gz -C ~/bin/
-chmod +x ~/bin/linear-cli
-rm /tmp/linear-cli.tar.gz
-~/bin/linear-cli --version
-```
-
-**Windows (PowerShell):**
-
-```powershell
-$assetName = "linear-cli-x86_64-pc-windows-msvc.zip"
-$releases = Invoke-RestMethod -Uri "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\bin" | Out-Null
-$version = $null
-foreach ($rel in $releases) {
-  $tag = $rel.tag_name
-  $url = "https://github.com/Finesssee/linear-cli/releases/download/$tag/$assetName"
-  try {
-    Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\linear-cli.zip" -ErrorAction Stop
-    $version = $tag
-    break
-  } catch {
-    continue
-  }
-}
-if (-not $version) { throw "No release found with $assetName (checked recent releases)." }
-Write-Host "Installing linear-cli $version"
-Expand-Archive -Path "$env:TEMP\linear-cli.zip" -DestinationPath "$env:USERPROFILE\bin" -Force
-Remove-Item "$env:TEMP\linear-cli.zip"
-```
-
-Ensure the install directory is in PATH:
-
-- **macOS/Linux (zsh):**
-  ```bash
-  echo $PATH | grep -q "$HOME/bin" && echo "OK" || { echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc; }
-  ```
-- **macOS/Linux (bash):**
-  ```bash
-  echo $PATH | grep -q "$HOME/bin" && echo "OK" || { echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc; }
-  ```
-- **Windows:** Add `%USERPROFILE%\bin` to system PATH via Settings → Environment Variables, or:
-  ```powershell
-  $p = [Environment]::GetEnvironmentVariable("PATH","User"); if ($p -notlike "*$env:USERPROFILE\bin*") { [Environment]::SetEnvironmentVariable("PATH","$env:USERPROFILE\bin;$p","User") }
-  ```
-
-Verify:
-
-```bash
-linear-cli --version
-linear-cli auth oauth
-linear-cli i list --assignee me
-```
+Never guess the state or the content of an issue when the Linear tools are unavailable.
 
 **MCP_SERVERS_BLOCK**
 
@@ -327,22 +230,26 @@ committing it would leak your environment into everyone else's checkout (generat
 
 ### Step 4: Final verification
 
-If **`gh`** / **`linear-cli`** / **`node`** are reported missing despite a finished install and PATH update, ask the developer to **fully restart Cursor**, then run the checks again (see **Cursor integrated terminal** above).
+If **`gh`** / **`node`** are reported missing despite a finished install and PATH update, ask the developer to **fully restart Cursor**, then run the checks again (see **Cursor integrated terminal** above).
 
 Run:
 
 ```bash
 node -v
 gh auth status
-linear-cli i list --assignee me --limit 3
 ```
+
+Then call `list_issues` (assignee `me`) through the Linear MCP.
 
 Return:
 
 ```
-OK / FAIL  GitHub CLI — authentication
-OK / FAIL  linear-cli — authentication
-OK / FAIL  .dev-environment.md profile complete
+OK / FAIL           GitHub CLI — authentication
+OK / NOT CONNECTED  Linear MCP — tools respond
+OK / FAIL           .dev-environment.md profile complete
 ```
+
+`NOT CONNECTED` is not a failed setup: say that Linear MCP is not available in this client and that the developer
+should connect it there or ask a workspace admin.
 
 If any check fails, suggest a concrete fix. For **command not found** immediately after install, suggest **restarting Cursor** before deeper troubleshooting.

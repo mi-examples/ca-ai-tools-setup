@@ -4,7 +4,7 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 
 ## What this package generates
 
-**Shared (every run):** `LINEAR_CLI.md`, `AGENTS.md`, `.dev-environment.md`,
+**Shared (every run):** `AGENTS.md`, `.dev-environment.md`,
 `.assistant-setup/page-workflow-context.md`, `.assistant-setup/SETUP_STATUS.md`,
 `.assistant-setup/ca-ai-tools-setup.json`
 
@@ -14,7 +14,7 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
 | `setup-cursor-assistant.md`                                                                                                                                                                                                                                                       | Cursor selected      |
 | `.cursorrules`, `.cursorignore`                                                                                                                                                                                                                                                   | Cursor selected      |
-| `.cursor/rules/*` (assistant-setup-health, code-style, linear-cli, linear-task-gates, portal-env-credentials, README; `figma-mcp.mdc` if Figma MCP)                                                                                                                               | Cursor and/or Claude |
+| `.cursor/rules/*` (assistant-setup-health, code-style, linear-task-gates, portal-env-credentials, README; `figma-mcp.mdc` if Figma MCP)                                                                                                                                           | Cursor and/or Claude |
 | `.cursor/skills/*` (ai-development + DOD-FULL, customer-app-docs + references/assets, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-cli, figma-implementation; figma-code-connect + references if Figma MCP) | Cursor selected      |
 | `.cursor/mcp.json`                                                                                                                                                                                                                                                                | Cursor + MCP option  |
 | `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                                                                                                                 | Claude selected      |

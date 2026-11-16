@@ -99,6 +99,9 @@ export const REMOVABLE_LEGACY_SETUP_PATHS = [
   // PP-4531: Playwright MCP is gone; browser automation runs through the Playwright CLI.
   '.cursor/skills/playwright-mcp/SKILL.md',
   '.claude/workflows/playwright-mcp.md',
+  // PP-4659: Linear is reached through the Linear MCP; linear-cli can no longer be authorized.
+  'LINEAR_CLI.md',
+  '.cursor/rules/linear-cli.mdc',
 ] as const;
 
 function shouldAlwaysOverwrite(filePath: string): boolean {
@@ -153,11 +156,6 @@ export function getGeneratedFiles(
   files.push({
     path: '.gitignore',
     content: readTemplate('gitignore'),
-  });
-
-  files.push({
-    path: 'LINEAR_CLI.md',
-    content: readTemplate('LINEAR_CLI.md'),
   });
 
   files.push({

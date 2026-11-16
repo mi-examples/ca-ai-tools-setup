@@ -68,13 +68,15 @@ test('updateSetup blocks every write when a managed file has local changes', () 
 
   createCursorSetup(dir);
   const conflictingPath = path.join(dir, '.cursor/rules/code-style.mdc');
-  const otherPath = path.join(dir, 'LINEAR_CLI.md');
+  const otherPath = path.join(dir, '.cursor/rules/commit-convention.mdc');
   const originalOther = fs.readFileSync(otherPath, 'utf8');
 
   fs.writeFileSync(conflictingPath, 'Repository-owned edit in a managed file.\n', 'utf8');
 
   const files = getGeneratedFiles(['cursor'], false, false).map((file) =>
-    file.path === 'LINEAR_CLI.md' ? { ...file, content: `${file.content}\nNew release content.\n` } : file,
+    file.path === '.cursor/rules/commit-convention.mdc'
+      ? { ...file, content: `${file.content}\nNew release content.\n` }
+      : file,
   );
   const result = updateSetup(options(dir, { files }));
 
@@ -257,7 +259,7 @@ test('updateSetup recreates missing files and removes unchanged managed orphans'
   const dir = makeTempDir();
 
   createCursorSetup(dir);
-  const missingPath = '.cursor/rules/linear-cli.mdc';
+  const missingPath = '.cursor/rules/commit-convention.mdc';
   const orphanPath = '.cursor/rules/code-style.mdc';
 
   fs.rmSync(path.join(dir, missingPath));
@@ -275,7 +277,7 @@ test('updateSetup dry-run reports changes without writing files or metadata', ()
   const dir = makeTempDir();
 
   createCursorSetup(dir);
-  const missingPath = '.cursor/rules/linear-cli.mdc';
+  const missingPath = '.cursor/rules/commit-convention.mdc';
   const metadataPath = path.join(dir, SETUP_METADATA_PATH);
   const metadataBefore = fs.readFileSync(metadataPath, 'utf8');
 
@@ -629,8 +631,8 @@ test('upgrade from a release with more files: one update removes them all and a 
   const dir = makeTempDir();
   const current = getGeneratedFiles(['cursor', 'claude'], false, false);
   const retired = [
-    'LEGACY_REFERENCE.md',
-    '.cursor/rules/retired-rule.mdc',
+    'LINEAR_CLI.md',
+    '.cursor/rules/linear-cli.mdc',
     '.cursor/skills/retired-skill/SKILL.md',
     '.cursor/skills/retired-skill/references/details.md',
     '.claude/legacy-workflows/retired-flow.md',
@@ -784,4 +786,26 @@ test('updateSetup keeps a merged AGENTS.md baseline across a no-op run', () => {
 
   assert.equal(checked.plan.hasChanges, false);
   assert.deepEqual(checked.merged, []);
+});
+
+// PP-4659: LINEAR_CLI.md is gone and so is the metadata key that pointed at it. Repositories set up
+// by an older release still carry the key; their metadata has to keep loading, and the leftover key
+// alone must not make the setup look outdated.
+test('metadata that still has linearCliReference loads and is not reported as outdated', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const metadataPath = path.join(dir, SETUP_METADATA_PATH);
+  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as Record<string, unknown>;
+
+  metadata.linearCliReference = { file: 'LINEAR_CLI.md', generated: true };
+  fs.writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
+
+  assert.equal(loadSetupMetadata(dir).kind, 'current');
+
+  const result = checkSetup(options(dir));
+
+  assert.equal(result.conflicts.length, 0);
+  assert.equal(result.plan.hasChanges, false);
 });

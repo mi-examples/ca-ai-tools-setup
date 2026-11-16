@@ -273,7 +273,7 @@ test('cli update blocks all writes when a managed file conflicts', () => {
   runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   const conflictPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
-  const missingPath = path.join(targetDir, '.cursor/rules/linear-cli.mdc');
+  const missingPath = path.join(targetDir, '.cursor/rules/commit-convention.mdc');
 
   fs.writeFileSync(conflictPath, 'Local managed edit.\n', 'utf8');
   fs.rmSync(missingPath);

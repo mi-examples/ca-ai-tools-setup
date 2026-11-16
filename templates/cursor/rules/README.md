@@ -1,6 +1,6 @@
-# Linear CLI Cursor Rules
+# Cursor Rules
 
-This directory contains Metric Insights guidance for using Linear CLI inside Cursor.
+This directory contains the Metric Insights project rules for Cursor.
 
 ## Skills
 
@@ -33,7 +33,6 @@ This directory contains Metric Insights guidance for using Linear CLI inside Cur
 - `code-style.mdc` - Portal Page component naming, SCSS modules, BEM, app context, constants, index.html globals.
 - `frontend-architecture.mdc` - component hierarchy, design system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope.
 - `commit-convention.mdc` - Git commit message format (Angular commit message convention).
-- `linear-cli.mdc` - global rule set for Linear CLI usage behavior.
 - `figma-mcp.mdc` - Figma MCP design-to-code implementation rules.
 - `linear-task-gates.mdc` - mandatory Linear state gates before AI dev or QA.
 - `linear-merge-notification.mdc` - after commit/merge on a Linear-issue branch, notify where the page/template lives and offer a separate Linear links comment in the Ready to Test format (dismissible).
@@ -43,7 +42,7 @@ The repository root may also contain **`.cursorrules`** (legacy single-file hook
 
 ## Portal Page / Custom App context
 
-Repositories using this setup are **Portal Page / Custom App** projects: local dev runs at **`http://localhost:<port>`** (default **3000**, then **3001**, **3002**, … if busy). Read **`pp-dev.config`** for the configured port and tooling; dev commands include **`npm run dev`**, **`npx pp-dev`**, and for Next.js **`npx pp-dev next`**. Backend API access is usually via **`.env`**. Full setup steps live in the generated **`setup-cursor-assistant.md`** (or **`setup-claude-assistant.md`** when using Claude). **`LINEAR_CLI.md`** at the repo root documents **`linear-cli`** commands.
+Repositories using this setup are **Portal Page / Custom App** projects: local dev runs at **`http://localhost:<port>`** (default **3000**, then **3001**, **3002**, … if busy). Read **`pp-dev.config`** for the configured port and tooling; dev commands include **`npm run dev`**, **`npx pp-dev`**, and for Next.js **`npx pp-dev next`**. Backend API access is usually via **`.env`**. Full setup steps live in the generated **`setup-cursor-assistant.md`** (or **`setup-claude-assistant.md`** when using Claude).
 
 ## Notes
 

@@ -33,7 +33,7 @@ test('generateSetup creates files for selected assistants', () => {
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/assistant-setup-health.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
@@ -61,9 +61,7 @@ test('generateSetup creates files for selected assistants', () => {
     fs.readFileSync(path.join(dir, '.assistant-setup/SETUP_STATUS.md'), 'utf8'),
     /ca-ai-tools-setup-status.*"schemaVersion":6/,
   );
-  assert.ok(result.created.includes('LINEAR_CLI.md'));
-  assert.ok(fs.existsSync(path.join(dir, 'LINEAR_CLI.md')));
-  assert.ok(fs.readFileSync(path.join(dir, 'LINEAR_CLI.md'), 'utf8').includes('Linear CLI Reference'));
+  assert.equal(fs.existsSync(path.join(dir, 'LINEAR_CLI.md')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursorrules')));
   assert.ok(fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8').includes('AGENTS.md'));
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
@@ -174,10 +172,7 @@ test('generateSetup writes .mcp.json for Claude when Figma MCP is selected', () 
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
   });
-  assert.deepEqual(meta.linearCliReference, {
-    file: 'LINEAR_CLI.md',
-    generated: true,
-  });
+  assert.equal(meta.linearCliReference, undefined);
 
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
 
@@ -273,7 +268,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(second.skipped.includes('.dev-environment.md'));
   assert.ok(second.overwritten.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
-  assert.ok(second.skipped.includes('LINEAR_CLI.md'));
+  assert.ok(second.skipped.includes('.cursor/rules/code-style.mdc'));
   assert.ok(second.skipped.includes('.claude/skills/ai-development/SKILL.md'));
 
   const forced = generateSetup({
@@ -339,10 +334,7 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
   });
-  assert.deepEqual(meta.linearCliReference, {
-    file: 'LINEAR_CLI.md',
-    generated: true,
-  });
+  assert.equal(meta.linearCliReference, undefined);
 
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')), false);

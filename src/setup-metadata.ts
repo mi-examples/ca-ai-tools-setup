@@ -44,10 +44,6 @@ export type SetupMetadata = {
     file: '.assistant-setup/page-workflow-context.md';
     generated: true;
   };
-  linearCliReference: {
-    file: 'LINEAR_CLI.md';
-    generated: true;
-  };
   qaAiRules: {
     enabled: boolean;
     package: typeof QA_AI_RULES_PACKAGE;
@@ -230,10 +226,6 @@ function parseCurrentMetadata(raw: Record<string, unknown>): SetupMetadata | nul
       file: '.assistant-setup/page-workflow-context.md',
       generated: true,
     },
-    linearCliReference: {
-      file: 'LINEAR_CLI.md',
-      generated: true,
-    },
     qaAiRules: {
       enabled: (qaAiRules as Record<string, unknown>).enabled as boolean,
       package: QA_AI_RULES_PACKAGE,
@@ -333,10 +325,6 @@ export function createSetupMetadata(
     },
     pageWorkflowContext: {
       file: '.assistant-setup/page-workflow-context.md',
-      generated: true,
-    },
-    linearCliReference: {
-      file: 'LINEAR_CLI.md',
       generated: true,
     },
     qaAiRules: {
