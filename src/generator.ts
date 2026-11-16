@@ -10,10 +10,13 @@ import { readTemplate } from './templates.js';
 import {
   createSetupMetadata,
   createSetupStatusContent,
+  hashContent,
+  loadSetupMetadata,
   normalizeSetupPath,
   serializeSetupMetadata,
   SETUP_METADATA_PATH,
   SETUP_STATUS_PATH,
+  type SetupFileRecord,
 } from './setup-metadata.js';
 
 export type ExistingFileAction = 'skip' | 'merge' | 'overwrite';
@@ -203,8 +206,13 @@ export function getGeneratedFiles(
   return files;
 }
 
-function removeEmptyParentDirs(targetDir: string, filePath: string, result: GenerateResult): void {
+/**
+ * Remove the directories a deleted file leaves empty, walking up and stopping at the target root.
+ * Returns the removed directories as repository-relative paths, deepest first.
+ */
+export function removeEmptyParentDirs(targetDir: string, filePath: string): string[] {
   const targetRoot = path.resolve(targetDir);
+  const removed: string[] = [];
   let dir = path.dirname(path.resolve(filePath));
 
   while (true) {
@@ -226,17 +234,39 @@ function removeEmptyParentDirs(targetDir: string, filePath: string, result: Gene
       break;
     }
 
-    const relDir = rel.split(path.sep).join('/');
-
     fs.rmdirSync(dir);
-    result.removedLegacy.push(relDir);
+    removed.push(rel.split(path.sep).join('/'));
     dir = path.dirname(dir);
   }
+
+  return removed;
+}
+
+function removeSetupFile(
+  targetDir: string,
+  relativePath: string,
+  options: Pick<GenerateOptions, 'dryRun'>,
+  result: GenerateResult,
+): void {
+  const destination = path.join(targetDir, relativePath);
+
+  result.removedLegacy.push(relativePath);
+
+  if (!options.dryRun) {
+    fs.rmSync(destination);
+    result.removedLegacy.push(...removeEmptyParentDirs(targetDir, destination));
+  }
+}
+
+/** True when a tracked file still holds exactly what the generator wrote, with no repository content in it. */
+function isUntouchedGeneratedFile(content: string, record: SetupFileRecord): boolean {
+  return record.baseline === 'generated' && hashContent(content) === record.contentHash;
 }
 
 function removeObsoleteSetupFiles(
   targetDir: string,
-  options: Pick<GenerateOptions, 'dryRun'>,
+  previousRecords: Readonly<Record<string, SetupFileRecord>>,
+  options: Pick<GenerateOptions, 'force' | 'dryRun'>,
   result: GenerateResult,
 ): void {
   for (const relativePath of REMOVABLE_LEGACY_SETUP_PATHS) {
@@ -246,13 +276,59 @@ function removeObsoleteSetupFiles(
       continue;
     }
 
-    if (!options.dryRun) {
-      fs.rmSync(destination);
-      removeEmptyParentDirs(targetDir, destination, result);
+    const record = previousRecords[relativePath];
+
+    // A tracked file with repository edits is not ours to delete in passing; removeTrackedOrphans()
+    // keeps its record so `check` reports it. A file with no record predates tracking, so there is
+    // nothing to compare it with and it goes as before — listed under "Removed legacy files".
+    if (record && !options.force && !isUntouchedGeneratedFile(fs.readFileSync(destination, 'utf8'), record)) {
+      continue;
     }
 
-    result.removedLegacy.push(relativePath);
+    removeSetupFile(targetDir, relativePath, options, result);
   }
+}
+
+/**
+ * A plain re-run has to clean up after a release that stopped generating a file, or the obsolete
+ * file outlives its metadata record and nothing ever reports it again. Only files that are still
+ * exactly what the generator wrote are removed here. Anything with repository content stays, and
+ * its record is returned so the new metadata keeps it and `check` / `update` raise the conflict.
+ */
+function removeTrackedOrphans(
+  targetDir: string,
+  previousRecords: Readonly<Record<string, SetupFileRecord>>,
+  desiredPaths: ReadonlySet<string>,
+  options: Pick<GenerateOptions, 'force' | 'dryRun'>,
+  result: GenerateResult,
+): Record<string, SetupFileRecord> {
+  const kept: Record<string, SetupFileRecord> = {};
+
+  for (const [relativePath, record] of Object.entries(previousRecords)) {
+    const destination = path.join(targetDir, relativePath);
+
+    if (desiredPaths.has(relativePath) || result.removedLegacy.includes(relativePath) || !fs.existsSync(destination)) {
+      continue;
+    }
+
+    // Protected files are repository-owned by definition: once they are no longer generated they
+    // simply stop being tracked.
+    if (record.ownership === 'protected') {
+      continue;
+    }
+
+    if (
+      isUntouchedGeneratedFile(fs.readFileSync(destination, 'utf8'), record) ||
+      (options.force && record.ownership === 'managed')
+    ) {
+      removeSetupFile(targetDir, relativePath, options, result);
+      continue;
+    }
+
+    kept[relativePath] = record;
+  }
+
+  return kept;
 }
 
 function migrateLegacyFiles(
@@ -423,11 +499,23 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
     removedLegacy: [],
   };
 
-  migrateLegacyFiles(options.targetDir, { force: options.force, dryRun: options.dryRun }, result);
-  removeObsoleteSetupFiles(options.targetDir, { dryRun: options.dryRun }, result);
-
   const metadataFile = files.find((file) => normalizeSetupPath(file.path) === SETUP_METADATA_PATH);
   const setupFiles = files.filter((file) => normalizeSetupPath(file.path) !== SETUP_METADATA_PATH);
+  const desiredPaths = new Set(setupFiles.map((file) => normalizeSetupPath(file.path)));
+  const loadedMetadata = loadSetupMetadata(options.targetDir);
+  const previousRecords = loadedMetadata.kind === 'current' ? loadedMetadata.metadata.files : {};
+  const cleanupOptions = { force: options.force, dryRun: options.dryRun };
+
+  migrateLegacyFiles(options.targetDir, cleanupOptions, result);
+  removeObsoleteSetupFiles(options.targetDir, previousRecords, cleanupOptions, result);
+
+  const keptOrphanRecords = removeTrackedOrphans(
+    options.targetDir,
+    previousRecords,
+    desiredPaths,
+    cleanupOptions,
+    result,
+  );
 
   for (const file of setupFiles) {
     writeOneFile(
@@ -472,6 +560,8 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
         record.baseline = 'merged';
       }
     }
+
+    Object.assign(metadata.files, keptOrphanRecords);
 
     writeOneFile(
       options.targetDir,

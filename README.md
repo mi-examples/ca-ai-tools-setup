@@ -319,13 +319,25 @@ Update ownership rules:
   current hash matches the recorded generated baseline.
 - Repository-owned files such as `.cursorrules`, `CLAUDE.md`, `.dev-environment.md`, and page context are
   preserved and recorded as adopted content.
-- MCP JSON and Claude settings use semantic merge only when their baseline is unchanged.
+- MCP JSON and Claude settings use semantic merge only when their baseline is unchanged. A server the generator
+  wrote earlier and no longer generates is removed from them while the entry is still exactly what the generator
+  wrote; repository servers and edited entries stay.
 - Existing `AGENTS.md` content is never replaced, including with `--force`; missing generated agent rows are
   merged into its registry table or appended as a separate generated section.
 - Locally modified managed/structured files block the entire update so a partial write cannot occur. Use
   `--force` only when replacing those generated baselines is intentional.
-- Unchanged managed files removed by a release are deleted; modified or protected orphaned files are preserved
-  and reported.
+- Files a release stops generating:
+  - an untouched generated file is deleted, together with any directory it leaves empty;
+  - a file with local edits, or with content adopted from the repository, is a conflict that blocks the update
+    like any other. `--force` deletes a managed file; from MCP JSON and Claude settings it removes only the
+    generated entries;
+  - a protected file, and an MCP file left with repository servers only, stay in place and are no longer
+    tracked — after that update `check` returns `0`.
+- A plain re-run (without `update`) deletes untouched obsolete files the same way. It never deletes an edited
+  one: the file stays tracked, so `check` and `update` report the conflict.
+- Repositories on schema 5 metadata, or with no metadata, have no per-file hashes to compare with. `update`
+  removes the known obsolete paths there only with `--force`; a plain re-run removes them and lists them under
+  "Removed legacy files".
 
 The metadata file records package version, release commit/template revision, and per-file SHA-256 hashes with
 line endings normalized for Windows/macOS/Linux checkouts. It contains no timestamp, so identical content

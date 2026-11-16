@@ -2,7 +2,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Assistant } from './constants.js';
 import type { GeneratedFile } from './generators/types.js';
-import { isMergeablePath, mergeFile } from './mcp-json-merge.js';
+import { generatedMcpServerDefinitions } from './generators/mcp.js';
+import {
+  hasNoMcpServers,
+  isMcpConfigPath,
+  isMergeablePath,
+  mcpServerNames,
+  mergeFile,
+  pruneRetiredClaudeSettings,
+  pruneRetiredMcpServers,
+} from './mcp-json-merge.js';
 import {
   createSetupMetadata,
   hashContent,
@@ -14,9 +23,15 @@ import {
   serializeSetupMetadata,
   SETUP_METADATA_PATH,
   type SetupFileRecord,
+  type SetupMetadata,
 } from './setup-metadata.js';
 import { getCliPackageProvenance } from './setup-log.js';
-import { REMOVABLE_LEGACY_SETUP_PATHS, resolveFigmaMcpTargets, resolvePlaywrightMcpTargets } from './generator.js';
+import {
+  REMOVABLE_LEGACY_SETUP_PATHS,
+  removeEmptyParentDirs,
+  resolveFigmaMcpTargets,
+  resolvePlaywrightMcpTargets,
+} from './generator.js';
 
 /**
  * Repository-owned files that are merged into, never replaced — not by --force either. Mirrors
@@ -37,6 +52,12 @@ export type ReconcileFilePlan = {
   reason?: string;
   desiredContent?: string;
   currentContent?: string;
+  /**
+   * Exact content the file holds once `action` is applied — set for every create, overwrite and
+   * merge. It differs from `desiredContent` whenever repository content survives: a merge, or a
+   * structured file that only loses its generated entries.
+   */
+  resultContent?: string;
   previous?: SetupFileRecord;
 };
 
@@ -104,12 +125,155 @@ function desiredSetupFiles(files: GeneratedFile[]): GeneratedFile[] {
   return desiredFiles;
 }
 
+const CURSOR_MCP_PATH = '.cursor/mcp.json';
+const ROOT_MCP_PATH = '.mcp.json';
+const CLAUDE_SETTINGS_PATH = '.claude/settings.json';
+
+/** Drops from a structured file what the generator wrote earlier and no longer generates. */
+type RetiredEntryPruner = (filePath: string, content: string) => string;
+
+/**
+ * A semantic merge only ever adds, so a server the generator stops writing would stay in
+ * `.mcp.json`, `.cursor/mcp.json` and `.claude/settings.json` forever. The recorded configuration
+ * says which servers the previous setup wrote into each file; whatever is on that list and not in
+ * the new output is retired and removed before the merge. An entry the repository changed — or a
+ * server of its own that merely shares the name — is left alone.
+ */
+function createRetiredEntryPruner(
+  targetDir: string,
+  previousMetadata: SetupMetadata | undefined,
+  desiredFiles: readonly GeneratedFile[],
+): RetiredEntryPruner {
+  if (!previousMetadata) {
+    return (_filePath, content) => content;
+  }
+
+  const definitions = generatedMcpServerDefinitions();
+  const desiredServers = (filePath: string): Set<string> =>
+    new Set(mcpServerNames(desiredFiles.find((file) => file.path === filePath)?.content ?? ''));
+  const generatedBefore = { playwright: previousMetadata.playwrightMcp, figma: previousMetadata.figmaMcp };
+  const retiredServers = (filePath: string): string[] => {
+    const target = filePath === CURSOR_MCP_PATH ? 'cursorFile' : 'projectRootFile';
+    const stillGenerated = desiredServers(filePath === CLAUDE_SETTINGS_PATH ? ROOT_MCP_PATH : filePath);
+
+    return Object.entries(generatedBefore)
+      .filter(([name, targets]) => targets[target] && !stillGenerated.has(name))
+      .map(([name]) => name);
+  };
+  const pruneMcp = (filePath: string, content: string): string =>
+    pruneRetiredMcpServers(
+      content,
+      Object.fromEntries(retiredServers(filePath).map((name) => [name, definitions[name]])),
+    );
+
+  return (filePath, content) => {
+    if (isMcpConfigPath(filePath)) {
+      return pruneMcp(filePath, content);
+    }
+
+    if (filePath !== CLAUDE_SETTINGS_PATH) {
+      return content;
+    }
+
+    // Settings only lose a server that is really gone from `.mcp.json`: a repository-owned entry
+    // under the same name survives the pruning there and still needs to be enabled here.
+    const remaining = new Set([
+      ...mcpServerNames(pruneMcp(ROOT_MCP_PATH, readCurrentFile(targetDir, ROOT_MCP_PATH) ?? '')),
+      ...desiredServers(ROOT_MCP_PATH),
+    ]);
+
+    return pruneRetiredClaudeSettings(
+      content,
+      retiredServers(filePath).filter((name) => !remaining.has(name)),
+    );
+  };
+}
+
+/** A tracked file that is still exactly what the generator wrote, with no repository content in it. */
+function isUntouchedGeneratedFile(content: string, record: SetupFileRecord): boolean {
+  return record.baseline === 'generated' && hashContent(content) === record.contentHash;
+}
+
+/** Plan for a tracked file that this release no longer generates. */
+function orphanPlan(
+  filePath: string,
+  currentContent: string,
+  previous: SetupFileRecord,
+  force: boolean,
+  prune: RetiredEntryPruner,
+): ReconcileFilePlan {
+  const base = {
+    path: filePath,
+    ownership: previous.ownership,
+    state: 'orphaned' as const,
+    currentContent,
+    previous,
+  };
+
+  // Repository-owned by definition: it is never removed, it only stops being tracked.
+  if (previous.ownership === 'protected') {
+    return {
+      ...base,
+      action: 'none',
+      reason: 'Protected file is no longer generated; it stays as a repository-owned file.',
+    };
+  }
+
+  if (isUntouchedGeneratedFile(currentContent, previous)) {
+    return { ...base, action: 'remove', reason: 'File is no longer produced by this release.' };
+  }
+
+  const unchanged = hashContent(currentContent) === previous.contentHash;
+
+  if (previous.ownership === 'structured') {
+    // Unchanged since the generator last wrote it, so the generated entries are still the ones it
+    // put there and can go without asking; the repository's own entries stay.
+    if (!unchanged && !force) {
+      return {
+        ...base,
+        state: 'conflict',
+        action: 'none',
+        reason: 'Obsolete file has local changes; remove it or rerun with --force to drop only the generated entries.',
+      };
+    }
+
+    const pruned = prune(filePath, currentContent);
+
+    if (isMcpConfigPath(filePath) && hasNoMcpServers(pruned)) {
+      return { ...base, action: 'remove', reason: 'Only generated entries were left in this file.' };
+    }
+
+    return pruned === currentContent
+      ? { ...base, action: 'none', reason: 'File is no longer generated; it stays as a repository-owned file.' }
+      : {
+          ...base,
+          action: 'overwrite',
+          resultContent: pruned,
+          reason: 'Generated entries removed; the rest stays as a repository-owned file.',
+        };
+  }
+
+  if (force) {
+    return { ...base, action: 'remove', reason: 'Obsolete managed file removed with --force.' };
+  }
+
+  return {
+    ...base,
+    state: 'conflict',
+    action: 'none',
+    reason: unchanged
+      ? 'Obsolete file holds content adopted from the repository; remove it or rerun with --force.'
+      : 'Obsolete file has local changes; remove it or rerun with --force.',
+  };
+}
+
 function collisionPlan(
   file: GeneratedFile,
   currentContent: string,
   previous: SetupFileRecord | undefined,
   force: boolean,
   metadataIsLegacy: boolean,
+  prune: RetiredEntryPruner,
 ): ReconcileFilePlan {
   const ownership = ownershipForPath(file.path);
   const currentHash = hashContent(currentContent);
@@ -260,6 +424,7 @@ function collisionPlan(
       action: 'merge',
       desiredContent: file.content,
       currentContent,
+      resultContent: mergeFile(file.path, prune(file.path, currentContent), file.content),
       previous,
     };
   }
@@ -288,6 +453,7 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
   const previousMetadata = options.metadata.kind === 'current' ? options.metadata.metadata : undefined;
   const desiredFiles = desiredSetupFiles(options.files);
   const desiredPaths = new Set(desiredFiles.map((file) => file.path));
+  const prune = createRetiredEntryPruner(options.targetDir, previousMetadata, desiredFiles);
   const plans: ReconcileFilePlan[] = [];
 
   for (const file of desiredFiles) {
@@ -306,7 +472,7 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
       continue;
     }
 
-    plans.push(collisionPlan(file, currentContent, previous, options.force, metadataIsLegacy));
+    plans.push(collisionPlan(file, currentContent, previous, options.force, metadataIsLegacy, prune));
   }
 
   if (previousMetadata) {
@@ -321,20 +487,21 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
         continue;
       }
 
-      const unchanged = hashContent(currentContent) === previous.contentHash;
-      const removable = previous.ownership === 'managed' && unchanged;
+      plans.push(orphanPlan(filePath, currentContent, previous, options.force, prune));
+    }
+  }
 
-      plans.push({
-        path: filePath,
-        ownership: previous.ownership,
-        state: 'orphaned',
-        action: removable ? 'remove' : 'none',
-        reason: removable
-          ? 'Managed file is no longer produced by this release.'
-          : 'Obsolete file was preserved because it is protected or differs from its generated baseline.',
-        currentContent,
-        previous,
-      });
+  // Every write carries the exact content it produces, so the write and the metadata that records
+  // it can never disagree about what ended up on disk.
+  for (const filePlan of plans) {
+    if (filePlan.resultContent !== undefined) {
+      continue;
+    }
+
+    if (filePlan.action === 'create' || filePlan.action === 'overwrite') {
+      filePlan.resultContent = filePlan.desiredContent ?? '';
+    } else if (filePlan.action === 'merge') {
+      filePlan.resultContent = mergeFile(filePlan.path, filePlan.currentContent ?? '', filePlan.desiredContent ?? '');
     }
   }
 
@@ -458,17 +625,7 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
       continue;
     }
 
-    let finalContent: string;
-
-    if (filePlan.action === 'create' || filePlan.action === 'overwrite') {
-      finalContent = file.content;
-    } else if (filePlan.action === 'merge') {
-      finalContent = mergeFile(file.path, filePlan.currentContent ?? '', file.content);
-    } else {
-      finalContent = filePlan.currentContent ?? file.content;
-    }
-
-    installedContent.set(file.path, finalContent);
+    installedContent.set(file.path, filePlan.resultContent ?? filePlan.currentContent ?? file.content);
   }
 
   const metadata = createSetupMetadata(
@@ -482,15 +639,10 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
     installedContent,
   );
 
+  // An obsolete file that stays on disk is not recorded again. By now it is either protected or a
+  // structured file holding only repository entries, so it is the repository's own from here on;
+  // tracking it further would keep `check` at exit code 2 for a file nobody is going to change.
   for (const filePlan of plan.files) {
-    if (filePlan.state === 'orphaned' && filePlan.action !== 'remove' && filePlan.previous && filePlan.currentContent) {
-      metadata.files[filePlan.path] = {
-        ...filePlan.previous,
-        contentHash: hashContent(filePlan.currentContent),
-      };
-      continue;
-    }
-
     const record = metadata.files[filePlan.path];
 
     if (!record) {
@@ -526,16 +678,13 @@ export function updateSetup(options: ReconcileOptions): ReconcileResult {
 
   if (!options.dryRun) {
     for (const filePlan of plan.files) {
-      if (filePlan.action === 'create' || filePlan.action === 'overwrite') {
-        writeFile(options.targetDir, filePlan.path, filePlan.desiredContent ?? '');
-      } else if (filePlan.action === 'merge') {
-        writeFile(
-          options.targetDir,
-          filePlan.path,
-          mergeFile(filePlan.path, filePlan.currentContent ?? '', filePlan.desiredContent ?? ''),
-        );
+      if (filePlan.action === 'create' || filePlan.action === 'overwrite' || filePlan.action === 'merge') {
+        writeFile(options.targetDir, filePlan.path, filePlan.resultContent ?? '');
       } else if (filePlan.action === 'remove') {
-        fs.rmSync(path.join(options.targetDir, filePlan.path), { force: true });
+        const destination = path.join(options.targetDir, filePlan.path);
+
+        fs.rmSync(destination, { force: true });
+        removeEmptyParentDirs(options.targetDir, destination);
       }
     }
   }

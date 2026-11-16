@@ -287,45 +287,294 @@ test('updateSetup dry-run reports changes without writing files or metadata', ()
   assert.equal(fs.readFileSync(metadataPath, 'utf8'), metadataBefore);
 });
 
-test('updateSetup force preserves protected or modified orphans while applying safe changes', () => {
+// --- Files a release stops generating (PP-4839) ---------------------------------------------------
+//
+// A cleanup release drops dozens of generated files at once. Each must either leave the repository
+// or be handed over to it in a single reviewed update: an obsolete file that is kept and still
+// tracked holds `check` at exit code 2 forever, which the org rollout reads as "always outdated".
+
+const withoutPlaywright = { playwrightMcpInclude: false };
+
+function cursorFilesWithout(...removedPaths: string[]): ReturnType<typeof getGeneratedFiles> {
+  return getGeneratedFiles(['cursor'], true, false, false).filter((file) => !removedPaths.includes(file.path));
+}
+
+function readJson<T>(dir: string, relativePath: string): T {
+  return JSON.parse(fs.readFileSync(path.join(dir, relativePath), 'utf8')) as T;
+}
+
+function trackedPaths(dir: string): string[] {
+  return Object.keys(readJson<{ files: Record<string, unknown> }>(dir, SETUP_METADATA_PATH).files);
+}
+
+test('updateSetup removes untouched obsolete files together with the directory they leave empty', () => {
   const dir = makeTempDir();
 
   createCursorSetup(dir);
 
-  const structuredPath = path.join(dir, '.cursor/mcp.json');
-  const missingPath = path.join(dir, '.cursor/rules/linear-cli.mdc');
-
-  fs.writeFileSync(structuredPath, '{"mcpServers":{"custom":{"command":"node"}}}\n', 'utf8');
-  fs.rmSync(missingPath);
-
-  const filesWithoutMcp = getGeneratedFiles(['cursor'], false, false, false);
-  const result = updateSetup(
-    options(dir, {
-      files: filesWithoutMcp,
-      playwrightMcpInclude: false,
-      force: true,
-    }),
-  );
+  const obsolete = ['.cursor/prompts/form-prompt.md', '.cursor/prompts/react-component-unit.md'];
+  const files = cursorFilesWithout(...obsolete);
+  const result = updateSetup(options(dir, { files }));
 
   assert.equal(result.applied, true);
-  assert.ok(result.orphaned.includes('.cursor/mcp.json'));
-  assert.equal(fs.existsSync(structuredPath), true);
-  assert.equal(fs.existsSync(missingPath), true);
+  assert.deepEqual(result.removed, obsolete);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/prompts')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules')));
+  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+});
 
-  const metadata = JSON.parse(fs.readFileSync(path.join(dir, SETUP_METADATA_PATH), 'utf8')) as {
-    files: Record<string, unknown>;
+test('a locally edited obsolete file blocks the update until --force removes it', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const obsoletePath = '.cursor/rules/linear-cli.mdc';
+  const otherPath = '.cursor/prompts/form-prompt.md';
+  const files = cursorFilesWithout(obsoletePath, otherPath);
+
+  fs.writeFileSync(path.join(dir, obsoletePath), 'Repository-owned edit.\n', 'utf8');
+
+  const blocked = updateSetup(options(dir, { files }));
+
+  assert.equal(blocked.applied, false);
+  assert.deepEqual(blocked.conflicts, [obsoletePath]);
+  assert.equal(fs.readFileSync(path.join(dir, obsoletePath), 'utf8'), 'Repository-owned edit.\n');
+  // A conflict blocks every write, so the untouched obsolete file is still there as well.
+  assert.equal(fs.existsSync(path.join(dir, otherPath)), true);
+
+  const forced = updateSetup(options(dir, { files, force: true }));
+
+  assert.equal(forced.applied, true);
+  assert.ok(forced.removed.includes(obsoletePath));
+  assert.equal(fs.existsSync(path.join(dir, obsoletePath)), false);
+  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+});
+
+test('an obsolete file adopted from the repository is never removed without --force', () => {
+  const dir = makeTempDir();
+  const obsoletePath = '.cursor/rules/linear-cli.mdc';
+
+  fs.mkdirSync(path.join(dir, '.cursor/rules'), { recursive: true });
+  fs.writeFileSync(path.join(dir, obsoletePath), 'Written by the team before setup.\n', 'utf8');
+  createCursorSetup(dir);
+
+  const result = updateSetup(options(dir, { files: cursorFilesWithout(obsoletePath) }));
+
+  assert.equal(result.applied, false);
+  assert.deepEqual(result.conflicts, [obsoletePath]);
+  assert.equal(fs.readFileSync(path.join(dir, obsoletePath), 'utf8'), 'Written by the team before setup.\n');
+});
+
+test('a protected file that is no longer generated stays and stops being tracked', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const files = cursorFilesWithout('.cursorrules');
+  const before = fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8');
+  const result = updateSetup(options(dir, { files }));
+
+  assert.equal(result.applied, true);
+  assert.deepEqual(result.orphaned, ['.cursorrules']);
+  assert.deepEqual(result.removed, []);
+  assert.equal(fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8'), before);
+  assert.equal(trackedPaths(dir).includes('.cursorrules'), false);
+  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+});
+
+test('an untouched generated MCP file is removed when its only server is no longer generated', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const files = getGeneratedFiles(['cursor'], false, false, false);
+  const result = updateSetup(options(dir, { files, ...withoutPlaywright }));
+
+  assert.ok(result.removed.includes('.cursor/mcp.json'));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
+  assert.equal(checkSetup(options(dir, { files, ...withoutPlaywright })).plan.hasChanges, false);
+});
+
+test('an MCP file with repository servers loses only the generated one and becomes repository-owned', () => {
+  const dir = makeTempDir();
+  const mcpPath = path.join(dir, '.cursor/mcp.json');
+
+  fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
+  fs.writeFileSync(mcpPath, '{"mcpServers":{"custom":{"command":"node"}}}\n', 'utf8');
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: true,
+    existingFileActions: { '.cursor/mcp.json': 'merge' },
+  });
+
+  assert.deepEqual(Object.keys(readJson<{ mcpServers: object }>(dir, '.cursor/mcp.json').mcpServers), [
+    'custom',
+    'playwright',
+  ]);
+
+  const files = getGeneratedFiles(['cursor'], false, false, false);
+  const result = updateSetup(options(dir, { files, ...withoutPlaywright }));
+
+  assert.equal(result.applied, true);
+  assert.equal(result.conflicts.length, 0);
+  assert.ok(result.updated.includes('.cursor/mcp.json'));
+  assert.deepEqual(readJson<{ mcpServers: object }>(dir, '.cursor/mcp.json').mcpServers, {
+    custom: { command: 'node' },
+  });
+  assert.equal(trackedPaths(dir).includes('.cursor/mcp.json'), false);
+  assert.equal(checkSetup(options(dir, { files, ...withoutPlaywright })).plan.hasChanges, false);
+});
+
+test('a locally edited obsolete MCP file is a conflict; --force keeps what the repository owns', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const mcpPath = path.join(dir, '.cursor/mcp.json');
+  const edited = {
+    mcpServers: {
+      // Same name as the generated server, but the repository changed it — so it is theirs.
+      playwright: { type: 'stdio', command: 'npx', args: ['-y', '@playwright/mcp', '--headless'] },
+      custom: { command: 'node' },
+    },
   };
 
-  assert.ok(metadata.files['.cursor/mcp.json']);
+  fs.writeFileSync(mcpPath, `${JSON.stringify(edited, null, 2)}\n`, 'utf8');
 
-  const rechecked = checkSetup(
+  const files = getGeneratedFiles(['cursor'], false, false, false);
+  const blocked = updateSetup(options(dir, { files, ...withoutPlaywright }));
+
+  assert.equal(blocked.applied, false);
+  assert.deepEqual(blocked.conflicts, ['.cursor/mcp.json']);
+
+  const forced = updateSetup(options(dir, { files, ...withoutPlaywright, force: true }));
+
+  assert.equal(forced.applied, true);
+  assert.deepEqual(forced.orphaned, ['.cursor/mcp.json']);
+  assert.deepEqual(readJson(dir, '.cursor/mcp.json'), edited);
+  assert.equal(trackedPaths(dir).includes('.cursor/mcp.json'), false);
+  assert.equal(checkSetup(options(dir, { files, ...withoutPlaywright })).plan.hasChanges, false);
+});
+
+test('a server that is no longer generated leaves .mcp.json and .claude/settings.json; the other stays', () => {
+  const dir = makeTempDir();
+  const claude = (playwright: boolean, figma: boolean): Partial<ReconcileOptions> => ({
+    assistants: ['claude'],
+    playwrightMcpInclude: playwright,
+    figmaMcpInclude: figma,
+    files: getGeneratedFiles(['claude'], playwright, figma, false),
+  });
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: true,
+    figmaMcpInclude: true,
+  });
+
+  const figmaOnly = updateSetup(options(dir, claude(false, true)));
+
+  assert.equal(figmaOnly.applied, true);
+  assert.equal(figmaOnly.conflicts.length, 0);
+  assert.deepEqual(Object.keys(readJson<{ mcpServers: object }>(dir, '.mcp.json').mcpServers), ['figma']);
+
+  const settings = readJson<Record<string, unknown>>(dir, '.claude/settings.json');
+
+  assert.deepEqual(settings.enabledMcpjsonServers, ['figma']);
+  assert.deepEqual(settings.permissions, { allow: ['mcp__figma__*'] });
+  assert.equal(settings.enableAllProjectMcpServers, true);
+  assert.equal(checkSetup(options(dir, claude(false, true))).plan.hasChanges, false);
+
+  const none = updateSetup(options(dir, claude(false, false)));
+
+  assert.equal(none.applied, true);
+  assert.ok(none.removed.includes('.mcp.json'));
+  assert.equal(fs.existsSync(path.join(dir, '.mcp.json')), false);
+
+  const cleared = readJson<Record<string, unknown>>(dir, '.claude/settings.json');
+
+  assert.equal('enabledMcpjsonServers' in cleared, false);
+  assert.equal('enableAllProjectMcpServers' in cleared, false);
+  assert.equal('permissions' in cleared, false);
+  assert.ok(cleared.enabledPlugins);
+  assert.equal(checkSetup(options(dir, claude(false, false))).plan.hasChanges, false);
+});
+
+// The shape of the cleanup release: many files gone at once, from several directories, in a
+// repository nobody edited. One update must leave nothing behind and nothing pending.
+test('upgrade from a release with more files: one update removes them all and a second changes nothing', () => {
+  const dir = makeTempDir();
+  const current = getGeneratedFiles(['cursor', 'claude'], false, false, false);
+  const retired = [
+    'LEGACY_REFERENCE.md',
+    '.cursor/rules/retired-rule.mdc',
+    '.cursor/skills/retired-skill/SKILL.md',
+    '.cursor/skills/retired-skill/references/details.md',
+    '.claude/legacy-workflows/retired-flow.md',
+    '.claude/legacy-commands/retired-command.md',
+  ];
+  const previousRelease = [
+    ...current,
+    ...retired.map((retiredPath) => ({
+      path: retiredPath,
+      content: `Generated by an older release: ${retiredPath}\n`,
+    })),
+  ];
+  const upgrade = (overrides: Partial<ReconcileOptions> = {}): ReconcileOptions =>
     options(dir, {
-      files: filesWithoutMcp,
+      assistants: ['cursor', 'claude'],
       playwrightMcpInclude: false,
-    }),
-  );
+      files: current,
+      ...overrides,
+    });
 
-  assert.ok(rechecked.orphaned.includes('.cursor/mcp.json'));
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor', 'claude'],
+    force: false,
+    dryRun: false,
+    playwrightMcpInclude: false,
+    files: previousRelease,
+  });
+
+  for (const retiredPath of retired) {
+    assert.equal(fs.existsSync(path.join(dir, retiredPath)), true);
+  }
+
+  assert.equal(checkSetup(upgrade()).plan.hasChanges, true);
+
+  const first = updateSetup(upgrade());
+
+  assert.equal(first.applied, true);
+  assert.equal(first.conflicts.length, 0);
+  assert.deepEqual([...first.removed].sort(), [...retired].sort());
+
+  for (const retiredPath of retired) {
+    assert.equal(fs.existsSync(path.join(dir, retiredPath)), false, `${retiredPath} should be gone`);
+  }
+
+  for (const emptiedDir of ['.cursor/skills/retired-skill', '.claude/legacy-workflows', '.claude/legacy-commands']) {
+    assert.equal(fs.existsSync(path.join(dir, emptiedDir)), false, `${emptiedDir} should be gone`);
+  }
+
+  assert.equal(
+    trackedPaths(dir).some((tracked) => retired.includes(tracked)),
+    false,
+  );
+  assert.equal(checkSetup(upgrade()).plan.hasChanges, false);
+
+  const second = updateSetup(upgrade());
+
+  assert.equal(second.metadataUpdated, false);
+  assert.deepEqual(
+    [second.created, second.updated, second.merged, second.removed, second.orphaned, second.conflicts].flat(),
+    [],
+  );
 });
 
 test('checkSetup rejects malformed metadata', () => {

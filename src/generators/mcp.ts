@@ -22,6 +22,19 @@ function figmaServer(): Record<string, unknown> {
   };
 }
 
+/**
+ * Every MCP server this tool writes or used to write, by its `mcpServers` name. `update` compares
+ * an existing entry with the definition here to tell "the generator wrote this and it is unchanged"
+ * from "the repository owns or edited this" before it removes a server that is no longer generated.
+ * Keep a definition here after the generator stops writing it, or old setups cannot be cleaned up.
+ */
+export function generatedMcpServerDefinitions(): Record<string, Record<string, unknown>> {
+  return {
+    playwright: playwrightServer(),
+    figma: figmaServer(),
+  };
+}
+
 export function buildMcpServers(selection: McpSelection): Record<string, unknown> {
   const servers: Record<string, unknown> = {};
 
