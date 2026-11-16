@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import { QA_AI_RULES_PACKAGE, SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
-import { resolveFigmaMcpTargets, resolvePlaywrightMcpTargets, type GenerateResult } from './generator.js';
+import { resolveFigmaMcpTargets, type GenerateResult } from './generator.js';
 import type { ReconcileResult } from './reconcile.js';
 
 export type QaAiRulesSummaryHook = 'inactive' | 'dry-run' | 'success' | 'skipped-no-package-json';
@@ -12,7 +12,6 @@ function printLine(line = ''): void {
 export function printSummary(
   targetDir: string,
   assistants: Assistant[],
-  playwrightMcpInclude: boolean,
   figmaMcpInclude: boolean,
   qaAiRulesInclude: boolean,
   qaAiRulesHook: QaAiRulesSummaryHook,
@@ -27,28 +26,11 @@ export function printSummary(
   const pageContextPath = '.assistant-setup/page-workflow-context.md';
   const devEnvironmentPath = '.dev-environment.md';
 
-  const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
   const figmaTargets = resolveFigmaMcpTargets(assistants, figmaMcpInclude);
 
   printLine();
   printLine(`Target repository: ${targetDir}`);
   printLine(`Assistants: ${assistants.join(', ')}`);
-
-  if (mcpTargets.cursorFile || mcpTargets.projectRootFile) {
-    const parts: string[] = [];
-
-    if (mcpTargets.cursorFile) {
-      parts.push('.cursor/mcp.json');
-    }
-
-    if (mcpTargets.projectRootFile) {
-      parts.push('.mcp.json (repo root)');
-    }
-
-    printLine(`Playwright MCP: yes — ${parts.join(', ')}`);
-  } else {
-    printLine('Playwright MCP: no (instructions only; no MCP files from this run)');
-  }
 
   if (figmaTargets.cursorFile || figmaTargets.projectRootFile) {
     const parts: string[] = [];

@@ -262,26 +262,25 @@ linear-cli auth oauth
 linear-cli i list --assignee me
 ```
 
-**PLAYWRIGHT_MCP_BLOCK**
+**MCP_SERVERS_BLOCK**
 
 **2.5. Enable project MCP in Cursor (manual — required)**
 
 Writing **`.cursor/mcp.json`** during bootstrap does **not** turn MCP servers on in the IDE. The developer must enable them once per machine/workspace:
 
 1. Open **Cursor Settings** → **Features** → **MCP** (wording may be **Cursor Settings → MCP** in newer builds).
-2. Find **Project MCP** (this repository) and **enable** each server that appears in **`.cursor/mcp.json`** (for example **playwright**, **figma**). If a server is listed but disabled, toggle it **on**.
+2. Find **Project MCP** (this repository) and **enable** each server that appears in **`.cursor/mcp.json`** (for example **figma**). If a server is listed but disabled, toggle it **on**.
 3. **Figma MCP:** export **`FIGMA_API_KEY`** in the environment (system, shell profile, or MCP server env in Cursor) **before** starting the server — see **`.cursor/rules/portal-env-credentials.mdc`**. Without the token, the server may fail to start or show no tools.
 4. Use **Refresh** / reload MCP in that settings screen (or **fully quit and restart Cursor** if tools still do not appear — same remediation as for CLI `PATH` above).
-5. In **Agent** chat, confirm MCP tools are available (server connected, tool list populated) before asking the agent to drive the browser or Figma via MCP.
+5. In **Agent** chat, confirm MCP tools are available (server connected, tool list populated) before asking the agent to read Figma via MCP.
 
 If bootstrap **did not** create **`.cursor/mcp.json`**, skip this subsection until MCP is added manually.
 
 **2.6. Playwright Agent CLI (browser automation — universal, not per-developer)**
 
-The repo also ships the **Playwright Agent CLI** as a token-efficient alternative to Playwright
-MCP for UI checks and QA (see **`.cursor/skills/playwright-cli/SKILL.md`**). It is committed with
-the repo so every teammate gets it from **`npm install`** — no global install and, unlike MCP,
-no manual per-machine enablement. Both the CLI and MCP paths stay available; nothing is removed.
+UI checks and QA drive the browser with the **Playwright Agent CLI** (see
+**`.cursor/skills/playwright-cli/SKILL.md`**). It is committed with the repo so every teammate
+gets it from **`npm install`** — no global install and no manual per-machine enablement.
 
 Set it up once for the project (skip the install if `@playwright/cli` is already a devDependency):
 

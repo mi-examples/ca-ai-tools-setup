@@ -285,15 +285,13 @@ linear-cli i list --assignee me
 
 If `linear-cli auth oauth` needs a browser or TTY outside this session, have the developer run it locally (or **`! linear-cli auth oauth`** in Claude Code), then re-run **`linear-cli --version`** and **`linear-cli i list --assignee me`** here.
 
-**PLAYWRIGHT_MCP_BLOCK**
+**MCP_SERVERS_BLOCK**
 
 **2.5. Playwright Agent CLI (browser automation — universal, not per-developer)**
 
-The repo also ships the **Playwright Agent CLI** as a token-efficient alternative to Playwright
-MCP for UI checks and QA (see **`./.claude/workflows/playwright-cli.md`**; Cursor mirror
-**`.cursor/skills/playwright-cli/SKILL.md`**). It is committed with the repo so every teammate
-gets it from **`npm install`** — no global install and no per-machine MCP config. Both the CLI
-and MCP paths stay available; nothing is removed.
+UI checks and QA drive the browser with the **Playwright Agent CLI** (see
+**`./.claude/workflows/playwright-cli.md`**). It is committed with the repo so every teammate
+gets it from **`npm install`** — no global install and no per-machine setup.
 
 Set it up once for the project (skip the install if `@playwright/cli` is already a devDependency):
 

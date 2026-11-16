@@ -42,7 +42,8 @@ test('loadPreviousInteractiveDefaults parses assistants and MCP flags', () => {
 
     assert.ok(d);
     assert.deepEqual(d!.assistants, ['claude']);
-    assert.equal(d!.playwrightMcpInclude, true);
+    // The stored Playwright MCP choice is ignored: that server is no longer generated (PP-4531).
+    assert.equal('playwrightMcpInclude' in d!, false);
     assert.equal(d!.figmaMcpInclude, true);
     assert.equal(d!.qaAiRulesInclude, true);
   } finally {
@@ -68,7 +69,6 @@ test('loadPreviousInteractiveDefaults uses defaults when MCP blocks are absent',
     const d = loadPreviousInteractiveDefaults(dir);
 
     assert.ok(d);
-    assert.equal(d!.playwrightMcpInclude, true);
     assert.equal(d!.figmaMcpInclude, false);
     assert.equal(d!.qaAiRulesInclude, false);
   } finally {

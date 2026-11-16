@@ -2,7 +2,7 @@
 
 End-to-end QA workflow:
 
-context -> test cases -> browser execution (Playwright CLI or MCP) -> bug
+context -> test cases -> browser execution (Playwright CLI) -> bug
 investigation -> local results.
 
 Use this when running tests, testing a feature, or doing a full QA flow. Linear
@@ -13,9 +13,7 @@ is optional.
 Before executing this workflow, read as needed:
 
 - `./.claude/workflows/test-documentation.md`
-- Browser automation (pick one; both work):
-  - `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI (**preferred**, token-efficient)
-  - `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools
+- `./.claude/workflows/playwright-cli.md` for browser automation
 - `./.claude/agents/figma-mcp.md` when a Figma link or node is provided
 - `./.claude/workflows/linear-workflow.md` when a Linear issue is provided
 
@@ -91,14 +89,9 @@ scope.
 
 ## Execute Via Browser Automation
 
-Use one transport (both drive the same browser; nothing removed):
-
-- `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI (`npx playwright-cli ...`, **preferred**, token-efficient)
-- `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools
-
-The login and execution steps below are transport-agnostic — map each action
-(navigate / fill / click / screenshot / console) to the CLI command or MCP tool
-from the chosen reference.
+Drive the browser with the Playwright CLI (`npx playwright-cli ...`); the commands are in
+`./.claude/workflows/playwright-cli.md`. Each action below maps to one of them: navigate →
+`goto`, fill → `fill`, click → `click`, screenshot → `screenshot`, console → `console`.
 
 ### Form Login
 

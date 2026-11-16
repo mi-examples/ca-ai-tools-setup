@@ -1,18 +1,14 @@
 ---
 name: ui-check-simple
-description: Quick UI verification without Linear—run dev server, open via Playwright MCP, compare against optional Figma link or screenshot reference. Use for UI check, verify UI, check UI, or does this look right.
+description: Quick UI verification without Linear—run dev server, open the page with the Playwright CLI, compare against optional Figma link or screenshot reference. Use for UI check, verify UI, check UI, or does this look right.
 ---
 
 # UI Check (Simple)
 
 Quick UI verification **without Linear**. Optionally accepts a **Figma link** or **reference screenshot** for comparison.
 
-Depends on one browser transport (both work; steps below show MCP `playwright_*` tools):
-**`playwright-cli`** (`npx playwright-cli ...`, **preferred** — token-efficient) or
-**`playwright-mcp`** (MCP tools reference). Optionally Figma MCP rules for node data. When using
-the CLI, map each `playwright_navigate` / `playwright_fill` / `playwright_click` /
-`playwright_screenshot` / `playwright_console_logs` step below to `goto` / `fill` / `click` /
-`screenshot` / `console` — see the `playwright-cli` skill.
+Depends on: **`playwright-cli`** (browser automation, `npx playwright-cli ...`). Optionally Figma
+MCP rules for node data.
 
 ## 1. Input
 
@@ -45,28 +41,29 @@ Use **Admin** role by default unless a specific role is requested.
 
 ### Form login
 
-```
-1. playwright_navigate -> BASE_URL or PAGE_URL from .env
-2. Page redirects to /auth -> playwright_fill with role credentials
-3. playwright_click "Sign In"
-4. playwright_screenshot -> verify authenticated state
+```bash
+npx playwright-cli open <BASE_URL or PAGE_URL from .env>   # redirects to /auth
+npx playwright-cli snapshot                                 # refs for the login form
+npx playwright-cli fill <user-ref> "$QA_USER_ADMIN"
+npx playwright-cli fill <pass-ref> "$QA_PASS_ADMIN" --submit
+npx playwright-cli snapshot                                 # verify authenticated state
 ```
 
 ## 4. Verification flow
 
-1. Navigate to the target page via Playwright MCP
-2. `playwright_screenshot` the current state
+1. Navigate to the target page (`goto`)
+2. `snapshot` the current state; add `screenshot --filename=...` when the check is visual
 3. If **Figma link** provided — fetch node data via Figma MCP rules, compare layout, spacing, colors, typography against the screenshot
 4. If **reference screenshot** provided — compare visually
 5. If **description only** — verify the described behavior / appearance
-6. Check `playwright_console_logs` for JS errors
-7. Optionally test responsive behavior with `playwright_resize`
+6. Check `console` for JS errors
+7. Optionally test responsive behavior with `resize`
 
 ## 5. Output
 
 Report findings **inline in the conversation** (no Linear posting):
 
 - Pass/fail summary
-- Screenshots (saved locally via `playwright_screenshot` with `savePng: true`)
+- Screenshots (saved locally with `screenshot --filename=...`)
 - Discrepancies with specifics (expected vs actual, CSS values, layout differences)
 - Console errors if any

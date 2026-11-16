@@ -8,9 +8,7 @@ component, Figma link, or screenshot.
 
 Read as needed:
 
-- Browser automation (pick one; both work):
-  - `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI (**preferred**, token-efficient)
-  - `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools
+- `./.claude/workflows/playwright-cli.md` for browser automation
 - `./.claude/agents/figma-mcp.md` when Figma is provided
 
 ## Input
@@ -53,7 +51,7 @@ requested.
 
 ## Verification Flow
 
-1. Navigate to the target page with Playwright MCP.
+1. Navigate to the target page with the Playwright CLI.
 2. Capture a screenshot.
 3. If Figma is provided, inspect node data and compare layout, spacing, colors,
    and typography.

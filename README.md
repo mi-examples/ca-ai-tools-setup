@@ -15,7 +15,7 @@ Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
 | `setup-cursor-assistant.md`                                                                                                                                                                                                                                                       | Cursor selected      |
 | `.cursorrules`, `.cursorignore`                                                                                                                                                                                                                                                   | Cursor selected      |
 | `.cursor/rules/*` (assistant-setup-health, code-style, linear-cli, linear-task-gates, portal-env-credentials, README; `figma-mcp.mdc` if Figma MCP)                                                                                                                               | Cursor and/or Claude |
-| `.cursor/skills/*` (ai-development + DOD-FULL, customer-app-docs + references/assets, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-mcp, figma-implementation; figma-code-connect + references if Figma MCP) | Cursor selected      |
+| `.cursor/skills/*` (ai-development + DOD-FULL, customer-app-docs + references/assets, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-cli, figma-implementation; figma-code-connect + references if Figma MCP) | Cursor selected      |
 | `.cursor/mcp.json`                                                                                                                                                                                                                                                                | Cursor + MCP option  |
 | `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                                                                                                                 | Claude selected      |
 | `.claude/skills/*` (ai-development + DOD-FULL, customer-app-docs; figma-code-connect if Figma MCP)                                                                                                                                                                                | Claude selected      |
@@ -134,8 +134,8 @@ npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../m
 
 ### Non-interactive — defaults (`--yes`)
 
-**Selects** both assistants, Playwright MCP **on**, Figma MCP **off**, QA AI rules **off**. Emits
-**`.cursor/mcp.json`** / **`.mcp.json`** when MCP is enabled for the selected assistants.
+**Selects** both assistants, Figma MCP **off**, QA AI rules **off**. **`.cursor/mcp.json`** / **`.mcp.json`**
+are written only when Figma MCP is enabled.
 
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes
@@ -191,26 +191,17 @@ npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants clau
 npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants claude --yes
 ```
 
-### MCP — disable Playwright or enable Figma
+### MCP — enable Figma
 
-Disable Playwright MCP (no **`.cursor/mcp.json`** / **`.mcp.json`** from this run unless Figma is on):
+Figma is the only MCP server the setup writes (requires **`FIGMA_API_KEY`**). Browser automation does not use
+MCP: it runs through the Playwright CLI (`npx playwright-cli`), which ships with the generated skills.
 
 ```bash
-npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-figma yes
 ```
 
 ```powershell
-npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
-```
-
-Enable **both** Playwright and Figma MCP (requires **`FIGMA_API_KEY`** where Figma is used):
-
-```bash
-npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
-```
-
-```powershell
-npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-figma yes
 ```
 
 ### QA AI rules (`@metricinsights/qa-ai-rules`)
@@ -358,7 +349,7 @@ freshness matters and to request approval before any update.
 - `--force`: overwrite generated managed/structured baselines; protected files remain preserved in `update` mode
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--json`: emit the run as a single machine-readable JSON document on stdout instead of the human summary; see [Machine-readable output](#machine-readable-output-json)
-- `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
+- `--mcp-playwright <yes|no>`: **deprecated and ignored.** Playwright MCP is no longer generated; browser automation uses the Playwright CLI. The flag is still accepted so existing commands keep working, and prints a warning on stderr. On `update`, the `playwright` server an older release wrote is removed from the MCP files and Claude settings (see the ownership rules above)
 - `--mcp-figma <yes|no>`: add or skip Figma MCP files for the assistants you selected (`yes` / `true` / `1` / `figma` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **no** (requires `FIGMA_API_KEY`)
 - `--qa-ai-rules <yes|no>`: after generating files, run **`@metricinsights/qa-ai-rules`** setup in the target repo (`yes` / `true` / `1` / `on` vs `none` / `no` / `false` / `0` / `off`). Uses **`--cursor`** / **`--claude`** flags aligned with **`--assistants`**. The CLI picks a one-shot runner from **`package.json`** **`packageManager`** (Corepack) and lockfiles: **`pnpm dlx`** when pnpm, **`yarn dlx`** for Yarn 2+ / Berry layout, **`bunx`** when Bun, otherwise **`npx`**. Skipped when **`--dry-run`** is set. If there is no **`package.json`** in the target, the CLI skips with a warning (you can run **`npx`** / **`pnpm dlx`** / **`yarn dlx`** / **`bunx`** manually). With **`--yes`** and no flag, defaults to **no**
 

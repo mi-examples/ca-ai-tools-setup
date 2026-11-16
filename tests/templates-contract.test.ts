@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { getGeneratedFiles } from '../src/generator.js';
 import { readTemplate } from '../src/templates.js';
 
 function listFiles(dir: string): string[] {
@@ -27,8 +28,8 @@ test('setup assistant templates keep MCP replacement marker', () => {
   const cursorSetup = readTemplate('setup-cursor-assistant.md');
   const claudeSetup = readTemplate('setup-claude-assistant.md');
 
-  assert.match(cursorSetup, /\*\*PLAYWRIGHT_MCP_BLOCK\*\*/);
-  assert.match(claudeSetup, /\*\*PLAYWRIGHT_MCP_BLOCK\*\*/);
+  assert.match(cursorSetup, /\*\*MCP_SERVERS_BLOCK\*\*/);
+  assert.match(claudeSetup, /\*\*MCP_SERVERS_BLOCK\*\*/);
 });
 
 test('setup health rule detects missing and stale tracked configuration', () => {
@@ -66,7 +67,7 @@ test('developer environment guidance says the file is personal, never committed'
   }
 });
 
-test('playwright-cli skill and workflow ship the CLI browser-automation alternative', () => {
+test('playwright-cli skill and workflow ship the CLI as the browser-automation tool', () => {
   const skill = readTemplate('skills/playwright-cli/SKILL.md');
   const workflow = readTemplate('claude/workflows/playwright-cli.md');
 
@@ -79,22 +80,26 @@ test('playwright-cli skill and workflow ship the CLI browser-automation alternat
   }
 });
 
-test('playwright-mcp docs point at the CLI alternative without removing MCP', () => {
-  const mcpSkill = readTemplate('skills/playwright-mcp/SKILL.md');
-  const mcpWorkflow = readTemplate('claude/workflows/playwright-mcp.md');
-
-  assert.match(mcpSkill, /playwright-cli/);
-  assert.match(mcpWorkflow, /playwright-cli/);
-  // MCP reference itself is preserved.
-  assert.match(mcpSkill, /playwright_navigate/);
-});
-
-test('CLAUDE template documents both browser-automation transports', () => {
+test('CLAUDE template sends browser automation to the Playwright CLI', () => {
   const claudeMd = readTemplate('claude/CLAUDE.md');
 
   assert.match(claudeMd, /workflows\/playwright-cli\.md/);
-  assert.match(claudeMd, /workflows\/playwright-mcp\.md/);
   assert.match(claudeMd, /pinned devDependency/);
+});
+
+// PP-4531: one browser tool. A template that still names the MCP server or its `playwright_*`
+// tools sends the assistant to something the setup no longer provides.
+test('nothing generated mentions Playwright MCP', () => {
+  const playwrightMcp = /@playwright\/mcp|playwright_[a-z]|playwright-mcp|Playwright MCP/;
+
+  for (const template of listFiles('templates')) {
+    assert.doesNotMatch(fs.readFileSync(template, 'utf8'), playwrightMcp, template);
+  }
+
+  // The MCP section of the setup docs is rendered in code, so check the output as well.
+  for (const file of getGeneratedFiles(['cursor', 'claude'], true, false)) {
+    assert.doesNotMatch(file.content, playwrightMcp, file.path);
+  }
 });
 
 test('cursor legacy rules stub keeps canonical QA skills and deprecates ai-testing/ui-check', () => {

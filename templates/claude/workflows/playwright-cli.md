@@ -1,18 +1,15 @@
 # Playwright Agent CLI Workflow
 
-Token-efficient, command-line alternative to `./.claude/workflows/playwright-mcp.md` for
-browser automation, UI verification, manual QA execution, and debugging UI failures. Drives a
-real browser through Bash (`npx playwright-cli ...`) instead of MCP tools.
-
-**Both options stay available — pick one per task.** The CLI is preferred when token cost
-matters (concise output, no MCP tool schemas loaded); the MCP path remains fully supported.
+The browser-automation tool for this repo: UI verification, manual QA execution, and debugging
+UI failures. It drives a real browser through Bash (`npx playwright-cli ...`); its output is
+short text, and there is no server to configure.
 
 Reference: https://playwright.dev/agent-cli/introduction
 
 ## Install (universal, not per-developer)
 
 The CLI ships with the repository so every team member gets it from `npm install` — no global
-install and no per-machine MCP config:
+install and no per-machine setup:
 
 - `@playwright/cli` is a **pinned devDependency**. If missing: `npm install --save-dev @playwright/cli@0.1.17`.
 - Invoke as **`npx playwright-cli ...`** (resolves the pinned local version; `npx -y @playwright/cli@0.1.17 ...` is a fallback).
@@ -44,11 +41,11 @@ URL, title, and a snapshot reference — use it to verify and pick the next ref.
 `snapshot`/`find` over `screenshot`: snapshots are cheaper and give precise refs.
 
 The `eval` argument is a JS expression or an `el => ...` arrow function scoped to a
-ref/selector — no IIFE wrapper needed (unlike the MCP `playwright_evaluate`).
+ref/selector — no IIFE wrapper needed.
 
 ## Portal Page flow
 
-Same environment as `./.claude/workflows/ui-check-simple.md` — only the transport changes.
+`./.claude/workflows/ui-check-simple.md` uses the same environment and these commands.
 
 1. **Dev server** — `npm run dev` (proxy in `pp-dev.config.ts`; default port 3000, then next free).
 2. **Auth (form login)** — read `.env`; 

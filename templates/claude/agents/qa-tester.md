@@ -11,9 +11,7 @@ Use this agent for full or partial QA execution.
 
 - `./.claude/workflows/testing-flow.md`
 - `./.claude/workflows/test-documentation.md`
-- For browser automation, pick one transport (both work; nothing removed):
-  - `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI (**preferred**, token-efficient)
-  - `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools
+- `./.claude/workflows/playwright-cli.md` for browser automation
 - `./.claude/workflows/linear-workflow.md` when a Linear issue is provided
 
 ## Rules

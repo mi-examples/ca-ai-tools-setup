@@ -1,8 +1,11 @@
 export type McpSelection = {
-  includePlaywrightMcp: boolean;
   includeFigmaMcp: boolean;
 };
 
+/**
+ * No longer generated (PP-4531): browser automation runs through the Playwright CLI. The definition
+ * stays so `update` can recognise the entry older releases wrote and remove it.
+ */
 function playwrightServer(): Record<string, unknown> {
   return {
     type: 'stdio',
@@ -37,10 +40,6 @@ export function generatedMcpServerDefinitions(): Record<string, Record<string, u
 
 export function buildMcpServers(selection: McpSelection): Record<string, unknown> {
   const servers: Record<string, unknown> = {};
-
-  if (selection.includePlaywrightMcp) {
-    servers.playwright = playwrightServer();
-  }
 
   if (selection.includeFigmaMcp) {
     servers.figma = figmaServer();

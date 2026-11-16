@@ -3,7 +3,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { generateSetup, getGeneratedFiles } from '../src/generator.js';
+import type { Assistant } from '../src/constants.js';
+import { generateSetup, getGeneratedFiles, type ExistingFileAction } from '../src/generator.js';
+import { generatedMcpServerDefinitions } from '../src/generators/mcp.js';
 import { checkSetup, updateSetup, type ReconcileOptions } from '../src/reconcile.js';
 import { loadSetupMetadata, SETUP_METADATA_PATH } from '../src/setup-metadata.js';
 
@@ -17,7 +19,6 @@ function createCursorSetup(targetDir: string): void {
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
   });
 }
 
@@ -25,10 +26,9 @@ function options(targetDir: string, overrides: Partial<ReconcileOptions> = {}): 
   return {
     targetDir,
     assistants: ['cursor'],
-    playwrightMcpInclude: true,
     figmaMcpInclude: false,
     qaAiRulesInclude: false,
-    files: getGeneratedFiles(['cursor'], true, false, false),
+    files: getGeneratedFiles(['cursor'], false, false),
     metadata: loadSetupMetadata(targetDir),
     force: false,
     dryRun: false,
@@ -51,7 +51,7 @@ test('updateSetup replaces an unchanged managed file when its source changes', (
   const dir = makeTempDir();
 
   createCursorSetup(dir);
-  const files = getGeneratedFiles(['cursor'], true, false, false).map((file) =>
+  const files = getGeneratedFiles(['cursor'], false, false).map((file) =>
     file.path === '.cursor/rules/code-style.mdc'
       ? { ...file, content: `${file.content}\nUpdated managed rule.\n` }
       : file,
@@ -73,7 +73,7 @@ test('updateSetup blocks every write when a managed file has local changes', () 
 
   fs.writeFileSync(conflictingPath, 'Repository-owned edit in a managed file.\n', 'utf8');
 
-  const files = getGeneratedFiles(['cursor'], true, false, false).map((file) =>
+  const files = getGeneratedFiles(['cursor'], false, false).map((file) =>
     file.path === 'LINEAR_CLI.md' ? { ...file, content: `${file.content}\nNew release content.\n` } : file,
   );
   const result = updateSetup(options(dir, { files }));
@@ -142,9 +142,11 @@ test('updateSetup preserves and adopts repository-owned protected files', () => 
 
 test('updateSetup semantically merges an unchanged structured file', () => {
   const dir = makeTempDir();
+  const figma = { figmaMcpInclude: true };
 
-  createCursorSetup(dir);
-  const files = getGeneratedFiles(['cursor'], true, false, false).map((file) => {
+  generateSetup({ targetDir: dir, assistants: ['cursor'], force: false, dryRun: false, ...figma });
+
+  const files = getGeneratedFiles(['cursor'], true, false).map((file) => {
     if (file.path !== '.cursor/mcp.json') {
       return file;
     }
@@ -155,15 +157,15 @@ test('updateSetup semantically merges an unchanged structured file', () => {
 
     return { ...file, content: `${JSON.stringify(doc, null, 2)}\n` };
   });
-  const result = updateSetup(options(dir, { files }));
+  const result = updateSetup(options(dir, { files, ...figma }));
   const merged = JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf8')) as {
     mcpServers: Record<string, unknown>;
   };
 
   assert.ok(result.merged.includes('.cursor/mcp.json'));
-  assert.ok(merged.mcpServers.playwright);
+  assert.ok(merged.mcpServers.figma);
   assert.ok(merged.mcpServers.releaseServer);
-  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+  assert.equal(checkSetup(options(dir, { files, ...figma })).plan.hasChanges, false);
 });
 
 test('updateSetup safely merges modified AGENTS.md even with force', () => {
@@ -260,7 +262,7 @@ test('updateSetup recreates missing files and removes unchanged managed orphans'
 
   fs.rmSync(path.join(dir, missingPath));
 
-  const files = getGeneratedFiles(['cursor'], true, false, false).filter((file) => file.path !== orphanPath);
+  const files = getGeneratedFiles(['cursor'], false, false).filter((file) => file.path !== orphanPath);
   const result = updateSetup(options(dir, { files }));
 
   assert.ok(result.created.includes(missingPath));
@@ -293,10 +295,8 @@ test('updateSetup dry-run reports changes without writing files or metadata', ()
 // or be handed over to it in a single reviewed update: an obsolete file that is kept and still
 // tracked holds `check` at exit code 2 forever, which the org rollout reads as "always outdated".
 
-const withoutPlaywright = { playwrightMcpInclude: false };
-
 function cursorFilesWithout(...removedPaths: string[]): ReturnType<typeof getGeneratedFiles> {
-  return getGeneratedFiles(['cursor'], true, false, false).filter((file) => !removedPaths.includes(file.path));
+  return getGeneratedFiles(['cursor'], false, false).filter((file) => !removedPaths.includes(file.path));
 }
 
 function readJson<T>(dir: string, relativePath: string): T {
@@ -319,9 +319,8 @@ function createCursorSetupWithRetiredFiles(targetDir: string): void {
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
     files: [
-      ...getGeneratedFiles(['cursor'], true, false, false),
+      ...getGeneratedFiles(['cursor'], false, false),
       ...[RETIRED_PROMPT, RETIRED_RULE].map((retiredPath) => ({
         path: retiredPath,
         content: `Generated by an older release: ${retiredPath}\n`,
@@ -397,41 +396,118 @@ test('a protected file that is no longer generated stays and stops being tracked
   assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
 });
 
-test('an untouched generated MCP file is removed when its only server is no longer generated', () => {
+// --- The Playwright MCP server older releases wrote (PP-4531) ------------------------------------
+//
+// The generator no longer writes it, so today's code cannot produce the state these tests start
+// from. It is put together by hand: the server in the MCP files and in Claude's settings, plus the
+// `playwrightMcp` marker the old release recorded in the metadata.
+
+const PLAYWRIGHT_SERVER = generatedMcpServerDefinitions().playwright;
+const NO_PLAYWRIGHT_MARKER = { cursorFile: false, projectRootFile: false };
+
+type PlaywrightReleaseSetup = {
+  figma?: boolean;
+  existingFileActions?: Partial<Record<string, ExistingFileAction>>;
+};
+
+function createSetupFromPlaywrightMcpRelease(
+  targetDir: string,
+  assistants: Assistant[],
+  { figma = false, existingFileActions }: PlaywrightReleaseSetup = {},
+): void {
+  const current = getGeneratedFiles(assistants, figma, false);
+  const mcpPaths = [
+    ...(assistants.includes('cursor') ? ['.cursor/mcp.json'] : []),
+    ...(assistants.includes('claude') ? ['.mcp.json'] : []),
+  ];
+  const withPlaywright = (content: string | undefined): string => {
+    const doc = JSON.parse(content ?? '{"mcpServers":{}}') as { mcpServers: Record<string, unknown> };
+
+    return `${JSON.stringify({ mcpServers: { playwright: PLAYWRIGHT_SERVER, ...doc.mcpServers } }, null, 2)}\n`;
+  };
+  const files = current
+    .filter((file) => !mcpPaths.includes(file.path))
+    .map((file) => {
+      if (file.path !== '.claude/settings.json') {
+        return file;
+      }
+
+      const settings = JSON.parse(file.content) as {
+        enabledMcpjsonServers?: string[];
+        permissions?: { allow?: string[] };
+      };
+
+      return {
+        ...file,
+        content: `${JSON.stringify(
+          {
+            ...settings,
+            enableAllProjectMcpServers: true,
+            enabledMcpjsonServers: ['playwright', ...(settings.enabledMcpjsonServers ?? [])],
+            permissions: { allow: ['mcp__playwright__*', ...(settings.permissions?.allow ?? [])] },
+          },
+          null,
+          2,
+        )}\n`,
+      };
+    });
+
+  for (const mcpPath of mcpPaths) {
+    files.push({ path: mcpPath, content: withPlaywright(current.find((file) => file.path === mcpPath)?.content) });
+  }
+
+  generateSetup({
+    targetDir,
+    assistants,
+    force: false,
+    dryRun: false,
+    figmaMcpInclude: figma,
+    files,
+    existingFileActions,
+  });
+
+  const metadataPath = path.join(targetDir, SETUP_METADATA_PATH);
+  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as Record<string, unknown>;
+
+  metadata.playwrightMcp = {
+    cursorFile: assistants.includes('cursor'),
+    projectRootFile: assistants.includes('claude'),
+  };
+  fs.writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
+}
+
+function playwrightMarker(dir: string): unknown {
+  return readJson<{ playwrightMcp: unknown }>(dir, SETUP_METADATA_PATH).playwrightMcp;
+}
+
+test('an untouched MCP file from an older release is removed with its Playwright server', () => {
   const dir = makeTempDir();
 
-  createCursorSetup(dir);
+  createSetupFromPlaywrightMcpRelease(dir, ['cursor']);
 
-  const files = getGeneratedFiles(['cursor'], false, false, false);
-  const result = updateSetup(options(dir, { files, ...withoutPlaywright }));
+  const result = updateSetup(options(dir));
 
+  assert.equal(result.applied, true);
   assert.ok(result.removed.includes('.cursor/mcp.json'));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
-  assert.equal(checkSetup(options(dir, { files, ...withoutPlaywright })).plan.hasChanges, false);
+  assert.deepEqual(playwrightMarker(dir), NO_PLAYWRIGHT_MARKER);
+  assert.equal(checkSetup(options(dir)).plan.hasChanges, false);
 });
 
-test('an MCP file with repository servers loses only the generated one and becomes repository-owned', () => {
+test('an MCP file with repository servers loses only the Playwright server and becomes repository-owned', () => {
   const dir = makeTempDir();
   const mcpPath = path.join(dir, '.cursor/mcp.json');
 
   fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
   fs.writeFileSync(mcpPath, '{"mcpServers":{"custom":{"command":"node"}}}\n', 'utf8');
-  generateSetup({
-    targetDir: dir,
-    assistants: ['cursor'],
-    force: false,
-    dryRun: false,
-    playwrightMcpInclude: true,
-    existingFileActions: { '.cursor/mcp.json': 'merge' },
-  });
+  createSetupFromPlaywrightMcpRelease(dir, ['cursor'], { existingFileActions: { '.cursor/mcp.json': 'merge' } });
 
   assert.deepEqual(Object.keys(readJson<{ mcpServers: object }>(dir, '.cursor/mcp.json').mcpServers), [
     'custom',
     'playwright',
   ]);
 
-  const files = getGeneratedFiles(['cursor'], false, false, false);
-  const result = updateSetup(options(dir, { files, ...withoutPlaywright }));
+  const result = updateSetup(options(dir));
 
   assert.equal(result.applied, true);
   assert.equal(result.conflicts.length, 0);
@@ -440,13 +516,13 @@ test('an MCP file with repository servers loses only the generated one and becom
     custom: { command: 'node' },
   });
   assert.equal(trackedPaths(dir).includes('.cursor/mcp.json'), false);
-  assert.equal(checkSetup(options(dir, { files, ...withoutPlaywright })).plan.hasChanges, false);
+  assert.equal(checkSetup(options(dir)).plan.hasChanges, false);
 });
 
 test('a locally edited obsolete MCP file is a conflict; --force keeps what the repository owns', () => {
   const dir = makeTempDir();
 
-  createCursorSetup(dir);
+  createSetupFromPlaywrightMcpRelease(dir, ['cursor']);
 
   const mcpPath = path.join(dir, '.cursor/mcp.json');
   const edited = {
@@ -459,40 +535,36 @@ test('a locally edited obsolete MCP file is a conflict; --force keeps what the r
 
   fs.writeFileSync(mcpPath, `${JSON.stringify(edited, null, 2)}\n`, 'utf8');
 
-  const files = getGeneratedFiles(['cursor'], false, false, false);
-  const blocked = updateSetup(options(dir, { files, ...withoutPlaywright }));
+  const blocked = updateSetup(options(dir));
 
   assert.equal(blocked.applied, false);
   assert.deepEqual(blocked.conflicts, ['.cursor/mcp.json']);
 
-  const forced = updateSetup(options(dir, { files, ...withoutPlaywright, force: true }));
+  const forced = updateSetup(options(dir, { force: true }));
 
   assert.equal(forced.applied, true);
   assert.deepEqual(forced.orphaned, ['.cursor/mcp.json']);
   assert.deepEqual(readJson(dir, '.cursor/mcp.json'), edited);
   assert.equal(trackedPaths(dir).includes('.cursor/mcp.json'), false);
-  assert.equal(checkSetup(options(dir, { files, ...withoutPlaywright })).plan.hasChanges, false);
+  assert.equal(checkSetup(options(dir)).plan.hasChanges, false);
 });
 
-test('a server that is no longer generated leaves .mcp.json and .claude/settings.json; the other stays', () => {
+test('the Playwright server leaves .mcp.json and .claude/settings.json; the Figma server stays', () => {
   const dir = makeTempDir();
-  const claude = (playwright: boolean, figma: boolean): Partial<ReconcileOptions> => ({
+  const claude = (figma: boolean): Partial<ReconcileOptions> => ({
     assistants: ['claude'],
-    playwrightMcpInclude: playwright,
     figmaMcpInclude: figma,
-    files: getGeneratedFiles(['claude'], playwright, figma, false),
+    files: getGeneratedFiles(['claude'], figma, false),
   });
 
-  generateSetup({
-    targetDir: dir,
-    assistants: ['claude'],
-    force: false,
-    dryRun: false,
-    playwrightMcpInclude: true,
-    figmaMcpInclude: true,
-  });
+  createSetupFromPlaywrightMcpRelease(dir, ['claude'], { figma: true });
 
-  const figmaOnly = updateSetup(options(dir, claude(false, true)));
+  assert.deepEqual(readJson<{ enabledMcpjsonServers: string[] }>(dir, '.claude/settings.json').enabledMcpjsonServers, [
+    'playwright',
+    'figma',
+  ]);
+
+  const figmaOnly = updateSetup(options(dir, claude(true)));
 
   assert.equal(figmaOnly.applied, true);
   assert.equal(figmaOnly.conflicts.length, 0);
@@ -503,9 +575,12 @@ test('a server that is no longer generated leaves .mcp.json and .claude/settings
   assert.deepEqual(settings.enabledMcpjsonServers, ['figma']);
   assert.deepEqual(settings.permissions, { allow: ['mcp__figma__*'] });
   assert.equal(settings.enableAllProjectMcpServers, true);
-  assert.equal(checkSetup(options(dir, claude(false, true))).plan.hasChanges, false);
+  assert.deepEqual(playwrightMarker(dir), NO_PLAYWRIGHT_MARKER);
+  assert.equal(checkSetup(options(dir, claude(true))).plan.hasChanges, false);
 
-  const none = updateSetup(options(dir, claude(false, false)));
+  // Turning Figma off afterwards takes the same path: the last generated server goes, and with it
+  // the file and every MCP key the generator put into the settings.
+  const none = updateSetup(options(dir, claude(false)));
 
   assert.equal(none.applied, true);
   assert.ok(none.removed.includes('.mcp.json'));
@@ -517,14 +592,42 @@ test('a server that is no longer generated leaves .mcp.json and .claude/settings
   assert.equal('enableAllProjectMcpServers' in cleared, false);
   assert.equal('permissions' in cleared, false);
   assert.ok(cleared.enabledPlugins);
-  assert.equal(checkSetup(options(dir, claude(false, false))).plan.hasChanges, false);
+  assert.equal(checkSetup(options(dir, claude(false))).plan.hasChanges, false);
+});
+
+test('a Playwright server the generator never wrote is left alone', () => {
+  const dir = makeTempDir();
+  const mcpPath = path.join(dir, '.cursor/mcp.json');
+  const figma = { figmaMcpInclude: true };
+
+  // The repository added the very same server itself; this release only merged Figma into the file.
+  fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
+  fs.writeFileSync(mcpPath, `${JSON.stringify({ mcpServers: { playwright: PLAYWRIGHT_SERVER } })}\n`, 'utf8');
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    ...figma,
+    existingFileActions: { '.cursor/mcp.json': 'merge' },
+  });
+
+  assert.deepEqual(playwrightMarker(dir), NO_PLAYWRIGHT_MARKER);
+
+  const result = updateSetup(options(dir));
+
+  assert.equal(result.applied, true);
+  assert.deepEqual(readJson<{ mcpServers: object }>(dir, '.cursor/mcp.json').mcpServers, {
+    playwright: PLAYWRIGHT_SERVER,
+  });
+  assert.equal(checkSetup(options(dir)).plan.hasChanges, false);
 });
 
 // The shape of the cleanup release: many files gone at once, from several directories, in a
 // repository nobody edited. One update must leave nothing behind and nothing pending.
 test('upgrade from a release with more files: one update removes them all and a second changes nothing', () => {
   const dir = makeTempDir();
-  const current = getGeneratedFiles(['cursor', 'claude'], false, false, false);
+  const current = getGeneratedFiles(['cursor', 'claude'], false, false);
   const retired = [
     'LEGACY_REFERENCE.md',
     '.cursor/rules/retired-rule.mdc',
@@ -543,7 +646,6 @@ test('upgrade from a release with more files: one update removes them all and a 
   const upgrade = (overrides: Partial<ReconcileOptions> = {}): ReconcileOptions =>
     options(dir, {
       assistants: ['cursor', 'claude'],
-      playwrightMcpInclude: false,
       files: current,
       ...overrides,
     });
@@ -553,7 +655,6 @@ test('upgrade from a release with more files: one update removes them all and a 
     assistants: ['cursor', 'claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
     files: previousRelease,
   });
 

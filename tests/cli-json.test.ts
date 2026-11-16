@@ -28,7 +28,7 @@ function parseJsonStdout(result: ReturnType<typeof runCli>): Record<string, unkn
 }
 
 function generate(targetDir: string, extraArgs: string[] = []) {
-  return runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no', ...extraArgs]);
+  return runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', ...extraArgs]);
 }
 
 test('generate --json emits one JSON document and nothing else on stdout', () => {

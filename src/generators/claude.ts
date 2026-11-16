@@ -9,7 +9,6 @@ const CLAUDE_WORKFLOW_TEMPLATES = [
   'claude/workflows/testing-flow.md',
   'claude/workflows/ui-check-simple.md',
   'claude/workflows/linear-qa-report.md',
-  'claude/workflows/playwright-mcp.md',
   'claude/workflows/playwright-cli.md',
   'claude/workflows/test-documentation.md',
 ] as const;
@@ -38,7 +37,6 @@ function claudeSubpath(templateRel: string): string {
 }
 
 export type GenerateClaudeOptions = {
-  includePlaywrightMcp: boolean;
   includeFigmaMcp: boolean;
 };
 
@@ -49,10 +47,6 @@ export function buildClaudeSettingsJson(options: GenerateClaudeOptions): string 
   };
 
   const enabledNames: string[] = [];
-
-  if (options.includePlaywrightMcp) {
-    enabledNames.push('playwright');
-  }
 
   if (options.includeFigmaMcp) {
     enabledNames.push('figma');
@@ -76,10 +70,6 @@ export function buildClaudeSettingsJson(options: GenerateClaudeOptions): string 
 function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
   const selected: string[] = [];
 
-  if (options.includePlaywrightMcp) {
-    selected.push('playwright');
-  }
-
   if (options.includeFigmaMcp) {
     selected.push('figma');
   }
@@ -98,10 +88,7 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
   }
 
   const selectedServersLabel = selected.join(', ');
-  const mcpJson = buildMcpJson({
-    includePlaywrightMcp: options.includePlaywrightMcp,
-    includeFigmaMcp: options.includeFigmaMcp,
-  });
+  const mcpJson = buildMcpJson({ includeFigmaMcp: options.includeFigmaMcp });
 
   return [
     '**2.4. MCP servers (Claude Code)**',
@@ -131,7 +118,7 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
   const mcpInstructions = renderClaudeMcpSection(options);
 
   const setupClaudeContent = readTemplate('setup-claude-assistant.md').replace(
-    /\*\*PLAYWRIGHT_MCP_BLOCK\*\*|__PLAYWRIGHT_MCP_BLOCK__/,
+    /\*\*MCP_SERVERS_BLOCK\*\*/,
     `${mcpInstructions.trimEnd()}\n`,
   );
 
@@ -163,17 +150,11 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     })),
   ];
 
-  if (options.includePlaywrightMcp || options.includeFigmaMcp) {
+  if (options.includeFigmaMcp) {
     files.push({
       path: '.mcp.json',
-      content: buildMcpJson({
-        includePlaywrightMcp: options.includePlaywrightMcp,
-        includeFigmaMcp: options.includeFigmaMcp,
-      }),
+      content: buildMcpJson({ includeFigmaMcp: true }),
     });
-  }
-
-  if (options.includeFigmaMcp) {
     files.push({
       path: '.claude/agents/figma-mcp.md',
       content: readTemplate('claude/agents/figma-mcp.md'),

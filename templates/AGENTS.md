@@ -16,8 +16,8 @@ Check **`.assistant-setup/SETUP_STATUS.md`** before setup-sensitive work. Its ab
 | `code-style.md`            | Portal Page naming, SCSS modules, BEM, `app-context` / `app-provider`, `constants.ts`, `index.html` globals. Always-on for development.                     |
 | `frontend-architecture.md` | Component hierarchy, design system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope. Always-on for development.                    |
 | `commit-convention.md`     | Git commit message format — Angular commit message convention (`type(scope): subject`, body, footer). Always-on whenever writing commit messages.           |
-| `qa-tester.md`             | Test cases, Playwright execution (CLI or MCP), bug documentation, and local `test-documentation/` layout.                                                   |
-| `ui-verifier.md`           | Browser UI checks (Playwright CLI or MCP), visual verification, and screenshot evidence for Linear comments.                                                |
+| `qa-tester.md`             | Test cases, browser execution (Playwright CLI), bug documentation, and local `test-documentation/` layout.                                                   |
+| `ui-verifier.md`           | Browser UI checks (Playwright CLI), visual verification, and screenshot evidence for Linear comments.                                                |
 | `linear-reporter.md`       | Publish QA results to Linear (comments, state, embedded screenshots).                                                                                       |
 | `figma-mcp.md`             | Figma MCP: structure-first implementation, tokens, Code Connect, layout fidelity. _(Present only if this repo was bootstrapped with Figma MCP for Claude.)_ |
 

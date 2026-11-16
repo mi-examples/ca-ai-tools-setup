@@ -26,12 +26,7 @@ import {
   type SetupMetadata,
 } from './setup-metadata.js';
 import { getCliPackageProvenance } from './setup-log.js';
-import {
-  REMOVABLE_LEGACY_SETUP_PATHS,
-  removeEmptyParentDirs,
-  resolveFigmaMcpTargets,
-  resolvePlaywrightMcpTargets,
-} from './generator.js';
+import { REMOVABLE_LEGACY_SETUP_PATHS, removeEmptyParentDirs, resolveFigmaMcpTargets } from './generator.js';
 
 /**
  * Repository-owned files that are merged into, never replaced — not by --force either. Mirrors
@@ -71,7 +66,6 @@ export type ReconcilePlan = {
 
 export type ReconcileConfiguration = {
   assistants: Assistant[];
-  playwrightMcpInclude: boolean;
   figmaMcpInclude: boolean;
   qaAiRulesInclude: boolean;
 };
@@ -631,7 +625,6 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
   const metadata = createSetupMetadata(
     {
       assistants: options.assistants,
-      playwrightMcp: resolvePlaywrightMcpTargets(options.assistants, options.playwrightMcpInclude),
       figmaMcp: resolveFigmaMcpTargets(options.assistants, options.figmaMcpInclude),
       qaAiRulesEnabled: options.qaAiRulesInclude,
     },

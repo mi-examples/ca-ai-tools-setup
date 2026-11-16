@@ -4,16 +4,11 @@ import { buildMcpJson } from './mcp.js';
 import { buildCursorRuleFiles, buildPortalPageSkillFiles } from './portal-page-ai.js';
 
 export type GenerateCursorOptions = {
-  includePlaywrightMcp: boolean;
   includeFigmaMcp: boolean;
 };
 
 function renderCursorMcpSection(options: GenerateCursorOptions): string {
   const selected: string[] = [];
-
-  if (options.includePlaywrightMcp) {
-    selected.push('playwright');
-  }
 
   if (options.includeFigmaMcp) {
     selected.push('figma');
@@ -35,10 +30,7 @@ function renderCursorMcpSection(options: GenerateCursorOptions): string {
   }
 
   const selectedServersLabel = selected.join(', ');
-  const mcpJson = buildMcpJson({
-    includePlaywrightMcp: options.includePlaywrightMcp,
-    includeFigmaMcp: options.includeFigmaMcp,
-  });
+  const mcpJson = buildMcpJson({ includeFigmaMcp: options.includeFigmaMcp });
 
   return [
     '**2.4. MCP servers (Cursor)**',
@@ -68,7 +60,7 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
   const mcpInstructions = renderCursorMcpSection(options);
 
   const setupCursorContent = readTemplate('setup-cursor-assistant.md').replace(
-    /\*\*PLAYWRIGHT_MCP_BLOCK\*\*|__PLAYWRIGHT_MCP_BLOCK__/,
+    /\*\*MCP_SERVERS_BLOCK\*\*/,
     `${mcpInstructions.trimEnd()}\n`,
   );
 
@@ -89,13 +81,10 @@ export function generateCursorFiles(options: GenerateCursorOptions): GeneratedFi
     ...buildPortalPageSkillFiles('cursor', options.includeFigmaMcp),
   ];
 
-  if (options.includePlaywrightMcp || options.includeFigmaMcp) {
+  if (options.includeFigmaMcp) {
     files.push({
       path: '.cursor/mcp.json',
-      content: buildMcpJson({
-        includePlaywrightMcp: options.includePlaywrightMcp,
-        includeFigmaMcp: options.includeFigmaMcp,
-      }),
+      content: buildMcpJson({ includeFigmaMcp: true }),
     });
   }
 

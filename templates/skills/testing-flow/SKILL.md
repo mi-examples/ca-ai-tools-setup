@@ -1,14 +1,14 @@
 ---
 name: testing-flow
-description: End-to-end QA testing flow—generate test cases, execute via Playwright MCP, investigate bugs, produce local results. Linear is optional; falls back to user-provided context or codebase analysis. Use when running tests, testing a feature, or doing a full QA flow.
+description: End-to-end QA testing flow—generate test cases, execute them in a browser with the Playwright CLI, investigate bugs, produce local results. Linear is optional; falls back to user-provided context or codebase analysis. Use when running tests, testing a feature, or doing a full QA flow.
 ---
 
 # Testing Flow (Full QA)
 
-End-to-end QA testing: **context → test cases → Playwright MCP execution → bug investigation → local results**.
+End-to-end QA testing: **context → test cases → browser execution → bug investigation → local results**.
 
-Depends on: **`test-documentation`** (TC and bug report format), a browser transport —
-**`playwright-cli`** (**preferred**) or **`playwright-mcp`** — optionally **`figma-implementation`** (design reference).
+Depends on: **`test-documentation`** (TC and bug report format), **`playwright-cli`** (browser
+automation), optionally **`figma-implementation`** (design reference).
 
 ## 0. Known limitations & lessons learned
 
@@ -43,7 +43,7 @@ test-documentation/
 └── <CONTEXT_KEY>/
     ├── test-cases.md      # TC-01..TC-N per test-documentation skill
     ├── bugs.md            # BUG-01..BUG-N per test-documentation bug rules
-    └── screenshots/       # PNGs from Playwright MCP
+    └── screenshots/       # PNGs from test execution
 ```
 
 `<CONTEXT_KEY>` is the Linear issue key (e.g. `PP-3388`) or a descriptive slug when no issue exists.
@@ -72,34 +72,35 @@ Proxy config in `pp-dev.config.ts`. Default port 3000 (then 3001, 3002, … if b
 
 Generate per **`test-documentation`** skill. Additionally analyze source code for behavior not covered by acceptance criteria.
 
-## 4. Execute via Playwright MCP
+## 4. Execute in the browser
 
-For browser automation, use either the **`playwright-cli`** skill (`npx playwright-cli ...`,
-**preferred** — token-efficient) or the **`playwright-mcp`** skill (MCP tools). Both drive the
-same browser; see the chosen skill for the command/tool reference, patterns, and limitations.
+Drive the browser with the **`playwright-cli`** skill (`npx playwright-cli ...`). It has the full
+command reference, the targeting rules and the known limitations.
 
 ### Authentication (form login)
 
-```
-1. playwright_navigate -> BASE_URL or PAGE_URL from .env
-2. Page redirects to /auth -> playwright_fill with QA_USER_<ROLE>, QA_PASS_<ROLE>
-3. playwright_click "Sign In"
-4. playwright_screenshot -> verify authenticated state
+```bash
+npx playwright-cli open <BASE_URL or PAGE_URL from .env>   # redirects to /auth
+npx playwright-cli snapshot                                 # refs for the login form
+npx playwright-cli fill <user-ref> "$QA_USER_<ROLE>"
+npx playwright-cli fill <pass-ref> "$QA_PASS_<ROLE>" --submit
+npx playwright-cli snapshot                                 # verify authenticated state
 ```
 
 ### Test execution loop
 
-For each TC: **navigate** → **perform steps** → **verify** via `playwright_screenshot` + `playwright_evaluate` → **record** pass/fail/blocked.
+For each TC: **navigate** (`goto`) → **perform steps** (`click`, `fill`, `select`, …) → **verify** with
+`snapshot` / `find`, and `eval` or `screenshot` where the check needs them → **record** pass/fail/blocked.
 
 ## 5. Bug investigation
 
 When a test fails:
 
-1. `playwright_screenshot` the current state
+1. `snapshot` the current state; `screenshot --filename=...` when visual evidence helps
 2. Check URL — confirm expected route
-3. `playwright_console_logs` for JS errors
+3. `console` for JS errors
 4. Trace to source — grep the error in `src/`
-5. `playwright_evaluate` with `fetch()` to verify API data
+5. `requests` / `request <n>` to verify API data
 6. Isolate: data / rendering / routing / state management
 
 ## 6. Bug report format

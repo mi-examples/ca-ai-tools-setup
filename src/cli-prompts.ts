@@ -3,7 +3,6 @@ import path from 'node:path';
 import * as p from '@clack/prompts';
 import { DEFAULT_ASSISTANTS, QA_AI_RULES_PACKAGE, type Assistant } from './constants.js';
 import { parseAssistantsArg } from './assistants.js';
-import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
 import { parseFigmaMcpArg } from './figma-mcp-choice.js';
 import { parseQaAiRulesArg } from './qa-ai-rules-choice.js';
 import { isMergeablePath } from './mcp-json-merge.js';
@@ -11,7 +10,7 @@ import { resolveCliRepoRoot } from './path-policy.js';
 import { type InteractiveDefaults } from './previous-setup.js';
 import { type ExistingFileAction } from './generator.js';
 import { type GeneratedFile } from './generators/types.js';
-import { firstNonEmptyTarget, mcpFigmaCliRaw, mcpPlaywrightCliRaw, qaAiRulesCliRaw, type CliArgs } from './cli-args.js';
+import { firstNonEmptyTarget, mcpFigmaCliRaw, qaAiRulesCliRaw, type CliArgs } from './cli-args.js';
 
 export async function pickTargetDir(args: CliArgs): Promise<string> {
   const cwd = process.cwd();
@@ -67,32 +66,6 @@ export async function pickAssistants(args: CliArgs, previous: InteractiveDefault
   }
 
   return selected as Assistant[];
-}
-
-export async function pickPlaywrightMcpInclude(args: CliArgs, previous: InteractiveDefaults | null): Promise<boolean> {
-  const fromFlag = parsePlaywrightMcpArg(mcpPlaywrightCliRaw(args));
-
-  if (fromFlag !== undefined) {
-    return fromFlag;
-  }
-
-  if (args.yes) {
-    return true;
-  }
-
-  const answer = await p.confirm({
-    message:
-      'Add Playwright MCP? (writes .cursor/mcp.json if Cursor is selected, and' +
-      ' .mcp.json in the project root if Claude is selected)',
-    initialValue: previous?.playwrightMcpInclude ?? true,
-  });
-
-  if (p.isCancel(answer)) {
-    p.cancel('Operation cancelled.');
-    process.exit(0);
-  }
-
-  return answer;
 }
 
 export async function pickFigmaMcpInclude(args: CliArgs, previous: InteractiveDefaults | null): Promise<boolean> {

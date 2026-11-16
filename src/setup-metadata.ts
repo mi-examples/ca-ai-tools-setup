@@ -24,9 +24,16 @@ export type McpTargets = {
   projectRootFile: boolean;
 };
 
+export const NO_MCP_TARGETS: McpTargets = { cursorFile: false, projectRootFile: false };
+
 export type SetupMetadata = {
   version: typeof METADATA_VERSION;
   assistants: Assistant[];
+  /**
+   * Playwright MCP is no longer generated (PP-4531), so a new setup always records `false` here.
+   * `true` only survives from an older release and marks the files that may still hold the
+   * `playwright` server it wrote; `update` removes that server and resets the marker.
+   */
   playwrightMcp: McpTargets;
   figmaMcp: McpTargets;
   devEnvironment: {
@@ -57,7 +64,8 @@ export type LoadedSetupMetadata =
 
 export type MetadataConfiguration = {
   assistants: Assistant[];
-  playwrightMcp: McpTargets;
+  /** Marker carried over from an older setup; see `SetupMetadata.playwrightMcp`. */
+  playwrightMcp?: McpTargets;
   figmaMcp: McpTargets;
   qaAiRulesEnabled: boolean;
 };
@@ -317,7 +325,7 @@ export function createSetupMetadata(
   return {
     version: METADATA_VERSION,
     assistants: configuration.assistants,
-    playwrightMcp: configuration.playwrightMcp,
+    playwrightMcp: configuration.playwrightMcp ?? NO_MCP_TARGETS,
     figmaMcp: configuration.figmaMcp,
     devEnvironment: {
       file: '.dev-environment.md',

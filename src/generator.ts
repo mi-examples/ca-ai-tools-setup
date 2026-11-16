@@ -35,11 +35,6 @@ export type GenerateOptions = {
   force: boolean;
   dryRun: boolean;
   /**
-   * When true, writes Playwright MCP config for each selected assistant:
-   * Cursor → `.cursor/mcp.json`, Claude → `.mcp.json` at repo root.
-   */
-  playwrightMcpInclude: boolean;
-  /**
    * When true, writes Figma MCP config for each selected assistant:
    * Cursor → `.cursor/mcp.json`, Claude → `.mcp.json` at repo root.
    */
@@ -64,11 +59,6 @@ export type GenerateResult = {
   merged: string[];
   migratedLegacy: string[];
   removedLegacy: string[];
-};
-
-export type PlaywrightMcpTargets = {
-  cursorFile: boolean;
-  projectRootFile: boolean;
 };
 
 export type FigmaMcpTargets = {
@@ -106,21 +96,13 @@ export const REMOVABLE_LEGACY_SETUP_PATHS = [
   '.cursor/ca-ai-tools-setup.json',
   '.cursor/linear-cli-setup.json',
   '.claude/skills/README.md',
+  // PP-4531: Playwright MCP is gone; browser automation runs through the Playwright CLI.
+  '.cursor/skills/playwright-mcp/SKILL.md',
+  '.claude/workflows/playwright-mcp.md',
 ] as const;
 
 function shouldAlwaysOverwrite(filePath: string): boolean {
   return SETUP_ASSISTANT_FILES.has(filePath);
-}
-
-export function resolvePlaywrightMcpTargets(assistants: Assistant[], include: boolean): PlaywrightMcpTargets {
-  if (!include) {
-    return { cursorFile: false, projectRootFile: false };
-  }
-
-  return {
-    cursorFile: assistants.includes('cursor'),
-    projectRootFile: assistants.includes('claude'),
-  };
 }
 
 export function resolveFigmaMcpTargets(assistants: Assistant[], include: boolean): FigmaMcpTargets {
@@ -136,30 +118,18 @@ export function resolveFigmaMcpTargets(assistants: Assistant[], include: boolean
 
 export function getGeneratedFiles(
   assistants: Assistant[],
-  playwrightMcpInclude: boolean,
   figmaMcpInclude = false,
   qaAiRulesInclude = false,
 ): GeneratedFile[] {
   const files: GeneratedFile[] = [];
-  const mcpTargets = resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude);
   const figmaTargets = resolveFigmaMcpTargets(assistants, figmaMcpInclude);
 
   if (assistants.includes('cursor')) {
-    files.push(
-      ...generateCursorFiles({
-        includePlaywrightMcp: mcpTargets.cursorFile,
-        includeFigmaMcp: figmaTargets.cursorFile,
-      }),
-    );
+    files.push(...generateCursorFiles({ includeFigmaMcp: figmaTargets.cursorFile }));
   }
 
   if (assistants.includes('claude')) {
-    files.push(
-      ...generateClaudeFiles({
-        includePlaywrightMcp: mcpTargets.projectRootFile,
-        includeFigmaMcp: figmaTargets.projectRootFile,
-      }),
-    );
+    files.push(...generateClaudeFiles({ includeFigmaMcp: figmaTargets.projectRootFile }));
   }
 
   // Claude Code reads `.cursor/rules/*.mdc` per project convention — emit rules even for Claude-only runs.
@@ -197,7 +167,6 @@ export function getGeneratedFiles(
 
   const metadataConfiguration = {
     assistants,
-    playwrightMcp: mcpTargets,
     figmaMcp: figmaTargets,
     qaAiRulesEnabled: qaAiRulesInclude,
   };
@@ -490,12 +459,7 @@ function writeOneFile(
 export function generateSetup(options: GenerateOptions): GenerateResult {
   const files =
     options.files ??
-    getGeneratedFiles(
-      options.assistants,
-      options.playwrightMcpInclude,
-      Boolean(options.figmaMcpInclude),
-      Boolean(options.qaAiRulesInclude),
-    );
+    getGeneratedFiles(options.assistants, Boolean(options.figmaMcpInclude), Boolean(options.qaAiRulesInclude));
 
   if (!options.dryRun) {
     fs.mkdirSync(options.targetDir, { recursive: true });
@@ -556,7 +520,9 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
     const metadata = createSetupMetadata(
       {
         assistants: options.assistants,
-        playwrightMcp: resolvePlaywrightMcpTargets(options.assistants, options.playwrightMcpInclude),
+        // A plain re-run does not clean structured files, so the marker for a Playwright server
+        // an older release wrote has to survive it; only `update` removes the server and resets it.
+        playwrightMcp: loadedMetadata.kind === 'current' ? loadedMetadata.metadata.playwrightMcp : undefined,
         figmaMcp: resolveFigmaMcpTargets(options.assistants, Boolean(options.figmaMcpInclude)),
         qaAiRulesEnabled: Boolean(options.qaAiRulesInclude),
       },
