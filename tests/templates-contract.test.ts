@@ -253,6 +253,60 @@ test('CLAUDE template routes by skill name and stays free of generated detail', 
   assert.ok(claudeMd.split('\n').length < 70, 'CLAUDE.md should stay short');
 });
 
+// PP-4659: linear-cli can no longer be authorized, so nothing generated may send the assistant to
+// it — not even as a fallback. Linear is reached through the Linear MCP tools.
+test('nothing generated mentions linear-cli', () => {
+  for (const template of listFiles('templates')) {
+    assert.doesNotMatch(fs.readFileSync(template, 'utf8'), /linear-cli/, template);
+  }
+
+  for (const assistants of SELECTIONS) {
+    for (const [generatedPath, content] of generated(assistants, true)) {
+      assert.doesNotMatch(content, /linear-cli/, `${assistants.join('+')}: ${generatedPath}`);
+    }
+  }
+});
+
+// The server name differs per client (an account connector has a generated id), so a prefixed
+// tool name such as `mcp__linear__get_issue` would match in one client and nowhere else.
+test('Linear tools are named without a server prefix', () => {
+  for (const template of listFiles('templates')) {
+    assert.doesNotMatch(fs.readFileSync(template, 'utf8'), /mcp__/, template);
+  }
+
+  const workflow = readTemplate('skills/linear-workflow/SKILL.md');
+
+  for (const tool of [
+    'get_issue',
+    'list_issues',
+    'list_comments',
+    'list_issue_statuses',
+    'save_issue',
+    'save_comment',
+  ]) {
+    assert.ok(workflow.includes(`\`${tool}\``), tool);
+  }
+
+  assert.match(readTemplate('skills/linear-report/SKILL.md'), /`prepare_file_upload`/);
+});
+
+// A missing connector must stop the work, not turn into a guess about the issue.
+test('templates say what to do when a Linear tool is missing or fails', () => {
+  const workflow = readTemplate('skills/linear-workflow/SKILL.md');
+  const gates = generated(['cursor', 'claude']).get('.claude/rules/linear-task-gates.md')!;
+  const setup = generated(['claude']).get('setup-claude-assistant.md')!;
+
+  assert.match(workflow, /## When a Linear tool is missing or fails/);
+  assert.match(workflow, /\*\*Never guess\*\* the state or the content of an issue/);
+  assert.match(gates, /`get_issue`/);
+  assert.match(gates, /Linear tools are missing or return an error, \*\*stop\*\*/);
+  assert.match(gates, /Never guess the state of an issue/);
+  // A missing connector is reported, but it does not fail the setup.
+  assert.match(setup, /OK \/ NOT CONNECTED {2}Linear MCP/);
+  assert.match(setup, /`NOT CONNECTED` is not a failed setup/);
+  assert.doesNotMatch(setup, /OK \/ FAIL\s+Linear/);
+});
+
 // PP-4531: one browser tool. A template that still names the MCP server or its `playwright_*`
 // tools sends the assistant to something the setup no longer provides.
 test('nothing generated mentions Playwright MCP', () => {

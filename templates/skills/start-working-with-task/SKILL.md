@@ -10,8 +10,9 @@ Universal entry point for development, investigation, UI work, QA or reporting o
 Use only the issue key or URL from the **current** request. Do not reuse keys from earlier messages or from
 examples in the docs.
 
-1. Follow the **`linear-workflow`** skill to fetch the issue (`linear-cli i get <ISSUE_KEY>`).
-2. Read **all** comments before deciding the scope. The latest dev / product / review comment overrides older
+1. Follow the **`linear-workflow`** skill to fetch the issue (`get_issue`). If the Linear tools are not available,
+   stop and say so.
+2. Read **all** comments (`list_comments`) before deciding the scope. The latest dev / product / review comment overrides older
    text in the issue description when they conflict.
 3. Check the issue state against the **`linear-task-gates`** rule and route the work:
    - **`Waiting AI Development`** — development or bug fix: the **`ai-development`** skill.
@@ -19,7 +20,8 @@ examples in the docs.
    - Investigation only: read the relevant code and return findings.
    - Quick UI look, no full test suite: the **`ui-check-simple`** skill.
    - QA report only: the **`linear-report`** skill.
-4. Start the issue with `linear-cli i start <ISSUE_KEY>` if the team uses "start work" and it is appropriate.
+4. Start the issue (`save_issue` — see **Start work** in the `linear-workflow` skill) if the team uses "start
+   work" and it is appropriate.
 
 Default: with only an issue key or URL and nothing else, treat it as a development task unless the issue or its
 comments clearly say it is QA-only. If the state does not allow the work, stop and report the state.

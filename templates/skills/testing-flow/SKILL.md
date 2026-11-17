@@ -26,8 +26,8 @@ Linear is **optional**. Use whichever is available:
 
 | Source | How |
 |--------|-----|
-| Linear issue | Read **`linear-workflow`** skill → `linear-cli i get <ISSUE_KEY>` for acceptance criteria |
-| Linear comments | **Always fetch** via GraphQL `issue.comments` — may contain revised criteria, product decisions, dev notes, or verification URLs that override the description |
+| Linear issue | Read **`linear-workflow`** skill → `get_issue` for acceptance criteria |
+| Linear comments | **Always fetch** with `list_comments` — may contain revised criteria, product decisions, dev notes, or verification URLs that override the description |
 | User-provided | Description, acceptance criteria, or screenshots from the conversation |
 | Figma design | Optional. Figma link or node ID — fetch via **`figma-implementation`** skill to extract expected layout, spacing, colors, typography for visual verification |
 | Codebase | Analyze `src/components/`, `src/pages/`, SCSS modules, `src/types/`, `src/api/` |

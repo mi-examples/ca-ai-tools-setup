@@ -5,25 +5,23 @@ apply: always
 
 # Linear task gates (mandatory)
 
-Before **any** work driven by a Linear issue, run:
+Before **any** work driven by a Linear issue, call the Linear MCP tool **`get_issue`** with the issue key and
+read the issue state (the `status` field).
 
-```bash
-linear-cli i get <ISSUE_KEY> -o json
-```
-
-Read **`state.name`** from the response.
+If the Linear tools are missing or return an error, **stop**: say that Linear MCP is not available and ask the
+user to connect or reconnect it. Never guess the state of an issue.
 
 ## AI testing workflow
 
-- **Proceed only if** `state.name` is exactly **`Waiting AI Test`**.
+- **Proceed only if** the state is exactly **`Waiting AI Test`**.
 - If the state differs: **stop**, report the current state, and ask the user to move the issue in Linear (or to
   give an explicit override). **Do not** start automated / AI-first **testing** work from the wrong column.
 
 ## AI development workflow (implement only; not testing-first)
 
-- **Proceed only if** `state.name` is exactly **`Waiting AI Development`**.
-- If the Linear team uses a different name for this state, list the team's states
-  (`linear-cli statuses list --team "<Team from issue>"`) and ask the developer which one stands for it.
+- **Proceed only if** the state is exactly **`Waiting AI Development`**.
+- If the Linear team uses a different name for this state, list the team's states with `list_issue_statuses`
+  and ask the developer which one stands for it.
 - If the state differs: **stop** and report — same pattern as testing.
 - When allowed to proceed: follow the **`ai-development`** skill. The **operator** chooses with the agent
   **full** (new React + Vite + pp-dev project) vs **fixes** (bug work in an existing repo); both start from the
@@ -38,6 +36,6 @@ links comment for the issue.
 ## Related skills
 
 - **`start-working-with-task`** — entry point for any Linear issue; routes by state.
-- **`linear-workflow`** — Linear commands (fetch, comments, states, comment).
+- **`linear-workflow`** — the Linear MCP tools (fetch, comments, states, comment).
 - **`testing-with-linear`** — AI testing after the gate (full QA: `testing-flow` → `linear-report`).
 - **`ui-check-simple`** — quick UI check without the full QA flow.

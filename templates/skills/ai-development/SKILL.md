@@ -27,12 +27,12 @@ The skill for **development** work. **QA/testing** (`Waiting AI Test`) lives in 
 
 ### Preconditions (hard gate)
 
-1. **`linear-cli i get <ISSUE_KEY> -o json`** — confirm **`state.name`** is exactly **`Waiting AI Development`** (see the **`linear-task-gates`** rule).
+1. Fetch the issue (**`get_issue`**) and confirm its state is exactly **`Waiting AI Development`** (see the **`linear-task-gates`** rule).
 2. If not: **stop** and report current state.
 
 ### After the gate — choose development mode (operator + agent)
 
-**Linear** is the source of truth for the task: always fetch the issue first (**`linear-cli i get <ISSUE_KEY>`**), and start it (**`linear-cli i start <ISSUE_KEY>`**) when your team uses “start work” — see the **`linear-workflow`** skill.
+**Linear** is the source of truth for the task: always fetch the issue first (**`get_issue`**), and start it (**`save_issue`**) when your team uses “start work” — see the **`linear-workflow`** skill.
 
 The **operator** (human) decides with the agent which mode applies **before** heavy implementation. The agent should **ask once** if the issue is ambiguous (e.g. “new page” could mean greenfield or a route in an existing app).
 
@@ -43,7 +43,7 @@ The **operator** (human) decides with the agent which mode applies **before** he
 
 ### Mode — Full (new React + Vite + pp-dev)
 
-1. Use **`linear-cli i get <ISSUE_KEY>`** for title, description, Figma links, US, AC (same issue throughout).
+1. Use the fetched issue for title, description, Figma links, US, AC (same issue throughout).
 2. Scaffold: **[references/new-project.md](references/new-project.md)** — `npm create vite@latest` (**`react-ts`**), **`@metricinsights/pp-dev`**, **`pp-dev.config.ts`**, **`package.json`** scripts **`dev` / `build`** via **pp-dev**, **`tsconfig.node.json`** includes **`vite.config.ts`** and **`pp-dev.config.ts`**.
 3. **Committed baseline** should look like a fresh Vite app + pp-dev only — **this repo’s layout is a reference**, not a dump of unrelated features:
    - **`src/`**, **`tsconfig.json`**, **`tsconfig.app.json`**, **`tsconfig.node.json`**, **`vite.config.ts`**, **`pp-dev.config.ts`**, **`index.html`**, **`package.json`** (+ lockfile).
@@ -52,7 +52,7 @@ The **operator** (human) decides with the agent which mode applies **before** he
 
 ### Mode — Fixes (bugs / incremental work)
 
-1. Same **`linear-cli i get <ISSUE_KEY>`** for context.
+1. Same fetched issue for context.
 2. **Do not** re-run greenfield scaffolding unless the issue explicitly says to replatform or recreate the app.
 3. Trace the bug from **Acceptance Criteria** / description; patch **`src/`** (and **`vite` / `pp-dev` config** only if the fix requires it).
 4. **Figma:** follow **step 1** under **Required order** only if the issue references design or UI parity; otherwise prioritize AC and reproduction steps.

@@ -191,8 +191,9 @@ If `gh auth login` cannot run interactively in this session, tell the developer 
 <!-- /only -->
 **2.3. Linear (MCP)**
 
-Linear is used through the **Linear MCP** connector, not a CLI. Do not install `linear-cli`: its OAuth sign-in
-is disabled.
+Linear is used through the **Linear MCP** connector. It normally comes with the organization's subscription, so
+this setup adds no Linear server to **`.mcp.json`** / **`.cursor/mcp.json`** and there is nothing to install. The
+Linear CLI earlier setups used can no longer be authorized.
 
 Check that the Linear tools are available in this session — for example `get_issue`, `list_issues`,
 `list_comments`, `save_comment` (the client may show them with its own server prefix). Then list the
@@ -200,9 +201,9 @@ developer's assigned issues with `list_issues` (assignee `me`) to confirm the co
 
 - **The tools respond:** record `Linear MCP: connected` and continue.
 - **The tools are missing or return an error:** Linear MCP is not connected in this client. Ask the developer
-  to connect or reconnect Linear in the client's connector / MCP settings; if that does not work, access has to
-  come from a workspace admin. Record `Linear MCP: not connected` and **continue with the rest of the setup** —
-  this is not a setup failure.
+  to enable or reconnect the Linear connector in the client's connector / MCP settings; if it is not offered
+  there, the organization's admin has to make it available. Record `Linear MCP: not connected` and **continue
+  with the rest of the setup** — this is not a setup failure.
 
 Never guess the state or the content of an issue when the Linear tools are unavailable.
 
