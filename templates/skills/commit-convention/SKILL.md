@@ -1,6 +1,6 @@
 ---
 name: commit-convention
-description: Git commit message format for this repo—Angular commit message convention (type(scope): subject, body, footer) with the allowed types and examples. Use whenever you write, edit, or review a commit message.
+description: "Git commit message format for this repo—Angular commit message convention (type(scope): subject, body, footer) with the allowed types and examples. Use whenever you write, edit, or review a commit message."
 ---
 
 # Commit Message Convention

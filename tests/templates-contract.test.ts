@@ -253,6 +253,37 @@ test('CLAUDE template routes by skill name and stays free of generated detail', 
   assert.ok(claudeMd.split('\n').length < 70, 'CLAUDE.md should stay short');
 });
 
+// A skill or rule whose frontmatter is not valid YAML is never loaded, and nothing reports it: the
+// file is simply absent from the assistant's list. `: ` inside an unquoted value is the easy way to
+// get there — a description that quotes `type(scope): subject` did exactly that.
+test('frontmatter values are valid YAML scalars', () => {
+  const problems: string[] = [];
+
+  for (const assistants of SELECTIONS) {
+    for (const [generatedPath, content] of generated(assistants, true)) {
+      const frontmatter = /^---\n([\s\S]*?)\n---\n/.exec(content.replace(/\r\n/g, '\n'));
+
+      if (!frontmatter || !/\.(?:md|mdc)$/.test(generatedPath)) {
+        continue;
+      }
+
+      for (const line of frontmatter[1].split('\n')) {
+        const value = /^[A-Za-z-]+:\s*(.*)$/.exec(line)?.[1];
+
+        if (value === undefined || /^(['"]).*\1$/.test(value)) {
+          continue;
+        }
+
+        if (/: | #/.test(value) || /^[[{>|*&!%@`]/.test(value)) {
+          problems.push(`${generatedPath}: ${line}`);
+        }
+      }
+    }
+  }
+
+  assert.deepEqual([...new Set(problems)], []);
+});
+
 // PP-4659: linear-cli can no longer be authorized, so nothing generated may send the assistant to
 // it — not even as a fallback. Linear is reached through the Linear MCP tools.
 test('nothing generated mentions linear-cli', () => {
