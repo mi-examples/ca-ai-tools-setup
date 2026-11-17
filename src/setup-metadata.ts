@@ -262,6 +262,24 @@ function parseCurrentMetadata(raw: Record<string, unknown>): SetupMetadata | nul
   };
 }
 
+/** Which files an earlier setup wrote each MCP server into. */
+export type GeneratedMcpTargets = {
+  playwright: McpTargets;
+  figma: McpTargets;
+};
+
+/**
+ * Schema 5 metadata has no per-file hashes, but it does record the MCP selection. Playwright MCP
+ * was on by default then, so a record that says nothing about it is read as "may have been
+ * generated": an entry is removed only when it still equals the generated definition anyway.
+ */
+export function legacyGeneratedMcpTargets(raw: Record<string, unknown>): GeneratedMcpTargets {
+  return {
+    playwright: isMcpTargets(raw.playwrightMcp) ? raw.playwrightMcp : { cursorFile: true, projectRootFile: true },
+    figma: isMcpTargets(raw.figmaMcp) ? raw.figmaMcp : NO_MCP_TARGETS,
+  };
+}
+
 export function normalizeSetupPath(filePath: string): string {
   return filePath.replaceAll('\\', '/');
 }

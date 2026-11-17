@@ -128,6 +128,31 @@ export const REMOVABLE_LEGACY_SETUP_PATHS = [
   '.cursor/rules/README.md',
 ] as const;
 
+/**
+ * Everything older releases generated that this selection no longer gets. On top of the fixed list
+ * there are paths that are retired only for some selections:
+ *
+ * - skills moved to `.claude/skills/` wherever Claude Code is selected, so the copies under
+ *   `.cursor/skills/` would show every skill to Cursor twice, the old text next to the new;
+ * - a Claude-only setup used to get the Cursor rules as well.
+ *
+ * A tracked repository finds these through its metadata. This list is for schema 5 and untracked
+ * repositories, which have no other record of what the setup once wrote.
+ */
+export function retiredSetupPaths(assistants: readonly Assistant[]): string[] {
+  const paths: string[] = [...REMOVABLE_LEGACY_SETUP_PATHS];
+
+  if (assistants.includes('claude')) {
+    paths.push(...buildSkillFiles(['cursor'], true).map((file) => file.path));
+  }
+
+  if (!assistants.includes('cursor')) {
+    paths.push(...buildRuleFiles(['cursor']).map((file) => file.path));
+  }
+
+  return paths;
+}
+
 function shouldAlwaysOverwrite(filePath: string): boolean {
   return SETUP_ASSISTANT_FILES.has(filePath);
 }
@@ -266,11 +291,12 @@ function isUntouchedGeneratedFile(content: string, record: SetupFileRecord): boo
 
 function removeObsoleteSetupFiles(
   targetDir: string,
+  assistants: readonly Assistant[],
   previousRecords: Readonly<Record<string, SetupFileRecord>>,
   options: Pick<GenerateOptions, 'force' | 'dryRun'>,
   result: GenerateResult,
 ): void {
-  for (const relativePath of REMOVABLE_LEGACY_SETUP_PATHS) {
+  for (const relativePath of retiredSetupPaths(assistants)) {
     const destination = path.join(targetDir, relativePath);
 
     if (!fs.existsSync(destination)) {
@@ -502,7 +528,7 @@ export function generateSetup(options: GenerateOptions): GenerateResult {
   const cleanupOptions = { force: options.force, dryRun: options.dryRun };
 
   migrateLegacyFiles(options.targetDir, cleanupOptions, result);
-  removeObsoleteSetupFiles(options.targetDir, previousRecords, cleanupOptions, result);
+  removeObsoleteSetupFiles(options.targetDir, options.assistants, previousRecords, cleanupOptions, result);
 
   const keptOrphanRecords = removeTrackedOrphans(
     options.targetDir,

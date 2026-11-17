@@ -296,6 +296,169 @@ test('schema 5 migration preserves unhashed legacy files unless force explicitly
   assert.equal(fs.existsSync(legacyPath), false);
 });
 
+// --- Schema 5 repositories and what moved or was retired (PR #24 review) -------------------------
+//
+// Schema 5 metadata has no per-file hashes, so a tracked-orphan check cannot find what an older
+// release wrote. Three things were left behind even by a forced migration: the Cursor copies of
+// the skills (now under .claude/skills when Claude is selected), the Playwright MCP server, and
+// .cursorrules.
+
+function writeSchema5Metadata(dir: string, assistants: Assistant[], extra: Record<string, unknown> = {}): void {
+  fs.writeFileSync(
+    path.join(dir, SETUP_METADATA_PATH),
+    `${JSON.stringify({ version: 5, assistants, qaAiRules: { enabled: false }, ...extra })}\n`,
+    'utf8',
+  );
+}
+
+function writeLegacyFile(dir: string, relativePath: string, content = 'Written by an older release.\n'): void {
+  fs.mkdirSync(path.dirname(path.join(dir, relativePath)), { recursive: true });
+  fs.writeFileSync(path.join(dir, relativePath), content, 'utf8');
+}
+
+test('schema 5 with both assistants: --force removes the Cursor copies of skills that moved', () => {
+  const dir = makeTempDir();
+  const both: Partial<ReconcileOptions> = {
+    assistants: ['cursor', 'claude'],
+    files: getGeneratedFiles(['cursor', 'claude'], false, false),
+  };
+  const movedSkills = [
+    '.cursor/skills/testing-flow/SKILL.md',
+    '.cursor/skills/ai-development/DOD-FULL.md',
+    '.cursor/skills/customer-app-docs/assets/example.html',
+    '.cursor/skills/customer-app-docs/references/verify.md',
+  ];
+
+  generateSetup({ targetDir: dir, assistants: ['cursor', 'claude'], force: false, dryRun: false });
+
+  for (const skillFile of movedSkills) {
+    writeLegacyFile(dir, skillFile);
+  }
+
+  writeSchema5Metadata(dir, ['cursor', 'claude']);
+
+  const blocked = updateSetup(options(dir, both));
+
+  assert.equal(blocked.applied, false);
+  assert.deepEqual(blocked.conflicts, [...movedSkills].sort());
+
+  const forced = updateSetup(options(dir, { ...both, force: true }));
+
+  assert.equal(forced.applied, true);
+  assert.deepEqual(forced.removed, [...movedSkills].sort());
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/testing-flow/SKILL.md')));
+  assert.equal(checkSetup(options(dir, both)).plan.hasChanges, false);
+});
+
+test('schema 5 with Cursor only keeps its skills folder', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+  writeSchema5Metadata(dir, ['cursor']);
+
+  const forced = updateSetup(options(dir, { force: true }));
+
+  assert.equal(forced.applied, true);
+  assert.deepEqual(forced.removed, []);
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-flow/SKILL.md')));
+});
+
+test('schema 5 with Claude only: --force removes the Cursor rules it used to get', () => {
+  const dir = makeTempDir();
+  const claude: Partial<ReconcileOptions> = {
+    assistants: ['claude'],
+    files: getGeneratedFiles(['claude'], false, false),
+  };
+
+  generateSetup({ targetDir: dir, assistants: ['claude'], force: false, dryRun: false });
+  writeLegacyFile(dir, '.cursor/rules/code-style.mdc');
+  writeLegacyFile(dir, '.cursor/rules/linear-task-gates.mdc');
+  writeSchema5Metadata(dir, ['claude']);
+
+  const forced = updateSetup(options(dir, { ...claude, force: true }));
+
+  assert.equal(forced.applied, true);
+  assert.deepEqual(forced.removed, ['.cursor/rules/code-style.mdc', '.cursor/rules/linear-task-gates.mdc']);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.claude/rules/code-style.md')));
+});
+
+test('schema 5 migration removes the generated Playwright server and keeps repository servers', () => {
+  const playwright = generatedMcpServerDefinitions().playwright;
+  const recorded = { playwrightMcp: { cursorFile: true, projectRootFile: false } };
+
+  // Only the generated server in the file: the file goes.
+  const onlyGenerated = makeTempDir();
+
+  createCursorSetup(onlyGenerated);
+  writeLegacyFile(onlyGenerated, '.cursor/mcp.json', `${JSON.stringify({ mcpServers: { playwright } }, null, 2)}\n`);
+  writeSchema5Metadata(onlyGenerated, ['cursor'], recorded);
+
+  const removed = updateSetup(options(onlyGenerated));
+
+  assert.equal(removed.applied, true);
+  assert.equal(removed.conflicts.length, 0);
+  assert.deepEqual(removed.removed, ['.cursor/mcp.json']);
+  assert.equal(fs.existsSync(path.join(onlyGenerated, '.cursor/mcp.json')), false);
+
+  // A repository server next to it: only the generated one goes, without --force.
+  const withCustom = makeTempDir();
+
+  createCursorSetup(withCustom);
+  writeLegacyFile(
+    withCustom,
+    '.cursor/mcp.json',
+    `${JSON.stringify({ mcpServers: { custom: { command: 'node' }, playwright } }, null, 2)}\n`,
+  );
+  writeSchema5Metadata(withCustom, ['cursor'], recorded);
+
+  const pruned = updateSetup(options(withCustom));
+
+  assert.equal(pruned.applied, true);
+  assert.deepEqual(
+    pruned.updated.filter((updated) => updated === '.cursor/mcp.json'),
+    ['.cursor/mcp.json'],
+  );
+  assert.deepEqual(readJson<{ mcpServers: object }>(withCustom, '.cursor/mcp.json').mcpServers, {
+    custom: { command: 'node' },
+  });
+  assert.equal(checkSetup(options(withCustom)).plan.hasChanges, false);
+
+  // A server the repository changed is theirs: the file is left exactly as it is.
+  const edited = makeTempDir();
+  const editedServer = { ...playwright, args: ['-y', '@playwright/mcp', '--headless'] };
+  const editedFile = `${JSON.stringify({ mcpServers: { playwright: editedServer } })}\n`;
+
+  createCursorSetup(edited);
+  writeLegacyFile(edited, '.cursor/mcp.json', editedFile);
+  writeSchema5Metadata(edited, ['cursor'], recorded);
+
+  const untouched = updateSetup(options(edited, { force: true }));
+
+  assert.equal(untouched.applied, true);
+  assert.equal(fs.readFileSync(path.join(edited, '.cursor/mcp.json'), 'utf8'), editedFile);
+});
+
+test('schema 5 migration reports .cursorrules and never removes it, not with --force either', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+  writeLegacyFile(dir, '.cursorrules', 'Rules a team may have edited.\n');
+  writeSchema5Metadata(dir, ['cursor']);
+
+  const forced = updateSetup(options(dir, { force: true }));
+  const plan = forced.plan.files.find((filePlan) => filePlan.path === '.cursorrules');
+
+  assert.equal(forced.applied, true);
+  assert.deepEqual(forced.orphaned, ['.cursorrules']);
+  assert.deepEqual(forced.removed, []);
+  assert.match(plan?.reason ?? '', /No longer generated: Cursor rules live in \.cursor\/rules\//);
+  assert.equal(fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8'), 'Rules a team may have edited.\n');
+  // Reported once: after the migration the file is simply the repository's.
+  assert.equal(checkSetup(options(dir)).plan.hasChanges, false);
+});
+
 test('updateSetup recreates missing files and removes unchanged managed orphans', () => {
   const dir = makeTempDir();
 

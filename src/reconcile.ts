@@ -17,6 +17,8 @@ import {
   hashContent,
   isSafeSetupPath,
   type FileOwnership,
+  type GeneratedMcpTargets,
+  legacyGeneratedMcpTargets,
   type LoadedSetupMetadata,
   normalizeSetupPath,
   ownershipForPath,
@@ -24,10 +26,9 @@ import {
   serializeSetupMetadata,
   SETUP_METADATA_PATH,
   type SetupFileRecord,
-  type SetupMetadata,
 } from './setup-metadata.js';
 import { getCliPackageProvenance } from './setup-log.js';
-import { REMOVABLE_LEGACY_SETUP_PATHS, removeEmptyParentDirs, resolveFigmaMcpTargets } from './generator.js';
+import { removeEmptyParentDirs, resolveFigmaMcpTargets, retiredSetupPaths } from './generator.js';
 
 /**
  * Repository-owned files that are merged into, never replaced — not by --force either. Mirrors
@@ -144,17 +145,16 @@ type RetiredEntryPruner = (filePath: string, content: string) => string;
  */
 function createRetiredEntryPruner(
   targetDir: string,
-  previousMetadata: SetupMetadata | undefined,
+  generatedBefore: GeneratedMcpTargets | undefined,
   desiredFiles: readonly GeneratedFile[],
 ): RetiredEntryPruner {
-  if (!previousMetadata) {
+  if (!generatedBefore) {
     return (_filePath, content) => content;
   }
 
   const definitions = generatedMcpServerDefinitions();
   const desiredServers = (filePath: string): Set<string> =>
     new Set(mcpServerNames(desiredFiles.find((file) => file.path === filePath)?.content ?? ''));
-  const generatedBefore = { playwright: previousMetadata.playwrightMcp, figma: previousMetadata.figmaMcp };
   const retiredServers = (filePath: string): string[] => {
     const target = filePath === CURSOR_MCP_PATH ? 'cursorFile' : 'projectRootFile';
     const stillGenerated = desiredServers(filePath === CLAUDE_SETTINGS_PATH ? ROOT_MCP_PATH : filePath);
@@ -507,7 +507,13 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
   const previousMetadata = options.metadata.kind === 'current' ? options.metadata.metadata : undefined;
   const desiredFiles = desiredSetupFiles(options.files);
   const desiredPaths = new Set(desiredFiles.map((file) => file.path));
-  const prune = createRetiredEntryPruner(options.targetDir, previousMetadata, desiredFiles);
+  // Where earlier setups wrote MCP servers: schema 6 records it per run, schema 5 in its raw record.
+  const generatedBefore: GeneratedMcpTargets | undefined = previousMetadata
+    ? { playwright: previousMetadata.playwrightMcp, figma: previousMetadata.figmaMcp }
+    : options.metadata.kind === 'legacy'
+      ? legacyGeneratedMcpTargets(options.metadata.raw)
+      : undefined;
+  const prune = createRetiredEntryPruner(options.targetDir, generatedBefore, desiredFiles);
   const plans: ReconcileFilePlan[] = [];
 
   for (const file of desiredFiles) {
@@ -562,11 +568,12 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
   if (metadataIsLegacy) {
     const plannedPaths = new Set(plans.map((file) => file.path));
 
-    for (const legacyPath of REMOVABLE_LEGACY_SETUP_PATHS) {
+    for (const legacyPath of retiredSetupPaths(options.assistants)) {
       if (plannedPaths.has(legacyPath) || !fs.existsSync(path.join(options.targetDir, legacyPath))) {
         continue;
       }
 
+      plannedPaths.add(legacyPath);
       plans.push({
         path: legacyPath,
         ownership: 'managed',
@@ -574,6 +581,60 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
         action: options.force ? 'remove' : 'none',
         reason: 'Legacy generated file has no schema 6 hash baseline.',
         currentContent: readCurrentFile(options.targetDir, legacyPath),
+      });
+    }
+
+    // An MCP file this selection no longer generates. Without hashes the whole file cannot be
+    // judged, but a single server can: one that still equals the generated definition is the
+    // generator's and goes; everything else in the file is the repository's and stays.
+    for (const mcpPath of [CURSOR_MCP_PATH, ROOT_MCP_PATH]) {
+      const currentContent = plannedPaths.has(mcpPath) ? undefined : readCurrentFile(options.targetDir, mcpPath);
+      const pruned = currentContent === undefined ? undefined : prune(mcpPath, currentContent);
+
+      if (currentContent === undefined || pruned === undefined || pruned === currentContent) {
+        continue;
+      }
+
+      plannedPaths.add(mcpPath);
+      plans.push(
+        hasNoMcpServers(pruned)
+          ? {
+              path: mcpPath,
+              ownership: 'structured',
+              state: 'orphaned',
+              action: 'remove',
+              reason: 'Only generated entries were left in this file.',
+              currentContent,
+            }
+          : {
+              path: mcpPath,
+              ownership: 'structured',
+              state: 'orphaned',
+              action: 'overwrite',
+              resultContent: pruned,
+              reason: 'Generated entries removed; the rest stays as a repository-owned file.',
+              currentContent,
+            },
+      );
+    }
+
+    // `.cursorrules` is protected, and without a hash nobody can say whether the team edited it.
+    // It is never removed, not with --force either — but it is reported, because the generated
+    // stub points at rules and files that no longer exist.
+    const cursorRules = plannedPaths.has('.cursorrules')
+      ? undefined
+      : readCurrentFile(options.targetDir, '.cursorrules');
+
+    if (cursorRules !== undefined) {
+      plans.push({
+        path: '.cursorrules',
+        ownership: 'protected',
+        state: 'orphaned',
+        action: 'none',
+        reason:
+          'No longer generated: Cursor rules live in .cursor/rules/. Review it with your assistant: ' +
+          'keep only what is specific to this repository, or delete it.',
+        currentContent: cursorRules,
       });
     }
   }

@@ -340,7 +340,10 @@ Update ownership rules:
   one: the file stays tracked, so `check` and `update` report the conflict.
 - Repositories on schema 5 metadata, or with no metadata, have no per-file hashes to compare with. `update`
   removes the known obsolete paths there only with `--force`; a plain re-run removes them and lists them under
-  "Removed legacy files".
+  "Removed legacy files". The known paths include the `.cursor/skills/` copies when Claude is selected and the
+  Cursor rules of a Claude-only setup. A generated MCP server that is no longer generated is removed from
+  `.mcp.json` / `.cursor/mcp.json` without `--force`, as long as the entry still equals the generated one.
+  `.cursorrules` is reported and never removed.
 
 The metadata file records package version, release commit/template revision, and per-file SHA-256 hashes with
 line endings normalized for Windows/macOS/Linux checkouts. It contains no timestamp, so identical content

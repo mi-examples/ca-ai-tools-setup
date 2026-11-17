@@ -841,3 +841,30 @@ test('generateSetup re-run does not delete a tracked legacy path that the reposi
   assert.equal(result.removedLegacy.includes(legacyPath), false);
   assert.equal(fs.readFileSync(path.join(dir, legacyPath), 'utf8'), 'Repository-owned edit.\n');
 });
+
+// PR #24 review: with Claude selected the skills live under .claude/skills, so the copies an older
+// release wrote under .cursor/skills must go — Cursor reads both folders and would list each twice.
+test('generateSetup re-run removes the Cursor copies of skills once Claude is selected', () => {
+  const dir = makeTempDir();
+  const oldCopy = '.cursor/skills/testing-flow/SKILL.md';
+
+  fs.mkdirSync(path.join(dir, path.dirname(oldCopy)), { recursive: true });
+  fs.writeFileSync(path.join(dir, oldCopy), '# written by an older release\n', 'utf8');
+
+  const result = generateSetup({ targetDir: dir, assistants: ['cursor', 'claude'], force: false, dryRun: false });
+
+  assert.ok(result.removedLegacy.includes(oldCopy));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/testing-flow/SKILL.md')));
+
+  // Cursor alone still owns that folder: the existing file is kept, as any existing file is.
+  const cursorOnly = makeTempDir();
+
+  fs.mkdirSync(path.join(cursorOnly, path.dirname(oldCopy)), { recursive: true });
+  fs.writeFileSync(path.join(cursorOnly, oldCopy), '# written by an older release\n', 'utf8');
+
+  const kept = generateSetup({ targetDir: cursorOnly, assistants: ['cursor'], force: false, dryRun: false });
+
+  assert.equal(kept.removedLegacy.includes(oldCopy), false);
+  assert.ok(kept.skipped.includes(oldCopy));
+});
