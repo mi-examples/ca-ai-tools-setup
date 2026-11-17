@@ -53,6 +53,8 @@ export type CliJsonReconcilePayload = {
   missing: string[];
   outdated: string[];
   orphaned: string[];
+  /** Protected files whose new template was left under `.assistant-setup/pending-updates/`. */
+  pendingMerges: string[];
   plan: CliJsonFilePlan[];
   exitCode: 0 | 2;
 };
@@ -134,6 +136,7 @@ export function buildReconcileJson(
     missing: result.missing,
     outdated: result.outdated,
     orphaned: result.orphaned,
+    pendingMerges: result.pendingMerges,
   };
 
   // Mirrors runReconcile()'s exit-code rule exactly — a consumer that reads the payload and one

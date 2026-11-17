@@ -20,6 +20,7 @@ import {
   type LoadedSetupMetadata,
   normalizeSetupPath,
   ownershipForPath,
+  PENDING_UPDATES_DIR,
   serializeSetupMetadata,
   SETUP_METADATA_PATH,
   type SetupFileRecord,
@@ -53,6 +54,12 @@ export type ReconcileFilePlan = {
    * structured file that only loses its generated entries.
    */
   resultContent?: string;
+  /**
+   * Set for a protected file that keeps repository content while its template changed. The file is
+   * never overwritten; the new template is written under `PENDING_UPDATES_DIR` instead, so an
+   * assistant can merge it into the repository's version with the developer.
+   */
+  pendingTemplate?: string;
   previous?: SetupFileRecord;
 };
 
@@ -95,6 +102,8 @@ export type ReconcileResult = {
   missing: string[];
   outdated: string[];
   orphaned: string[];
+  /** Protected files whose new template waits under `PENDING_UPDATES_DIR` to be merged by hand. */
+  pendingMerges: string[];
   plan: ReconcilePlan;
 };
 
@@ -204,17 +213,20 @@ function orphanPlan(
     previous,
   };
 
-  // Repository-owned by definition: it is never removed, it only stops being tracked.
+  // Still exactly what the generator wrote: nothing of the repository's is in it, protected or not.
+  if (isUntouchedGeneratedFile(currentContent, previous)) {
+    return { ...base, action: 'remove', reason: 'File is no longer produced by this release.' };
+  }
+
+  // A protected file the repository edited is never removed; it only stops being tracked.
   if (previous.ownership === 'protected') {
     return {
       ...base,
       action: 'none',
-      reason: 'Protected file is no longer generated; it stays as a repository-owned file.',
+      reason:
+        'Protected file is no longer generated and holds repository content; it stays as a repository-owned file. ' +
+        'Review it with your assistant: keep only what is specific to this repository, or delete it.',
     };
-  }
-
-  if (isUntouchedGeneratedFile(currentContent, previous)) {
-    return { ...base, action: 'remove', reason: 'File is no longer produced by this release.' };
   }
 
   const unchanged = hashContent(currentContent) === previous.contentHash;
@@ -261,6 +273,44 @@ function orphanPlan(
   };
 }
 
+/** Personal and gitignored, so a pending template for it would only be noise in a reviewed update. */
+const NO_PENDING_TEMPLATE_PATHS = new Set(['.dev-environment.md']);
+
+export function pendingUpdatePath(filePath: string): string {
+  return `${PENDING_UPDATES_DIR}/${filePath}`;
+}
+
+/**
+ * Plan for a protected file that holds repository content. It is never written. When its template
+ * changed since the last recorded run, the plan carries the new template so the update can leave
+ * it under `PENDING_UPDATES_DIR` — otherwise a repository that edited `CLAUDE.md` once would keep
+ * pointing at files a later release removed, with nothing to tell anyone.
+ */
+function protectedPlan(
+  file: GeneratedFile,
+  currentContent: string,
+  previous: SetupFileRecord | undefined,
+  state: 'preserved' | 'modified',
+  reason: string,
+): ReconcileFilePlan {
+  const templateChanged = previous === undefined || previous.sourceHash !== hashContent(file.content);
+  const needsMerge = templateChanged && !NO_PENDING_TEMPLATE_PATHS.has(file.path);
+
+  return {
+    path: file.path,
+    ownership: 'protected',
+    state,
+    action: 'none',
+    reason: needsMerge
+      ? `${reason} Its template changed: merge ${pendingUpdatePath(file.path)} into it with your assistant.`
+      : reason,
+    desiredContent: file.content,
+    currentContent,
+    previous,
+    ...(needsMerge ? { pendingTemplate: file.content } : {}),
+  };
+}
+
 function collisionPlan(
   file: GeneratedFile,
   currentContent: string,
@@ -300,17 +350,15 @@ function collisionPlan(
     }
 
     if (ownership === 'protected') {
-      return {
-        path: file.path,
-        ownership,
-        state: 'preserved',
-        action: 'none',
-        reason: metadataIsLegacy
+      return protectedPlan(
+        file,
+        currentContent,
+        previous,
+        'preserved',
+        metadataIsLegacy
           ? 'Protected file adopted while migrating schema 5 metadata.'
           : 'Existing protected file was adopted without replacement.',
-        desiredContent: file.content,
-        currentContent,
-      };
+      );
     }
 
     return {
@@ -332,16 +380,13 @@ function collisionPlan(
     }
 
     if (ownership === 'protected') {
-      return {
-        path: file.path,
-        ownership,
-        state: 'modified',
-        action: 'none',
-        reason: 'Protected file contains repository-owned changes.',
-        desiredContent: file.content,
+      return protectedPlan(
+        file,
         currentContent,
         previous,
-      };
+        'modified',
+        'Protected file contains repository-owned changes.',
+      );
     }
 
     return {
@@ -398,16 +443,28 @@ function collisionPlan(
   }
 
   if (ownership === 'protected') {
-    return {
-      path: file.path,
-      ownership,
-      state: 'preserved',
-      action: 'none',
-      reason: 'Protected file is preserved; review the new template separately.',
-      desiredContent: file.content,
+    // Untouched since the generator wrote it, so there is no repository content to protect: the
+    // file follows its template like a managed one. Without this, every repository would keep the
+    // instructions of the release that set it up, however many files later releases removed.
+    if (previous.baseline === 'generated') {
+      return {
+        path: file.path,
+        ownership,
+        state: 'outdated',
+        action: 'overwrite',
+        desiredContent: file.content,
+        currentContent,
+        previous,
+      };
+    }
+
+    return protectedPlan(
+      file,
       currentContent,
       previous,
-    };
+      'preserved',
+      'Protected file holds content adopted from the repository.',
+    );
   }
 
   if (ownership === 'structured' && isMergeablePath(file.path)) {
@@ -530,7 +587,13 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
   const hasChanges =
     metadataMigrationRequired ||
     metadataOutdated ||
-    plans.some((file) => file.action !== 'none' || file.state === 'conflict' || file.state === 'orphaned');
+    plans.some(
+      (file) =>
+        file.action !== 'none' ||
+        file.state === 'conflict' ||
+        file.state === 'orphaned' ||
+        file.pendingTemplate !== undefined,
+    );
 
   return {
     files: plans,
@@ -589,6 +652,7 @@ function resultFromPlan(
     missing: byState('missing'),
     outdated: byState('outdated'),
     orphaned: byState('orphaned'),
+    pendingMerges: plan.files.filter((file) => file.pendingTemplate !== undefined).map((file) => file.path),
     plan,
   };
 }
@@ -678,6 +742,15 @@ export function updateSetup(options: ReconcileOptions): ReconcileResult {
 
         fs.rmSync(destination, { force: true });
         removeEmptyParentDirs(options.targetDir, destination);
+      }
+    }
+
+    // The new template of a protected file that keeps repository content goes next to the setup,
+    // for an assistant to merge. A pending template is never removed here: this run cannot know
+    // whether the previous one was merged, and whoever merges it deletes it.
+    for (const filePlan of plan.files) {
+      if (filePlan.pendingTemplate !== undefined) {
+        writeFile(options.targetDir, pendingUpdatePath(filePlan.path), filePlan.pendingTemplate);
       }
     }
   }

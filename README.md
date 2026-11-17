@@ -307,8 +307,11 @@ Update ownership rules:
 
 - Managed rules, skills, workflows, prompts, agents, and shared references update automatically only when their
   current hash matches the recorded generated baseline.
-- Repository-owned files such as `.cursorrules`, `CLAUDE.md`, `.dev-environment.md`, and page context are
-  preserved and recorded as adopted content.
+- Protected files such as `CLAUDE.md`, `.cursorignore`, `.dev-environment.md` and the page context follow their
+  template only while they are still exactly what the generator wrote. Once the repository edits one, it is never
+  overwritten: when its template changes, the new template is written to
+  `.assistant-setup/pending-updates/<path>` and listed under `pendingMerges`, and `SETUP_STATUS.md` tells the
+  assistant how to merge it. The personal `.dev-environment.md` never gets a pending template.
 - MCP JSON and Claude settings use semantic merge only when their baseline is unchanged. A server the generator
   wrote earlier and no longer generates is removed from them while the entry is still exactly what the generator
   wrote; repository servers and edited entries stay.
@@ -321,8 +324,8 @@ Update ownership rules:
   - a file with local edits, or with content adopted from the repository, is a conflict that blocks the update
     like any other. `--force` deletes a managed file; from MCP JSON and Claude settings it removes only the
     generated entries;
-  - a protected file, and an MCP file left with repository servers only, stay in place and are no longer
-    tracked — after that update `check` returns `0`.
+  - a protected file the repository edited, and an MCP file left with repository servers only, stay in place
+    and are no longer tracked — after that update `check` returns `0`.
 - A plain re-run (without `update`) deletes untouched obsolete files the same way. It never deletes an edited
   one: the file stays tracked, so `check` and `update` report the conflict.
 - Repositories on schema 5 metadata, or with no metadata, have no per-file hashes to compare with. `update`

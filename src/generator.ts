@@ -289,17 +289,16 @@ function removeTrackedOrphans(
       continue;
     }
 
-    // Protected files are repository-owned by definition: once they are no longer generated they
-    // simply stop being tracked.
-    if (record.ownership === 'protected') {
-      continue;
-    }
-
     if (
       isUntouchedGeneratedFile(fs.readFileSync(destination, 'utf8'), record) ||
       (options.force && record.ownership === 'managed')
     ) {
       removeSetupFile(targetDir, relativePath, options, result);
+      continue;
+    }
+
+    // A protected file the repository edited is its own from here on: it simply stops being tracked.
+    if (record.ownership === 'protected') {
       continue;
     }
 

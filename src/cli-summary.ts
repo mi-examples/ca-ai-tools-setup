@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import { QA_AI_RULES_PACKAGE, SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
 import { resolveFigmaMcpTargets, type GenerateResult } from './generator.js';
-import type { ReconcileResult } from './reconcile.js';
+import { pendingUpdatePath, type ReconcileResult } from './reconcile.js';
 
 export type QaAiRulesSummaryHook = 'inactive' | 'dry-run' | 'success' | 'skipped-no-package-json';
 
@@ -237,6 +237,17 @@ export function printReconcileSummary(targetDir: string, result: ReconcileResult
     for (const file of preservedOrphans) {
       printLine(`  - ${file}`);
     }
+  }
+
+  if (result.pendingMerges.length > 0) {
+    printLine();
+    printLine('Repository-owned files with a newer template (not overwritten):');
+
+    for (const file of result.pendingMerges) {
+      printLine(`  - ${file} — new template: ${pendingUpdatePath(file)}`);
+    }
+
+    printLine('Ask your assistant to merge each pending template into its file, then delete the pending copy.');
   }
 
   if (result.conflicts.length > 0) {

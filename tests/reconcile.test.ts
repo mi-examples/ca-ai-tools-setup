@@ -381,21 +381,116 @@ test('an obsolete file adopted from the repository is never removed without --fo
   assert.equal(fs.readFileSync(path.join(dir, RETIRED_RULE), 'utf8'), 'Written by the team before setup.\n');
 });
 
-test('a protected file that is no longer generated stays and stops being tracked', () => {
+// --- Protected files (PP-4665) -------------------------------------------------------------------
+//
+// `CLAUDE.md` and its kind are protected because a team may write its own content into them. Until
+// someone does, the file is only a copy of the template and has to follow it — otherwise every
+// repository keeps the instructions of the release that set it up. `.cursorignore` stands in for
+// them here: it is protected and plain text.
+
+const PROTECTED_PATH = '.cursorignore';
+
+function cursorFilesWithNewTemplate(protectedPath: string): ReturnType<typeof getGeneratedFiles> {
+  return getGeneratedFiles(['cursor'], false, false).map((file) =>
+    file.path === protectedPath ? { ...file, content: `${file.content}\n# Added by a newer release.\n` } : file,
+  );
+}
+
+test('an untouched protected file that is no longer generated is removed', () => {
   const dir = makeTempDir();
 
   createCursorSetup(dir);
 
-  const files = cursorFilesWithout('.cursorrules');
-  const before = fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8');
+  const files = cursorFilesWithout(PROTECTED_PATH);
   const result = updateSetup(options(dir, { files }));
 
   assert.equal(result.applied, true);
-  assert.deepEqual(result.orphaned, ['.cursorrules']);
-  assert.deepEqual(result.removed, []);
-  assert.equal(fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8'), before);
-  assert.equal(trackedPaths(dir).includes('.cursorrules'), false);
+  assert.deepEqual(result.removed, [PROTECTED_PATH]);
+  assert.equal(fs.existsSync(path.join(dir, PROTECTED_PATH)), false);
   assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+});
+
+test('an edited protected file that is no longer generated stays and stops being tracked', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+  fs.writeFileSync(path.join(dir, PROTECTED_PATH), 'Repository-owned content.\n', 'utf8');
+
+  const files = cursorFilesWithout(PROTECTED_PATH);
+  const result = updateSetup(options(dir, { files }));
+
+  assert.equal(result.applied, true);
+  assert.deepEqual(result.orphaned, [PROTECTED_PATH]);
+  assert.deepEqual(result.removed, []);
+  assert.equal(fs.readFileSync(path.join(dir, PROTECTED_PATH), 'utf8'), 'Repository-owned content.\n');
+  assert.equal(trackedPaths(dir).includes(PROTECTED_PATH), false);
+  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+});
+
+test('an untouched protected file follows its template', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+
+  const files = cursorFilesWithNewTemplate(PROTECTED_PATH);
+  const result = updateSetup(options(dir, { files }));
+
+  assert.equal(result.applied, true);
+  assert.ok(result.updated.includes(PROTECTED_PATH));
+  assert.deepEqual(result.pendingMerges, []);
+  assert.match(fs.readFileSync(path.join(dir, PROTECTED_PATH), 'utf8'), /Added by a newer release/);
+  assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/pending-updates')), false);
+  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+});
+
+test('an edited protected file is never overwritten; its new template waits to be merged', () => {
+  const dir = makeTempDir();
+  const pendingPath = path.join(dir, '.assistant-setup/pending-updates', PROTECTED_PATH);
+
+  createCursorSetup(dir);
+  fs.writeFileSync(path.join(dir, PROTECTED_PATH), 'Repository-owned content.\n', 'utf8');
+
+  // Same template as before: the edit alone asks for nothing.
+  const unchangedTemplate = updateSetup(options(dir));
+
+  assert.deepEqual(unchangedTemplate.pendingMerges, []);
+  assert.equal(fs.existsSync(pendingPath), false);
+
+  const files = cursorFilesWithNewTemplate(PROTECTED_PATH);
+  const template = files.find((entry) => entry.path === PROTECTED_PATH)!.content;
+
+  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, true);
+
+  const result = updateSetup(options(dir, { files }));
+
+  assert.equal(result.applied, true);
+  assert.equal(result.conflicts.length, 0);
+  assert.deepEqual(result.pendingMerges, [PROTECTED_PATH]);
+  assert.ok(result.preserved.includes(PROTECTED_PATH));
+  assert.equal(fs.readFileSync(path.join(dir, PROTECTED_PATH), 'utf8'), 'Repository-owned content.\n');
+  assert.equal(fs.readFileSync(pendingPath, 'utf8'), template);
+
+  // The template is now on record, so the next run asks for nothing new — and it must not delete
+  // a pending template nobody has merged yet.
+  const again = updateSetup(options(dir, { files }));
+
+  assert.deepEqual(again.pendingMerges, []);
+  assert.equal(fs.existsSync(pendingPath), true);
+  assert.equal(checkSetup(options(dir, { files })).plan.hasChanges, false);
+});
+
+test('the personal .dev-environment.md never gets a pending template', () => {
+  const dir = makeTempDir();
+
+  createCursorSetup(dir);
+  fs.writeFileSync(path.join(dir, '.dev-environment.md'), 'My machine.\n', 'utf8');
+
+  const result = updateSetup(options(dir, { files: cursorFilesWithNewTemplate('.dev-environment.md') }));
+
+  assert.equal(result.applied, true);
+  assert.deepEqual(result.pendingMerges, []);
+  assert.equal(fs.readFileSync(path.join(dir, '.dev-environment.md'), 'utf8'), 'My machine.\n');
+  assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/pending-updates')), false);
 });
 
 // --- The Playwright MCP server older releases wrote (PP-4531) ------------------------------------
