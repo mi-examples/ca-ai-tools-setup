@@ -1008,6 +1008,117 @@ test('checkSetup rejects malformed metadata', () => {
 // Filtering the preserved bucket on state alone reported such a file as preserved in the very run
 // that replaced it — which an automated update PR would repeat to a reviewer as "your changes were
 // kept". The bucket means "repository-owned content survived", so a write disqualifies it.
+// PR #24 review: --force used to replace an edited MCP JSON / Claude settings file with the
+// template, dropping the repository's own servers and tokens — and a schema 5 migration needs
+// --force. It now resolves the conflict the way the file is owned: generated entries win, the
+// rest stays.
+test('updateSetup --force merges an edited MCP file and Claude settings instead of replacing them', () => {
+  const dir = makeTempDir();
+  const claude: Partial<ReconcileOptions> = {
+    assistants: ['claude'],
+    figmaMcpInclude: true,
+    files: getGeneratedFiles(['claude'], true, false),
+  };
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['claude'],
+    figmaMcpInclude: true,
+    force: false,
+    dryRun: false,
+  });
+
+  const generated = readJson<{ mcpServers: { figma: { command: string; env: Record<string, string> } } }>(
+    dir,
+    '.mcp.json',
+  );
+  const tokenKey = Object.keys(generated.mcpServers.figma.env)[0];
+  const edited = {
+    mcpServers: {
+      figma: { command: 'changed-by-the-repository', env: { [tokenKey]: 'real-token' } },
+      custom: { command: 'node', env: { CUSTOM_TOKEN: 'secret' } },
+    },
+  };
+  const settings = readJson<{ permissions?: { allow?: string[] } }>(dir, '.claude/settings.json');
+  const editedSettings = {
+    ...settings,
+    permissions: { ...settings.permissions, allow: [...(settings.permissions?.allow ?? []), 'Bash(npm run build)'] },
+  };
+
+  fs.writeFileSync(path.join(dir, '.mcp.json'), `${JSON.stringify(edited, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(path.join(dir, '.claude/settings.json'), `${JSON.stringify(editedSettings, null, 2)}\n`, 'utf8');
+
+  const blocked = updateSetup(options(dir, claude));
+
+  assert.equal(blocked.applied, false);
+  assert.deepEqual(blocked.conflicts, ['.claude/settings.json', '.mcp.json']);
+
+  const forced = updateSetup(options(dir, { ...claude, force: true }));
+  const merged = readJson<{ mcpServers: Record<string, { command?: string; env?: Record<string, string> }> }>(
+    dir,
+    '.mcp.json',
+  );
+
+  assert.equal(forced.applied, true);
+  assert.ok(forced.merged.includes('.mcp.json'));
+  assert.ok(forced.merged.includes('.claude/settings.json'));
+  // The repository's own server survives, token included.
+  assert.deepEqual(merged.mcpServers.custom, edited.mcpServers.custom);
+  // The generated server is back to its definition, but keeps the real token the repository put in.
+  assert.equal(merged.mcpServers.figma.command, generated.mcpServers.figma.command);
+  assert.equal(merged.mcpServers.figma.env?.[tokenKey], 'real-token');
+  assert.ok(
+    readJson<{ permissions: { allow: string[] } }>(dir, '.claude/settings.json').permissions.allow.includes(
+      'Bash(npm run build)',
+    ),
+  );
+  assert.equal(checkSetup(options(dir, claude)).plan.hasChanges, false);
+});
+
+test('a forced schema 5 migration keeps the repository servers in an MCP file it still generates', () => {
+  const dir = makeTempDir();
+  const figma: Partial<ReconcileOptions> = {
+    figmaMcpInclude: true,
+    files: getGeneratedFiles(['cursor'], true, false),
+  };
+  const existing = { mcpServers: { custom: { command: 'node', env: { CUSTOM_TOKEN: 'secret' } } } };
+
+  createCursorSetup(dir);
+  writeLegacyFile(dir, '.cursor/mcp.json', `${JSON.stringify(existing, null, 2)}\n`);
+  writeSchema5Metadata(dir, ['cursor'], { figmaMcp: { cursorFile: true, projectRootFile: false } });
+
+  const forced = updateSetup(options(dir, { ...figma, force: true }));
+  const servers = readJson<{ mcpServers: Record<string, unknown> }>(dir, '.cursor/mcp.json').mcpServers;
+
+  assert.equal(forced.applied, true);
+  assert.ok(forced.merged.includes('.cursor/mcp.json'));
+  assert.deepEqual(servers.custom, existing.mcpServers.custom);
+  assert.ok('figma' in servers);
+});
+
+test('updateSetup --force replaces an MCP file that is not valid JSON', () => {
+  const dir = makeTempDir();
+  const figma: Partial<ReconcileOptions> = {
+    figmaMcpInclude: true,
+    files: getGeneratedFiles(['cursor'], true, false),
+  };
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    figmaMcpInclude: true,
+    force: false,
+    dryRun: false,
+  });
+  fs.writeFileSync(path.join(dir, '.cursor/mcp.json'), '{ not json', 'utf8');
+
+  const forced = updateSetup(options(dir, { ...figma, force: true }));
+
+  assert.equal(forced.applied, true);
+  assert.ok(forced.updated.includes('.cursor/mcp.json'));
+  assert.ok('figma' in readJson<{ mcpServers: object }>(dir, '.cursor/mcp.json').mcpServers);
+});
+
 test('updateSetup --force does not report an overwritten managed file as preserved', () => {
   const dir = makeTempDir();
 

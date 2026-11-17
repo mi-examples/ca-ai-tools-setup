@@ -327,8 +327,10 @@ Update ownership rules:
   wrote; repository servers and edited entries stay.
 - `AGENTS.md` content the repository wrote is never replaced, including with `--force`; missing generated agent
   rows are merged into its registry table or appended as a separate generated section.
-- Locally modified managed/structured files block the entire update so a partial write cannot occur. Use
-  `--force` only when replacing those generated baselines is intentional.
+- Locally modified managed/structured files block the entire update so a partial write cannot occur. With
+  `--force` a managed file is replaced. MCP JSON and Claude settings are merged instead: generated entries win
+  over same-named ones, while repository servers, real tokens in `env` and other settings stay. Only a file
+  that is not valid JSON is replaced.
 - Files a release stops generating:
   - an untouched generated file is deleted, together with any directory it leaves empty;
   - a file with local edits, or with content adopted from the repository, is a conflict that blocks the update
@@ -362,7 +364,7 @@ freshness matters and to request approval before any update.
 - `--target <path>`: target repo directory (resolved from the current working directory; omit or press Enter in the prompt to use the current directory)
 - `--assistants <list>`: comma-separated assistants, e.g. `cursor,claude`
 - `--dry-run`: preview generation or update changes without writing; for `update`, exits `2` when changes or conflicts are pending
-- `--force`: overwrite generated managed/structured baselines; protected files remain preserved in `update` mode
+- `--force`: overwrite generated managed baselines; in `update` mode protected files remain preserved and MCP JSON / Claude settings are merged, not replaced (see the ownership rules above)
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--json`: emit the run as a single machine-readable JSON document on stdout instead of the human summary; see [Machine-readable output](#machine-readable-output-json)
 - `--mcp-playwright <yes|no>`: **deprecated and ignored.** Playwright MCP is no longer generated; browser automation uses the Playwright CLI. The flag is still accepted so existing commands keep working, and prints a warning on stderr. On `update`, the `playwright` server an older release wrote is removed from the MCP files and Claude settings (see the ownership rules above)

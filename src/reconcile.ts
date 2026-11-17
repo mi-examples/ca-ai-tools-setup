@@ -332,6 +332,33 @@ function collisionPlan(
     currentContent,
     previous,
   });
+  // A file that differs from what the generator can vouch for blocks the update. --force resolves
+  // it, and what that means depends on the file. A managed file is the generator's: it is replaced.
+  // MCP JSON and Claude settings also hold the repository's own servers, tokens and permissions,
+  // so there --force lets the generated entries win and keeps the rest — replacing the file would
+  // silently drop them. Only a file that cannot be parsed is replaced: there is nothing to merge.
+  const conflictPlan = (reason: string): ReconcileFilePlan => {
+    const base = { path: file.path, ownership, reason, desiredContent: file.content, currentContent, previous };
+
+    if (!force) {
+      return { ...base, state: 'conflict', action: 'none' };
+    }
+
+    if (ownership === 'structured' && isMergeablePath(file.path)) {
+      try {
+        return {
+          ...base,
+          state: 'modified',
+          action: 'merge',
+          resultContent: mergeFile(file.path, prune(file.path, currentContent), file.content),
+        };
+      } catch {
+        // Not valid JSON: fall through and replace it.
+      }
+    }
+
+    return { ...base, state: 'modified', action: 'overwrite' };
+  };
 
   if (!previous) {
     if (currentHash === desiredHash) {
@@ -361,17 +388,11 @@ function collisionPlan(
       );
     }
 
-    return {
-      path: file.path,
-      ownership,
-      state: force ? 'modified' : 'conflict',
-      action: force ? 'overwrite' : 'none',
-      reason: metadataIsLegacy
+    return conflictPlan(
+      metadataIsLegacy
         ? 'Existing content cannot be verified against schema 5 metadata.'
         : 'Existing content has no generated baseline.',
-      desiredContent: file.content,
-      currentContent,
-    };
+    );
   }
 
   if (currentHash !== previous.contentHash) {
@@ -389,16 +410,7 @@ function collisionPlan(
       );
     }
 
-    return {
-      path: file.path,
-      ownership,
-      state: force ? 'modified' : 'conflict',
-      action: force ? 'overwrite' : 'none',
-      reason: 'File differs from its recorded generated baseline.',
-      desiredContent: file.content,
-      currentContent,
-      previous,
-    };
+    return conflictPlan('File differs from its recorded generated baseline.');
   }
 
   if (previous.baseline !== 'adopted' && previous.sourceHash === desiredHash) {
@@ -418,16 +430,7 @@ function collisionPlan(
   }
 
   if (previous.baseline === 'adopted' && currentHash !== desiredHash && ownership !== 'protected') {
-    return {
-      path: file.path,
-      ownership,
-      state: force ? 'modified' : 'conflict',
-      action: force ? 'overwrite' : 'none',
-      reason: 'Adopted content has no verified generated baseline.',
-      desiredContent: file.content,
-      currentContent,
-      previous,
-    };
+    return conflictPlan('Adopted content has no verified generated baseline.');
   }
 
   if (currentHash === desiredHash) {
