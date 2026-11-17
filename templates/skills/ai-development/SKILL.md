@@ -65,7 +65,7 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 
 - Open the **Figma link** from the issue (description, attachments, or comments) **when the issue or mode calls for UI work from design**.
 <!-- only:figma -->
-- Follow the **`figma-implementation`** skill (node JSON, variables, tokens, Code Connect).
+- Follow the **`figma-implementation`** skill (node data, tokens, assets, visual check against the design).
 <!-- /only -->
 <!-- only:no-figma -->
 - Figma MCP is not set up in this repository, so the design cannot be read from here. Ask the developer for the values the work needs (sizes, spacing, colors, text), or to add Figma MCP by re-running the setup with `--mcp-figma yes`.

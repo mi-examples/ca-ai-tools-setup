@@ -216,7 +216,7 @@ Writing **`.cursor/mcp.json`** during bootstrap does **not** turn MCP servers on
 
 1. Open **Cursor Settings** → **Features** → **MCP** (wording may be **Cursor Settings → MCP** in newer builds).
 2. Find **Project MCP** (this repository) and **enable** each server that appears in **`.cursor/mcp.json`** (for example **figma**). If a server is listed but disabled, toggle it **on**.
-3. **Figma MCP:** export **`FIGMA_API_KEY`** in the environment (system, shell profile, or MCP server env in Cursor) **before** starting the server — see the **`portal-env-credentials`** skill. Without the token, the server may fail to start or show no tools.
+3. **Figma MCP:** put the personal access token into **`.env`** at the repository root as **`FIGMA_API_KEY=...`** — the server reads that file itself — or set it as a system environment variable; see the **`portal-env-credentials`** skill. No OAuth sign-in is involved. Without the token every Figma request fails.
 4. Use **Refresh** / reload MCP in that settings screen (or **fully quit and restart Cursor** if tools still do not appear — same remediation as for CLI `PATH` above).
 5. In **Agent** chat, confirm MCP tools are available (server connected, tool list populated) before asking the agent to read Figma via MCP.
 

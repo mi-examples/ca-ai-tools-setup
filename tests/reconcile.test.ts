@@ -385,7 +385,7 @@ test('schema 5 with Claude only: --force removes the Cursor rules it used to get
 });
 
 test('schema 5 migration removes the generated Playwright server and keeps repository servers', () => {
-  const playwright = generatedMcpServerDefinitions().playwright;
+  const playwright = generatedMcpServerDefinitions().playwright[0];
   const recorded = { playwrightMcp: { cursorFile: true, projectRootFile: false } };
 
   // Only the generated server in the file: the file goes.
@@ -703,7 +703,7 @@ test('the personal .dev-environment.md never gets a pending template', () => {
 // from. It is put together by hand: the server in the MCP files and in Claude's settings, plus the
 // `playwrightMcp` marker the old release recorded in the metadata.
 
-const PLAYWRIGHT_SERVER = generatedMcpServerDefinitions().playwright;
+const PLAYWRIGHT_SERVER = generatedMcpServerDefinitions().playwright[0];
 const NO_PLAYWRIGHT_MARKER = { cursorFile: false, projectRootFile: false };
 
 type PlaywrightReleaseSetup = {
@@ -848,6 +848,74 @@ test('a locally edited obsolete MCP file is a conflict; --force keeps what the r
   assert.deepEqual(readJson(dir, '.cursor/mcp.json'), edited);
   assert.equal(trackedPaths(dir).includes('.cursor/mcp.json'), false);
   assert.equal(checkSetup(options(dir)).plan.hasChanges, false);
+});
+
+// PP-4661: the Figma entry changed form (pinned version, another placeholder). A repository that
+// drops Figma later must still lose the entry an older release wrote, in the form it was written.
+test('turning Figma off removes the Figma server in the form an older release wrote', () => {
+  const dir = makeTempDir();
+  const claude = (figma: boolean): Partial<ReconcileOptions> => ({
+    assistants: ['claude'],
+    figmaMcpInclude: figma,
+    files: getGeneratedFiles(['claude'], figma, false),
+  });
+  const olderFigma = generatedMcpServerDefinitions().figma.at(-1);
+
+  assert.deepEqual((olderFigma as { args: string[] }).args, ['-y', 'figma-developer-mcp', '--stdio']);
+
+  generateSetup({ targetDir: dir, assistants: ['claude'], figmaMcpInclude: true, force: false, dryRun: false });
+  fs.writeFileSync(
+    path.join(dir, '.mcp.json'),
+    `${JSON.stringify({ mcpServers: { custom: { command: 'node' }, figma: olderFigma } }, null, 2)}\n`,
+    'utf8',
+  );
+
+  // The file holds a repository server, so it counts as edited: --force drops only what is ours.
+  const forced = updateSetup(options(dir, { ...claude(false), force: true }));
+
+  assert.equal(forced.applied, true);
+  assert.deepEqual(readJson<{ mcpServers: object }>(dir, '.mcp.json').mcpServers, { custom: { command: 'node' } });
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-implementation')), false);
+});
+
+// A repository set up by the previous release still has the old entry and the Code Connect skill.
+test('update moves an untouched Figma setup to the pinned server and drops the Code Connect skill', () => {
+  const dir = makeTempDir();
+  const claude: Partial<ReconcileOptions> = {
+    assistants: ['claude'],
+    figmaMcpInclude: true,
+    files: getGeneratedFiles(['claude'], true, false),
+  };
+  const olderFigma = generatedMcpServerDefinitions().figma.at(-1);
+  const olderSkill = '.claude/skills/figma-code-connect/SKILL.md';
+  const olderFiles = [
+    ...getGeneratedFiles(['claude'], true, false).map((file) =>
+      file.path === '.mcp.json'
+        ? { ...file, content: `${JSON.stringify({ mcpServers: { figma: olderFigma } }, null, 2)}\n` }
+        : file,
+    ),
+    { path: olderSkill, content: '# Code Connect\n' },
+  ];
+
+  generateSetup({
+    targetDir: dir,
+    assistants: ['claude'],
+    figmaMcpInclude: true,
+    force: false,
+    dryRun: false,
+    files: olderFiles,
+  });
+
+  const result = updateSetup(options(dir, claude));
+  const figma = readJson<{ mcpServers: { figma: { args: string[]; env: Record<string, string> } } }>(dir, '.mcp.json')
+    .mcpServers.figma;
+
+  assert.equal(result.applied, true);
+  assert.equal(result.conflicts.length, 0);
+  assert.ok(result.removed.includes(olderSkill));
+  assert.match(figma.args[1], /^figma-developer-mcp@\d/);
+  assert.equal(figma.env.FIGMA_API_KEY, '${FIGMA_API_KEY:-}');
+  assert.equal(checkSetup(options(dir, claude)).plan.hasChanges, false);
 });
 
 test('the Playwright server leaves .mcp.json and .claude/settings.json; the Figma server stays', () => {

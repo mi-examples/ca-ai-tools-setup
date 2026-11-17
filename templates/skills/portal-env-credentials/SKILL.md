@@ -17,7 +17,7 @@ Secrets and instance-specific values live in **`.env`** at the repo root. **`.en
 | **`DEFAULT_USERNAME_ADMIN`** | Default **username** for Portal login during **development** and **testing** (local or scripted flows). |
 | **`DEFAULT_PASSWORD_ADMIN`** | Default **password** for that user — **never** paste into committed files, Linear, or chat. |
 <!-- only:figma -->
-| **`FIGMA_API_KEY`** | **Figma** Personal Access Token (`https://www.figma.com/developers/api#access-tokens`) used by the **Figma MCP** server registered in **`.mcp.json`** / **`.cursor/mcp.json`** and by direct **Figma REST** calls (e.g. `curl -H "X-Figma-Token: $FIGMA_API_KEY" https://api.figma.com/v1/files/<fileKey>`). Used by the **`figma-implementation`** and **`figma-code-connect`** skills. Never commit a real token. |
+| **`FIGMA_API_KEY`** | **Figma** personal access token (`https://www.figma.com/developers/api#access-tokens`) for the **Figma MCP** server registered in **`.mcp.json`** / **`.cursor/mcp.json`**. The server reads this variable from **`.env`** itself, so nothing has to be exported; there is no OAuth sign-in. Also works for direct **Figma REST** calls (e.g. `curl -H "X-Figma-Token: $FIGMA_API_KEY" https://api.figma.com/v1/files/<fileKey>`). Used by the **`figma-implementation`** skill. Never commit a real token. |
 <!-- /only -->
 <!-- only:no-figma -->
 | **`FIGMA_API_KEY`** | **Figma** Personal Access Token (`https://www.figma.com/developers/api#access-tokens`) for direct **Figma REST** calls (e.g. `curl -H "X-Figma-Token: $FIGMA_API_KEY" https://api.figma.com/v1/files/<fileKey>`). Figma MCP is not set up in this repository. Never commit a real token. |

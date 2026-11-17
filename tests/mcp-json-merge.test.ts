@@ -8,6 +8,7 @@ import {
   mergeClaudeSettingsJson,
   mergeAgentsMd,
   mergeFile,
+  pruneRetiredMcpServers,
 } from '../src/mcp-json-merge.js';
 
 test('isMcpConfigPath recognizes MCP config paths', () => {
@@ -130,6 +131,44 @@ test('mergeMcpJson keeps placeholder when both existing and incoming use placeho
 
   assert.equal(parsed.mcpServers.figma.env.FIGMA_API_KEY, '${FIGMA_API_KEY}');
   assert.deepEqual(parsed.mcpServers.figma.args, ['-y', 'figma-developer-mcp', '--stdio']);
+});
+
+// PP-4661: the generated placeholder changed spelling (per client), and an older file may still
+// hold the previous one. A real token must survive every spelling; a placeholder must not.
+test('mergeMcpJson treats every placeholder spelling as a placeholder', () => {
+  const merge = (existingToken: string, incomingToken: string): string => {
+    const config = (token: string): string =>
+      JSON.stringify({ mcpServers: { figma: { command: 'npx', env: { FIGMA_API_KEY: token } } } });
+    const merged = JSON.parse(mergeMcpJson(config(existingToken), config(incomingToken))) as {
+      mcpServers: { figma: { env: { FIGMA_API_KEY: string } } };
+    };
+
+    return merged.mcpServers.figma.env.FIGMA_API_KEY;
+  };
+
+  for (const placeholder of ['${FIGMA_API_KEY:-}', '${env:FIGMA_API_KEY}', '${FIGMA_API_KEY}']) {
+    assert.equal(merge('real-token', placeholder), 'real-token');
+  }
+
+  // The old placeholder is replaced by the new one instead of being kept as if it were a token.
+  assert.equal(merge('${FIGMA_API_KEY}', '${FIGMA_API_KEY:-}'), '${FIGMA_API_KEY:-}');
+  assert.equal(merge('${FIGMA_API_KEY}', '${env:FIGMA_API_KEY}'), '${env:FIGMA_API_KEY}');
+});
+
+test('pruneRetiredMcpServers removes a server that equals any form the generator wrote', () => {
+  const older = { command: 'npx', args: ['-y', 'some-server'] };
+  const newer = { command: 'npx', args: ['-y', 'some-server@1.0.0'] };
+  const file = (server: unknown): string =>
+    JSON.stringify({ mcpServers: { custom: { command: 'node' }, some: server } });
+  const names = (content: string): string[] => Object.keys((JSON.parse(content) as { mcpServers: object }).mcpServers);
+
+  assert.deepEqual(names(pruneRetiredMcpServers(file(older), { some: [newer, older] })), ['custom']);
+  assert.deepEqual(names(pruneRetiredMcpServers(file(newer), { some: [newer, older] })), ['custom']);
+  // Edited by the repository: equal to neither form, so it stays.
+  assert.deepEqual(names(pruneRetiredMcpServers(file({ ...older, env: { A: 'b' } }), { some: [newer, older] })), [
+    'custom',
+    'some',
+  ]);
 });
 
 test('mergeMcpJson throws on invalid existing JSON', () => {

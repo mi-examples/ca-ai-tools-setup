@@ -126,6 +126,13 @@ export const REMOVABLE_LEGACY_SETUP_PATHS = [
   '.cursor/rules/linear-merge-notification.mdc',
   '.cursor/rules/portal-env-credentials.mdc',
   '.cursor/rules/README.md',
+  // PP-4661: this skill needs tools only the official Figma MCP has; the setup registers Framelink.
+  '.cursor/skills/figma-code-connect/SKILL.md',
+  '.cursor/skills/figma-code-connect/references/api.md',
+  '.cursor/skills/figma-code-connect/references/advanced-patterns.md',
+  '.claude/skills/figma-code-connect/SKILL.md',
+  '.claude/skills/figma-code-connect/references/api.md',
+  '.claude/skills/figma-code-connect/references/advanced-patterns.md',
 ] as const;
 
 /**

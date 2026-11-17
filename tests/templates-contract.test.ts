@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { MIN_NODE_MAJOR, PLAYWRIGHT_CLI_VERSION, type Assistant } from '../src/constants.js';
+import {
+  FIGMA_MCP_PACKAGE,
+  FIGMA_MCP_TOOLS,
+  FIGMA_MCP_VERSION,
+  MIN_NODE_MAJOR,
+  PLAYWRIGHT_CLI_VERSION,
+  type Assistant,
+} from '../src/constants.js';
 import { getGeneratedFiles } from '../src/generator.js';
 import { readTemplate, renderAssistantBlocks, renderTemplateValues } from '../src/templates.js';
 
@@ -255,6 +262,66 @@ test('nothing points at the Figma skills unless Figma MCP is generated', () => {
 
 // A skill prompts subagents with the full path of its own files, so the path has to be the folder
 // the skill was really generated into — `.cursor/skills` in a Cursor-only setup.
+// PP-4661: the setup registered Framelink while one skill called tools only the official Figma MCP
+// has, so that skill could never work. The server is one, pinned, and the templates name its tools.
+test('every Figma tool a template names exists on the server the setup registers', () => {
+  const output = generated(['cursor', 'claude'], true);
+  const skill = output.get('.claude/skills/figma-implementation/SKILL.md')!;
+  // Tools are the only snake_case names in backticks in that skill; parameters are camelCase.
+  const named = new Set([...skill.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map(([, tool]) => tool));
+
+  assert.deepEqual([...named].sort(), [...FIGMA_MCP_TOOLS].sort());
+
+  for (const [filePath, content] of output) {
+    // Tools of the official Figma MCP, and a server name that belonged to one project.
+    assert.doesNotMatch(
+      content,
+      /get_design_context|get_variable_defs|get_code_connect|get_context_for_code_connect|get_metadata|project-0-/,
+      filePath,
+    );
+  }
+
+  assert.equal(output.has('.claude/skills/figma-code-connect/SKILL.md'), false);
+});
+
+test('the Figma server is pinned and takes its token without OAuth, per client', () => {
+  type Server = { command: string; args: string[]; env: Record<string, string> };
+  const output = generated(['cursor', 'claude'], true);
+  const server = (filePath: string): Server =>
+    (JSON.parse(output.get(filePath)!) as { mcpServers: { figma: Server } }).mcpServers.figma;
+  const claude = server('.mcp.json');
+  const cursor = server('.cursor/mcp.json');
+
+  for (const config of [claude, cursor]) {
+    assert.equal(config.args[1], `${FIGMA_MCP_PACKAGE}@${FIGMA_MCP_VERSION}`);
+    assert.equal(config.env.FRAMELINK_TELEMETRY, 'off');
+    assert.doesNotMatch(JSON.stringify(config), /oauth/i);
+  }
+
+  // Claude Code: an unset variable must become an empty value, not the literal placeholder, so the
+  // server falls back to the repository's .env instead of sending a bogus token to Figma.
+  assert.equal(claude.env.FIGMA_API_KEY, '${FIGMA_API_KEY:-}');
+  // Cursor: its own placeholder syntax, and the .env file and image folder by explicit path.
+  assert.equal(cursor.env.FIGMA_API_KEY, '${env:FIGMA_API_KEY}');
+  assert.deepEqual(cursor.args.slice(3), ['--env', '${workspaceFolder}/.env', '--image-dir', '${workspaceFolder}']);
+
+  // The setup documents show the same entry they tell the developer to check.
+  assert.ok(output.get('setup-claude-assistant.md')!.includes(`"${FIGMA_MCP_PACKAGE}@${FIGMA_MCP_VERSION}"`));
+  assert.match(output.get('setup-cursor-assistant.md')!, /\$\{workspaceFolder\}\/\.env/);
+});
+
+// Two reference files of a skill were generated with nothing in them; a link to an empty file is a
+// dead end the assistant still spends a read on.
+test('no generated file is empty', () => {
+  for (const assistants of SELECTIONS) {
+    for (const figma of [false, true]) {
+      for (const [filePath, content] of generated(assistants, figma)) {
+        assert.notEqual(content.trim(), '', filePath);
+      }
+    }
+  }
+});
+
 test('a skill names its own files under the folder it is generated into', () => {
   const cursorOnly = generated(['cursor']).get('.cursor/skills/customer-app-docs/SKILL.md')!;
   const withClaude = generated(['cursor', 'claude']).get('.claude/skills/customer-app-docs/SKILL.md')!;

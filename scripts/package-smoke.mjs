@@ -77,7 +77,7 @@ try {
 
   const generatedFiles = listFiles(targetRoot);
 
-  assert.equal(generatedFiles.length, 48, 'packed CLI should generate the complete setup');
+  assert.equal(generatedFiles.length, 45, 'packed CLI should generate the complete setup');
   // One skills folder: with Claude selected it is .claude/skills, and Cursor reads it from there.
   assert.equal(fs.existsSync(path.join(targetRoot, '.cursor', 'skills')), false);
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'rules', 'assistant-setup-health.md')));

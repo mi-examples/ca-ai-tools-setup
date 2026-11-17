@@ -17,7 +17,7 @@ goes and its frontmatter.
 | `setup-cursor-assistant.md`, `.cursorignore`                                                                                                                                       | Cursor selected                                | `templates/setup-assistant.md`, `templates/cursor/cursorignore` |
 | `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                  | Claude selected                                | `templates/setup-assistant.md`, `templates/claude/CLAUDE.md`    |
 | `.claude/agents/*` (`qa-tester`, `ui-verifier`, `linear-reporter`), `.claude/commands/*` (`/ui-check`, `/customer-docs`)                                                           | Claude selected                                | `templates/claude/*`                                            |
-| `.cursor/mcp.json`, `.mcp.json`, the `figma-implementation` and `figma-code-connect` skills                                                                                        | Figma MCP selected                             | `src/generators/mcp.ts`, `templates/skills/figma-*`             |
+| `.cursor/mcp.json`, `.mcp.json`, the `figma-implementation` skill                                                                                                                  | Figma MCP selected                             | `src/generators/mcp.ts`, `templates/skills/figma-*`             |
 
 **Rules** (`assistant-setup-health`, `linear-task-gates`, `code-style`, `frontend-architecture`): the first two
 apply always, the other two only to files under `src/`. A rule source declares `apply: always` or a `paths`
@@ -201,7 +201,9 @@ npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants 
 
 ### MCP — enable Figma
 
-Figma is the only MCP server the setup writes (requires **`FIGMA_API_KEY`**). Browser automation does not use
+Figma is the only MCP server the setup writes. It is the Framelink server (`figma-developer-mcp`, pinned to a
+version), signed in with a personal access token — no OAuth. Put the token into the target repository's `.env`
+as **`FIGMA_API_KEY`**; the server reads it from there, or from an environment variable. Browser automation does not use
 MCP: it runs through the Playwright CLI (`npx playwright-cli`), which ships with the generated skills.
 
 ```bash

@@ -20,7 +20,7 @@ export const BASE_SKILLS = [
 ] as const;
 
 /** Skills that need the Figma MCP server, so they are generated only together with it. */
-export const FIGMA_SKILLS = ['figma-implementation', 'figma-code-connect'] as const;
+export const FIGMA_SKILLS = ['figma-implementation'] as const;
 
 /**
  * One skills folder per repository. Cursor also loads skills from `.claude/skills/`, so when Claude

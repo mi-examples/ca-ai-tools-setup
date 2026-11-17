@@ -41,7 +41,7 @@ kept current by `ca-ai-tools-setup`:
 | Credentials and instance URLs | `portal-env-credentials` |
 | Customer-facing documentation | `customer-app-docs` |
 <!-- only:figma -->
-| Figma design to code | `figma-implementation`, `figma-code-connect` |
+| Figma design to code | `figma-implementation` |
 <!-- /only -->
 
 Customer-facing documentation is written **only when a person asks for it** — never on your own initiative,
