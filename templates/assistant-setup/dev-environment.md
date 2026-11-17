@@ -175,7 +175,7 @@ Metric Insights instance docs can diverge from [published API reference](https:/
 
 ## Tooling
 
-- Node.js version: `<v22.x>`
+- Node.js version: `<v{{MIN_NODE_MAJOR}}.x>`
 - Package manager: `<npm | pnpm | yarn>`
 - GitHub CLI (`gh`): `<installed | missing>`
 - Linear MCP: `<connected | not connected>`

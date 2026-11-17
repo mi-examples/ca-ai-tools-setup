@@ -18,10 +18,10 @@ The CLI ships **with the repository** so every team member gets it from a plain
 
 1. `@playwright/cli` is a **pinned devDependency** in `package.json`. If it is missing, add it:
    ```bash
-   npm install --save-dev @playwright/cli@0.1.17
+   npm install --save-dev @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}}
    ```
 2. Invoke it as **`npx playwright-cli ...`** — this resolves the pinned local version. A global
-   install is optional. If no local version is present, `npx -y @playwright/cli@0.1.17 ...` works
+   install is optional. If no local version is present, `npx -y @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}} ...` works
    as a fallback.
 3. Confirm it resolves: `npx playwright-cli --version`.
 4. Ensure the CLI workspace state is **gitignored** (never commit it):

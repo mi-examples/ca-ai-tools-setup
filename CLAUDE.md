@@ -46,7 +46,7 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 - `src/previous-setup.ts` — reads `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)
 - `src/qa-ai-rules-setup.ts` / `src/qa-ai-rules-choice.ts` — optional `@metricinsights/qa-ai-rules` post-setup in the target repo
 - `src/package-manager.ts` — detects npm / pnpm / Yarn (Berry vs classic) / Bun to choose `npx`, `pnpm dlx`, `yarn dlx`, or `bunx`
-- `templates/` — all markdown and JSON templates; read at runtime by `src/templates.ts` (including `readUiCheckSkillTemplate()` for `.cursor` vs `.claude` skill paths)
+- `templates/` — all markdown and JSON templates; read at runtime by `src/templates.ts`. `readTemplate()` fills in the `{{PLAYWRIGHT_CLI_VERSION}}` and `{{MIN_NODE_MAJOR}}` placeholders from `src/constants.ts` — never write those versions into a template literally
 
 **File overwrite policy (generator.ts):**
 

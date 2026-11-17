@@ -17,3 +17,14 @@ export const QA_AI_RULES_PACKAGE = '@metricinsights/qa-ai-rules';
 export const QA_AI_RULES_CLI = 'qa-ai-rules';
 
 export const SETUP_ASSISTANT_FILES = new Set(['setup-cursor-assistant.md', 'setup-claude-assistant.md']);
+
+/**
+ * Versions the generated instructions name. Templates carry `{{PLAYWRIGHT_CLI_VERSION}}` and
+ * `{{MIN_NODE_MAJOR}}`, and readTemplate() fills them in — so a bump is this file and nothing else.
+ */
+
+/** `@playwright/cli` version target repositories pin as a devDependency. */
+export const PLAYWRIGHT_CLI_VERSION = '0.1.24';
+
+/** Lowest Node.js major `@metricinsights/pp-dev` ≥ 1.0 runs on (its `engines.node`). */
+export const MIN_NODE_MAJOR = 24;

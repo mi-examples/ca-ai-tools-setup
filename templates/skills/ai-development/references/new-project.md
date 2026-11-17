@@ -4,8 +4,7 @@ Greenfield setup for the **Full** mode of the `ai-development` skill.
 
 ## Node.js
 
-- Minimum **Node.js ≥ 18.17.0** (project policy).
-- **`@metricinsights/pp-dev` ≥ 1.0 requires Node.js ≥ 24** (declared in its `engines`) — align `engines` in `package.json` and CI images with whatever `pp-dev` version this repo pins.
+- **Node.js ≥ {{MIN_NODE_MAJOR}}** — required by `@metricinsights/pp-dev` ≥ 1.0 (declared in its `engines`). Align `engines` in `package.json` and CI images with whatever `pp-dev` version this repo pins.
 
 ## Baseline layout (what “full” development should commit)
 

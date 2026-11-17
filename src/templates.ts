@@ -1,15 +1,38 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Assistant } from './constants.js';
+import { MIN_NODE_MAJOR, PLAYWRIGHT_CLI_VERSION, type Assistant } from './constants.js';
 
 /** One level up from compiled `dist/*.js` or source `src/*.ts` → repo root, then `templates/`. */
 const templateRoot = path.resolve(fileURLToPath(new URL('../templates', import.meta.url)));
 
+/** What a `{{NAME}}` placeholder in a template stands for. */
+const TEMPLATE_VALUES: Readonly<Record<string, string>> = {
+  PLAYWRIGHT_CLI_VERSION,
+  MIN_NODE_MAJOR: String(MIN_NODE_MAJOR),
+};
+
+/**
+ * Fill in the `{{NAME}}` placeholders of a template. Only upper-case names are placeholders, so
+ * text such as `{{page}}` passes through. An unknown name is a typo in a template and throws:
+ * left alone, it would reach a repository as a literal `{{…}}` inside a command.
+ */
+export function renderTemplateValues(template: string): string {
+  return template.replace(/\{\{([A-Z][A-Z0-9_]*)\}\}/g, (placeholder, name: string) => {
+    const value = TEMPLATE_VALUES[name];
+
+    if (value === undefined) {
+      throw new Error(`Unknown template placeholder "${placeholder}".`);
+    }
+
+    return value;
+  });
+}
+
 export function readTemplate(relativePath: string): string {
   const fullPath = path.join(templateRoot, relativePath);
 
-  return fs.readFileSync(fullPath, 'utf8');
+  return renderTemplateValues(fs.readFileSync(fullPath, 'utf8'));
 }
 
 /** Every file under a template directory, as template-relative paths with forward slashes, sorted. */

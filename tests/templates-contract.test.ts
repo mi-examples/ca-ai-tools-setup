@@ -2,9 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Assistant } from '../src/constants.js';
+import { MIN_NODE_MAJOR, PLAYWRIGHT_CLI_VERSION, type Assistant } from '../src/constants.js';
 import { getGeneratedFiles } from '../src/generator.js';
-import { readTemplate } from '../src/templates.js';
+import { readTemplate, renderTemplateValues } from '../src/templates.js';
 
 function listFiles(dir: string): string[] {
   return fs
@@ -240,6 +240,50 @@ test('the playwright-cli skill ships the CLI as the browser-automation tool', ()
   assert.match(skill, /pinned devDependency/);
   assert.match(skill, /--save-dev @playwright\/cli/);
   assert.match(skill, /\.playwright-cli\//);
+});
+
+// PP-4662: the templates named four different Node.js versions and pinned the CLI in several
+// files, so a bump meant a search — and the setup script skipped the upgrade on Node 22 although
+// pp-dev needs 24. Both versions now come from src/constants.ts through placeholders.
+test('templates take the Playwright CLI and Node.js versions from one place', () => {
+  const pinnedInTemplate = listFiles('templates')
+    .filter((template) => /@playwright\/cli@\d|nvm (?:install|use) \d/.test(fs.readFileSync(template, 'utf8')))
+    .map((template) => path.relative('templates', template).split(path.sep).join('/'));
+
+  assert.deepEqual(pinnedInTemplate, []);
+
+  for (const assistants of SELECTIONS) {
+    for (const [filePath, content] of generated(assistants, true)) {
+      assert.doesNotMatch(content, /\{\{[A-Z][A-Z0-9_]*\}\}/, `${filePath} keeps an unfilled placeholder`);
+
+      for (const [, version] of content.matchAll(/@playwright\/cli@([\w.-]+)/g)) {
+        assert.equal(version, PLAYWRIGHT_CLI_VERSION, `${filePath} pins another @playwright/cli version`);
+      }
+
+      // "Node.js 24", "Node.js ≥ 24", "Node.js version: `<v24.x>`", "nvm install 24".
+      const nodeMajors = [
+        ...content.matchAll(/Node(?:\.js)?(?: version: `<v| ≥ | >= | )(\d+)/g),
+        ...content.matchAll(/nvm (?:install|use) (\d+)/g),
+      ];
+
+      for (const [mention, major] of nodeMajors) {
+        assert.equal(Number(major), MIN_NODE_MAJOR, `${filePath}: "${mention}"`);
+      }
+    }
+  }
+
+  const setup = generated(['claude']).get('setup-claude-assistant.md')!;
+
+  assert.match(setup, new RegExp(`npm install --save-dev @playwright/cli@${PLAYWRIGHT_CLI_VERSION}\\b`));
+  // The script upgrades whenever the major is below the requirement, not below an older one.
+  assert.match(setup, new RegExp(`"\\$NODE_MAJOR" -ge ${MIN_NODE_MAJOR} \\]`));
+  assert.match(setup, new RegExp(`\\$nodeMajor -ge ${MIN_NODE_MAJOR}\\)`));
+  assert.match(setup, new RegExp(`nvm install ${MIN_NODE_MAJOR}$`, 'm'));
+});
+
+test('an unknown template placeholder is an error; lower-case braces pass through', () => {
+  assert.equal(renderTemplateValues('v{{MIN_NODE_MAJOR}} {{page}}'), `v${MIN_NODE_MAJOR} {{page}}`);
+  assert.throws(() => renderTemplateValues('{{PLAYWRIGHT_VERSION}}'), /Unknown template placeholder/);
 });
 
 test('CLAUDE template routes by skill name and stays free of generated detail', () => {

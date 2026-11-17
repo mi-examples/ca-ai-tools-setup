@@ -23,7 +23,7 @@
 You are a setup assistant for **Metric Insights Portal Page / Custom App** repository local development (see **`pp-dev.config`** and npm package **`@metricinsights/pp-dev`**).
 The developer may be on **macOS**, **Linux**, or **Windows**.
 
-**Node.js:** Recent **`@metricinsights/pp-dev`** requires **Node.js 22 or newer**. Prefer matching **`package.json` `engines`**, local tooling, and any **CI** job (e.g. GitHub Actions `setup-node`) to the same major version the project actually uses for `npm run dev` / `pp-dev`.
+**Node.js:** Recent **`@metricinsights/pp-dev`** requires **Node.js {{MIN_NODE_MAJOR}} or newer**. Prefer matching **`package.json` `engines`**, local tooling, and any **CI** job (e.g. GitHub Actions `setup-node`) to the same major version the project actually uses for `npm run dev` / `pp-dev`.
 
 **CI:** Some repositories still have no automated pipeline; that can be normal today, but **CI for build, lint, and tests** is the intended direction for maintained apps. If `.github/workflows/` (or equivalent) is absent, do not treat it as a setup failure. When CI exists or is added, ensure install steps (`npm ci`, etc.) and the Node version align with this repo and pp-dev.
 
@@ -121,20 +121,20 @@ Install each tool sequentially and verify after each install.
 <!-- /only -->
 **2.1. Node.js version check + nvm (if needed)**
 
-Run one of these scripts. It automatically checks Node major version and installs **nvm + Node.js 24** only when needed (Node missing or `<22`).
+Run one of these scripts. It automatically checks Node major version and installs **nvm + Node.js {{MIN_NODE_MAJOR}}** only when needed (Node missing or `<{{MIN_NODE_MAJOR}}`).
 
 **macOS/Linux:**
 
 ```bash
 NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)
-if [ "$NODE_MAJOR" -ge 22 ]; then
-  echo "Node.js $(node -v) satisfies minimum >=22. Skipping nvm/Node install."
+if [ "$NODE_MAJOR" -ge {{MIN_NODE_MAJOR}} ]; then
+  echo "Node.js $(node -v) satisfies minimum >={{MIN_NODE_MAJOR}}. Skipping nvm/Node install."
 else
   command -v nvm >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-  nvm install 24
-  nvm use 24
+  nvm install {{MIN_NODE_MAJOR}}
+  nvm use {{MIN_NODE_MAJOR}}
 fi
 node -v
 ```
@@ -143,15 +143,15 @@ node -v
 
 ```powershell
 try { $nodeMajor = [int](node -p "process.versions.node.split('.')[0]") } catch { $nodeMajor = 0 }
-if ($nodeMajor -ge 22) {
-  Write-Host "Node.js $(node -v) satisfies minimum >=22. Skipping nvm/Node install."
+if ($nodeMajor -ge {{MIN_NODE_MAJOR}}) {
+  Write-Host "Node.js $(node -v) satisfies minimum >={{MIN_NODE_MAJOR}}. Skipping nvm/Node install."
 } else {
   if (-not (Get-Command nvm -ErrorAction SilentlyContinue)) {
     winget install CoreyButler.NVMforWindows
     $env:Path = "$env:Path;$env:ProgramFiles\nvm"
   }
-  nvm install 24
-  nvm use 24
+  nvm install {{MIN_NODE_MAJOR}}
+  nvm use {{MIN_NODE_MAJOR}}
 }
 node -v
 ```
@@ -233,7 +233,7 @@ Set it up once for the project (skip the install if `@playwright/cli` is already
 
 ```bash
 # 1. Pin the CLI as a devDependency so `npm install` provides it for the whole team
-npm install --save-dev @playwright/cli@0.1.17
+npm install --save-dev @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}}
 
 # 2. Confirm it resolves via the local install (no global needed)
 npx playwright-cli --version
@@ -250,7 +250,7 @@ Add the CLI workspace state to **`.gitignore`** and never commit it:
 ```
 
 Invoke the CLI as **`npx playwright-cli ...`** (resolves the pinned local version;
-`npx -y @playwright/cli@0.1.17 ...` is a fallback when no local install is present).
+`npx -y @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}} ...` is a fallback when no local install is present).
 
 ### Step 3: Developer environment profile (finalize after setup)
 
