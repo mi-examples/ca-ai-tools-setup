@@ -131,3 +131,12 @@ Write to `test-documentation/<CONTEXT_KEY>/bugs.md` per the bug report rule refe
 | **Major** | Partially broken, no workaround |
 | **Minor** | Cosmetic, workaround exists |
 | **Low** | Enhancement, edge case |
+
+## 7. Final local result
+
+At the end, summarize in the conversation:
+
+- Environment URL and the roles tested.
+- Totals: passed / failed / blocked / not tested.
+- Bug IDs with short titles.
+- Paths of the screenshots used as evidence.

@@ -63,7 +63,7 @@ test('cli writes the Figma server only when Figma MCP is enabled', () => {
   const result = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-figma', 'yes']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
-  assert.ok(fs.existsSync(path.join(targetDir, '.cursor/rules/figma-mcp.mdc')));
+  assert.ok(fs.existsSync(path.join(targetDir, '.cursor/skills/figma-implementation/SKILL.md')));
 
   const cursorMcp = JSON.parse(fs.readFileSync(path.join(targetDir, '.cursor/mcp.json'), 'utf8')) as {
     mcpServers?: Record<string, unknown>;
@@ -79,7 +79,7 @@ test('cli --force overwrites existing generated files', () => {
 
   assert.equal(first.status, 0, `Initial run failed.\nSTDERR:\n${first.stderr}`);
 
-  const cursorRulesPath = path.join(targetDir, '.cursorrules');
+  const cursorRulesPath = path.join(targetDir, '.cursorignore');
 
   fs.writeFileSync(cursorRulesPath, 'MANUAL TEST CONTENT\n', 'utf8');
 
@@ -144,7 +144,7 @@ test('cli --yes skips existing settings and safely merges AGENTS.md', () => {
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.equal(fs.readFileSync(settingsPath, 'utf8'), customSettings);
   assert.match(fs.readFileSync(agentsPath, 'utf8'), /Do not overwrite\./);
-  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`code-style\.md`/);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`qa-tester\.md`/);
   assert.match(result.stdout, /\.claude\/settings\.json/);
   assert.match(result.stdout, /AGENTS\.md/);
 });
@@ -193,7 +193,7 @@ test('cli --force overwrites settings but safely merges existing AGENTS.md', () 
   assert.match(fs.readFileSync(settingsPath, 'utf8'), /mcp__figma__/);
   assert.match(fs.readFileSync(agentsPath, 'utf8'), /# Manual AGENTS/);
   assert.match(fs.readFileSync(agentsPath, 'utf8'), /Registered agents added by ca-ai-tools-setup/);
-  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`code-style\.md`/);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`qa-tester\.md`/);
 });
 
 test('cli exits non-zero for invalid assistants value', () => {
@@ -273,7 +273,7 @@ test('cli update blocks all writes when a managed file conflicts', () => {
   runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   const conflictPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
-  const missingPath = path.join(targetDir, '.cursor/rules/commit-convention.mdc');
+  const missingPath = path.join(targetDir, '.cursor/rules/linear-task-gates.mdc');
 
   fs.writeFileSync(conflictPath, 'Local managed edit.\n', 'utf8');
   fs.rmSync(missingPath);

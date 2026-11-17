@@ -68,13 +68,13 @@ test('updateSetup blocks every write when a managed file has local changes', () 
 
   createCursorSetup(dir);
   const conflictingPath = path.join(dir, '.cursor/rules/code-style.mdc');
-  const otherPath = path.join(dir, '.cursor/rules/commit-convention.mdc');
+  const otherPath = path.join(dir, '.cursor/rules/linear-task-gates.mdc');
   const originalOther = fs.readFileSync(otherPath, 'utf8');
 
   fs.writeFileSync(conflictingPath, 'Repository-owned edit in a managed file.\n', 'utf8');
 
   const files = getGeneratedFiles(['cursor'], false, false).map((file) =>
-    file.path === '.cursor/rules/commit-convention.mdc'
+    file.path === '.cursor/rules/linear-task-gates.mdc'
       ? { ...file, content: `${file.content}\nNew release content.\n` }
       : file,
   );
@@ -125,7 +125,7 @@ test('updateSetup preserves and adopts repository-owned protected files', () => 
   const dir = makeTempDir();
 
   createCursorSetup(dir);
-  const protectedPath = path.join(dir, '.cursorrules');
+  const protectedPath = path.join(dir, '.cursorignore');
 
   fs.writeFileSync(protectedPath, 'Custom repository rules.\n', 'utf8');
 
@@ -133,20 +133,31 @@ test('updateSetup preserves and adopts repository-owned protected files', () => 
   const metadata = loadSetupMetadata(dir);
 
   assert.equal(result.conflicts.length, 0);
-  assert.ok(result.preserved.includes('.cursorrules'));
+  assert.ok(result.preserved.includes('.cursorignore'));
   assert.equal(fs.readFileSync(protectedPath, 'utf8'), 'Custom repository rules.\n');
   assert.equal(metadata.kind, 'current');
 
   if (metadata.kind === 'current') {
-    assert.equal(metadata.metadata.files['.cursorrules'].baseline, 'adopted');
+    assert.equal(metadata.metadata.files['.cursorignore'].baseline, 'adopted');
   }
 });
 
-test('updateSetup semantically merges an unchanged structured file', () => {
+test('updateSetup semantically merges a structured file that holds repository content', () => {
   const dir = makeTempDir();
   const figma = { figmaMcpInclude: true };
+  const mcpPath = path.join(dir, '.cursor/mcp.json');
 
-  generateSetup({ targetDir: dir, assistants: ['cursor'], force: false, dryRun: false, ...figma });
+  // The repository had its own server before the setup merged Figma in.
+  fs.mkdirSync(path.dirname(mcpPath), { recursive: true });
+  fs.writeFileSync(mcpPath, '{"mcpServers":{"custom":{"command":"node"}}}\n', 'utf8');
+  generateSetup({
+    targetDir: dir,
+    assistants: ['cursor'],
+    force: false,
+    dryRun: false,
+    ...figma,
+    existingFileActions: { '.cursor/mcp.json': 'merge' },
+  });
 
   const files = getGeneratedFiles(['cursor'], true, false).map((file) => {
     if (file.path !== '.cursor/mcp.json') {
@@ -165,22 +176,52 @@ test('updateSetup semantically merges an unchanged structured file', () => {
   };
 
   assert.ok(result.merged.includes('.cursor/mcp.json'));
+  assert.ok(merged.mcpServers.custom);
   assert.ok(merged.mcpServers.figma);
   assert.ok(merged.mcpServers.releaseServer);
   assert.equal(checkSetup(options(dir, { files, ...figma })).plan.hasChanges, false);
 });
 
+// A merge only ever adds. A structured file nobody touched has nothing to keep, so it follows its
+// template — otherwise an untouched AGENTS.md would list agents a later release removed.
+test('updateSetup replaces an untouched structured file with its new template', () => {
+  const dir = makeTempDir();
+  const claude = { assistants: ['claude'] as Assistant[] };
+
+  generateSetup({ targetDir: dir, ...claude, force: false, dryRun: false });
+
+  const files = getGeneratedFiles(['claude'], false, false).map((file) =>
+    file.path === 'AGENTS.md' ? { ...file, content: '# Agents\n\nA newer template without the old rows.\n' } : file,
+  );
+  const result = updateSetup(options(dir, { ...claude, files }));
+
+  assert.equal(result.applied, true);
+  assert.ok(result.updated.includes('AGENTS.md'));
+  assert.equal(result.merged.includes('AGENTS.md'), false);
+  assert.equal(
+    fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8'),
+    '# Agents\n\nA newer template without the old rows.\n',
+  );
+  assert.equal(checkSetup(options(dir, { ...claude, files })).plan.hasChanges, false);
+});
+
 test('updateSetup safely merges modified AGENTS.md even with force', () => {
   const dir = makeTempDir();
+  // The agent registry is generated for Claude Code only, so the rows to merge exist only there.
+  const claude: Partial<ReconcileOptions> = {
+    assistants: ['claude'],
+    files: getGeneratedFiles(['claude'], false, false),
+    force: true,
+  };
 
-  createCursorSetup(dir);
+  generateSetup({ targetDir: dir, assistants: ['claude'], force: false, dryRun: false });
 
   const agentsPath = path.join(dir, 'AGENTS.md');
 
   fs.writeFileSync(agentsPath, '# Repository AGENTS\n\nKeep custom instructions.\n', 'utf8');
 
-  const checked = checkSetup(options(dir, { force: true }));
-  const updated = updateSetup(options(dir, { force: true }));
+  const checked = checkSetup(options(dir, claude));
+  const updated = updateSetup(options(dir, claude));
   const merged = fs.readFileSync(agentsPath, 'utf8');
   const metadata = loadSetupMetadata(dir);
 
@@ -189,7 +230,7 @@ test('updateSetup safely merges modified AGENTS.md even with force', () => {
   assert.ok(updated.merged.includes('AGENTS.md'));
   assert.match(merged, /Keep custom instructions\./);
   assert.match(merged, /Registered agents added by ca-ai-tools-setup/);
-  assert.match(merged, /`code-style\.md`/);
+  assert.match(merged, /`qa-tester\.md`/);
 
   assert.equal(metadata.kind, 'current');
 
@@ -259,7 +300,7 @@ test('updateSetup recreates missing files and removes unchanged managed orphans'
   const dir = makeTempDir();
 
   createCursorSetup(dir);
-  const missingPath = '.cursor/rules/commit-convention.mdc';
+  const missingPath = '.cursor/rules/linear-task-gates.mdc';
   const orphanPath = '.cursor/rules/code-style.mdc';
 
   fs.rmSync(path.join(dir, missingPath));
@@ -277,7 +318,7 @@ test('updateSetup dry-run reports changes without writing files or metadata', ()
   const dir = makeTempDir();
 
   createCursorSetup(dir);
-  const missingPath = '.cursor/rules/commit-convention.mdc';
+  const missingPath = '.cursor/rules/linear-task-gates.mdc';
   const metadataPath = path.join(dir, SETUP_METADATA_PATH);
   const metadataBefore = fs.readFileSync(metadataPath, 'utf8');
 
@@ -825,13 +866,13 @@ test('updateSetup --force still reports a protected file as preserved', () => {
 
   createCursorSetup(dir);
 
-  const protectedPath = path.join(dir, '.cursorrules');
+  const protectedPath = path.join(dir, '.cursorignore');
 
   fs.writeFileSync(protectedPath, 'Custom repository rules.\n', 'utf8');
 
   const result = updateSetup({ ...options(dir), force: true });
 
-  assert.ok(result.preserved.includes('.cursorrules'));
+  assert.ok(result.preserved.includes('.cursorignore'));
   assert.equal(fs.readFileSync(protectedPath, 'utf8'), 'Custom repository rules.\n');
 });
 

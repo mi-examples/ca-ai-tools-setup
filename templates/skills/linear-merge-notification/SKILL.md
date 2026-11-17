@@ -1,7 +1,6 @@
 ---
-description: After Linear-issue work is committed or merged to main, notify the user where the Portal Page/template lives (edit + view) and offer a Linear comment — with a dismiss/snooze mechanism
-globs:
-alwaysApply: true
+name: linear-merge-notification
+description: After work on a Linear issue is committed or merged to main, tell the user where the Portal Page or template lives (edit and view links) and offer the links comment for the Linear issue in the Ready to Test format, with a dismiss / snooze choice. Use right after committing on, or merging, a branch whose name contains a Linear issue key.
 ---
 
 # Linear merge notification (page/template location)
@@ -15,7 +14,7 @@ Check this after commits land on a working branch, and especially right after a 
    - there are commits on this branch not yet on `main` (work in progress on this issue), or
    - this branch's commits are now reachable from `main` (`git merge-base --is-ancestor <branch> main`) — the work just landed.
 
-If neither holds, this rule does not apply — skip silently.
+If neither holds, this skill does not apply — skip silently.
 
 ## Dismiss / snooze first
 
@@ -51,7 +50,7 @@ Tell the user where the Portal Page / template behind this repo lives:
 If **`linear-cli`** is configured (`linear-cli auth status`, or a successful `linear-cli i get <ISSUE_KEY>`):
 
 1. Check existing comments on the issue itself and on directly related issues (parent/sub-issues, linked duplicates) for a links comment in the format below with the current URLs. If found, don't suggest posting again — just mention it's already there. Links buried in another comment or hidden behind labels don't count; offer the separate comment anyway.
-2. Otherwise, propose posting the links comment below and **ask before posting** — see **`.cursor/skills/linear-workflow/SKILL.md`** for `linear-cli i comment`. Never post automatically.
+2. Otherwise, propose posting the links comment below and **ask before posting** — see the **`linear-workflow`** skill for `linear-cli i comment`. Never post automatically.
 
 ### Links comment format
 
@@ -76,6 +75,6 @@ This follows the team's Ready to Test checklist (https://wiki.mtrc.in/doc/ready-
 
 ## Cross-reference
 
-- Linear CLI usage: **`.cursor/skills/linear-workflow/SKILL.md`**.
+- Linear commands: the **`linear-workflow`** skill.
 - Page routes/URLs source of truth: **`.assistant-setup/page-workflow-context.md`**.
-- Commit conventions: **`.cursor/rules/commit-convention.mdc`**.
+- Commit conventions: the **`commit-convention`** skill.

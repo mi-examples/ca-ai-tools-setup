@@ -3,10 +3,11 @@ import path from 'node:path';
 import { SETUP_ASSISTANT_FILES, type Assistant } from './constants.js';
 import { generateCursorFiles } from './generators/cursor.js';
 import { generateClaudeFiles } from './generators/claude.js';
-import { buildCursorRuleFiles } from './generators/portal-page-ai.js';
+import { buildRuleFiles } from './generators/rules.js';
+import { buildSkillFiles } from './generators/skills.js';
 import { isMergeablePath, mergeFile } from './mcp-json-merge.js';
 import type { GeneratedFile } from './generators/types.js';
-import { readTemplate } from './templates.js';
+import { readTemplate, renderAssistantBlocks } from './templates.js';
 import {
   createSetupMetadata,
   createSetupStatusContent,
@@ -102,6 +103,29 @@ export const REMOVABLE_LEGACY_SETUP_PATHS = [
   // PP-4659: Linear is reached through the Linear MCP; linear-cli can no longer be authorized.
   'LINEAR_CLI.md',
   '.cursor/rules/linear-cli.mdc',
+  // PP-4665: one source per rule and skill. The Claude workflows and commands duplicated the
+  // skills, three "agents" were rules, and the on-demand rules became skills.
+  '.claude/workflows/linear-workflow.md',
+  '.claude/workflows/testing-with-linear.md',
+  '.claude/workflows/testing-flow.md',
+  '.claude/workflows/ui-check-simple.md',
+  '.claude/workflows/linear-qa-report.md',
+  '.claude/workflows/playwright-cli.md',
+  '.claude/workflows/test-documentation.md',
+  '.claude/commands/testing-with-linear.md',
+  '.claude/commands/testing-flow.md',
+  '.claude/commands/linear-report.md',
+  '.claude/commands/start-working-with-task.md',
+  '.claude/commands/test-documentation.md',
+  '.claude/agents/code-style.md',
+  '.claude/agents/frontend-architecture.md',
+  '.claude/agents/commit-convention.md',
+  '.claude/agents/figma-mcp.md',
+  '.cursor/rules/commit-convention.mdc',
+  '.cursor/rules/figma-mcp.mdc',
+  '.cursor/rules/linear-merge-notification.mdc',
+  '.cursor/rules/portal-env-credentials.mdc',
+  '.cursor/rules/README.md',
 ] as const;
 
 function shouldAlwaysOverwrite(filePath: string): boolean {
@@ -135,10 +159,9 @@ export function getGeneratedFiles(
     files.push(...generateClaudeFiles({ includeFigmaMcp: figmaTargets.projectRootFile }));
   }
 
-  // Claude Code reads `.cursor/rules/*.mdc` per project convention — emit rules even for Claude-only runs.
-  if (assistants.includes('claude') && !assistants.includes('cursor')) {
-    files.push(...buildCursorRuleFiles(figmaTargets.projectRootFile));
-  }
+  // Shared content, one source each: rules are rendered per assistant, skills go to one folder.
+  files.push(...buildRuleFiles(assistants));
+  files.push(...buildSkillFiles(assistants, figmaMcpInclude));
 
   files.push({
     path: '.assistant-setup/page-workflow-context.md',
@@ -160,7 +183,7 @@ export function getGeneratedFiles(
 
   files.push({
     path: 'AGENTS.md',
-    content: readTemplate('AGENTS.md'),
+    content: renderAssistantBlocks(readTemplate('AGENTS.md'), assistants),
   });
 
   const metadataConfiguration = {

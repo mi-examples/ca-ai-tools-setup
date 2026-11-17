@@ -1,36 +1,19 @@
-import { readTemplate } from '../templates.js';
+import { readTemplate, renderAssistantBlocks } from '../templates.js';
 import type { GeneratedFile } from './types.js';
 import { buildMcpJson } from './mcp.js';
-import { buildPortalPageSkillFiles } from './portal-page-ai.js';
 
-const CLAUDE_WORKFLOW_TEMPLATES = [
-  'claude/workflows/linear-workflow.md',
-  'claude/workflows/testing-with-linear.md',
-  'claude/workflows/testing-flow.md',
-  'claude/workflows/ui-check-simple.md',
-  'claude/workflows/linear-qa-report.md',
-  'claude/workflows/playwright-cli.md',
-  'claude/workflows/test-documentation.md',
-] as const;
-
-const CLAUDE_COMMAND_TEMPLATES = [
-  'claude/commands/testing-with-linear.md',
-  'claude/commands/testing-flow.md',
-  'claude/commands/ui-check.md',
-  'claude/commands/linear-report.md',
-  'claude/commands/start-working-with-task.md',
-  'claude/commands/test-documentation.md',
-  'claude/commands/customer-docs.md',
-] as const;
-
+/** Real subagents only: each runs in its own context. Rules live in `.claude/rules/`. */
 const CLAUDE_AGENT_TEMPLATES = [
-  'claude/agents/code-style.md',
-  'claude/agents/frontend-architecture.md',
-  'claude/agents/commit-convention.md',
   'claude/agents/qa-tester.md',
   'claude/agents/ui-verifier.md',
   'claude/agents/linear-reporter.md',
 ] as const;
+
+/**
+ * Thin wrappers that keep two established command names working. Every other former command has a
+ * skill of the same name, and a skill already runs as `/<name>`.
+ */
+const CLAUDE_COMMAND_TEMPLATES = ['claude/commands/ui-check.md', 'claude/commands/customer-docs.md'] as const;
 
 function claudeSubpath(templateRel: string): string {
   return templateRel.replace(/^claude\//, '.claude/');
@@ -68,13 +51,7 @@ export function buildClaudeSettingsJson(options: GenerateClaudeOptions): string 
 }
 
 function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
-  const selected: string[] = [];
-
-  if (options.includeFigmaMcp) {
-    selected.push('figma');
-  }
-
-  if (selected.length === 0) {
+  if (!options.includeFigmaMcp) {
     return [
       '**2.4. MCP servers (Claude Code — optional)**',
       '',
@@ -87,14 +64,10 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
     ].join('\n');
   }
 
-  const selectedServersLabel = selected.join(', ');
-  const mcpJson = buildMcpJson({ includeFigmaMcp: options.includeFigmaMcp });
-
   return [
     '**2.4. MCP servers (Claude Code)**',
     '',
-    `This repository was bootstrapped **with** **\`.mcp.json\`** — ` +
-      `the following MCP server(s) were added: **${selectedServersLabel}**.`,
+    'This repository was bootstrapped **with** **`.mcp.json`** — the following MCP server(s) were added: **figma**.',
     '',
     '**What you need to do**',
     '',
@@ -104,28 +77,24 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
       '`.mcp.json` without refreshing settings.',
     '- If the file was removed, recreate it and merge with any existing `mcpServers` keys.',
     '- For **Figma MCP**, export **`FIGMA_API_KEY`** before server start, then reload MCP in Claude Code.',
-    '- If Figma MCP is enabled, use **`.claude/agents/figma-mcp.md`**, ' +
-      '**`.claude/skills/figma-code-connect/SKILL.md`**, and **`.cursor/rules/figma-mcp.mdc`**.',
+    '- For Figma work, use the **`figma-implementation`** and **`figma-code-connect`** skills.',
     '- After changes in `.mcp.json`, reload MCP and verify selected tools are available.',
     '',
     '```json',
-    mcpJson.trimEnd(),
+    buildMcpJson({ includeFigmaMcp: true }).trimEnd(),
     '```',
   ].join('\n');
 }
 
+/** Files only Claude Code reads. Rules and skills are shared and built by their own generators. */
 export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFile[] {
-  const mcpInstructions = renderClaudeMcpSection(options);
-
-  const setupClaudeContent = readTemplate('setup-claude-assistant.md').replace(
-    /\*\*MCP_SERVERS_BLOCK\*\*/,
-    `${mcpInstructions.trimEnd()}\n`,
-  );
-
   const files: GeneratedFile[] = [
     {
       path: 'setup-claude-assistant.md',
-      content: setupClaudeContent,
+      content: renderAssistantBlocks(readTemplate('setup-assistant.md'), ['claude']).replace(
+        /\*\*MCP_SERVERS_BLOCK\*\*/,
+        `${renderClaudeMcpSection(options).trimEnd()}\n`,
+      ),
     },
     {
       path: 'CLAUDE.md',
@@ -135,16 +104,7 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
       path: '.claude/settings.json',
       content: buildClaudeSettingsJson(options),
     },
-    ...buildPortalPageSkillFiles('claude', options.includeFigmaMcp),
-    ...CLAUDE_WORKFLOW_TEMPLATES.map((rel) => ({
-      path: claudeSubpath(rel),
-      content: readTemplate(rel),
-    })),
-    ...CLAUDE_COMMAND_TEMPLATES.map((rel) => ({
-      path: claudeSubpath(rel),
-      content: readTemplate(rel),
-    })),
-    ...CLAUDE_AGENT_TEMPLATES.map((rel) => ({
+    ...[...CLAUDE_AGENT_TEMPLATES, ...CLAUDE_COMMAND_TEMPLATES].map((rel) => ({
       path: claudeSubpath(rel),
       content: readTemplate(rel),
     })),
@@ -154,10 +114,6 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     files.push({
       path: '.mcp.json',
       content: buildMcpJson({ includeFigmaMcp: true }),
-    });
-    files.push({
-      path: '.claude/agents/figma-mcp.md',
-      content: readTemplate('claude/agents/figma-mcp.md'),
     });
   }
 

@@ -123,8 +123,7 @@ npx playwright-cli pdf --filename=page.pdf
 ```
 
 Save QA evidence under `test-documentation/<CONTEXT_KEY>/screenshots/`. For Linear comments,
-local paths are not enough — upload to Linear Cloud first (see the `linear-report` skill /
-`linear-qa-report` workflow).
+local paths are not enough — upload to Linear Cloud first (see the `linear-report` skill).
 
 ### Viewport / device (responsive checks)
 

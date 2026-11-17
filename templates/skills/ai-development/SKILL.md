@@ -1,80 +1,25 @@
 ---
 name: ai-development
-description: Portal Page AI development—Linear CLI + gates, implement from Linear (Waiting AI Development), greenfield Vite+pp-dev setup, Figma MCP, PR review, Definition of Done. Use for dev tasks, Figma-to-code, new pp-dev projects, PRs, DoD, or Linear issue implementation.
+description: Portal Page AI development—implement a Linear issue from the Waiting AI Development gate (full or fixes mode, Figma → user stories → acceptance criteria), handoff, PR review and Definition of Done; greenfield Vite + pp-dev setup in references/new-project.md. Use for dev tasks, new pp-dev projects, PRs, DoD, or Linear issue implementation.
 ---
 
 # AI development (Portal Page / Custom App)
 
-Single combined skill for **development** work. **QA/testing** (`Waiting AI Test`) lives in **`.cursor/skills/testing-with-linear/SKILL.md`** and **`.cursor/skills/testing-flow/SKILL.md`** — see **`.cursor/rules/linear-task-gates.mdc`** for routing.
+The skill for **development** work. **QA/testing** (`Waiting AI Test`) lives in the **`testing-with-linear`** and **`testing-flow`** skills — see the **`linear-task-gates`** rule for routing.
 
 ---
 
-## Linear CLI workflow (Portal Page / Custom App)
+## Before you start
 
-### Mandatory: issue state before work
-
-1. **`linear-cli i get <ISSUE_KEY> -o json`** — inspect **`state.name`**.
-2. **AI development** path (implement from Figma + stories + AC): proceed **only** if state is **`Waiting AI Development`** (or the name your team configured — see **`.cursor/rules/linear-task-gates.mdc`**). After the gate, the **operator** picks **full** (greenfield) vs **fixes** with the agent — **[AI development from Linear](#ai-development-from-linear)** below.
-3. Wrong state → **stop**, report, ask for Linear update or explicit override. If the issue is in **`Waiting AI Test`**, follow **`.cursor/rules/linear-task-gates.mdc`** and the testing skills — not this dev playbook.
-
-### Local app
-
-- URL: **`http://localhost:<port>`** — default **3000**, then **3001**, **3002**, … if busy.
-- Confirm **`pp-dev.config.ts`** (or `pp-dev.config`) and **`npm run dev`** / **`pp-dev`** terminal output for the real port.
-
-### Auth
-
-If API calls fail:
-
-```bash
-linear-cli auth oauth
-```
-
-Portal **browser login** and instance URLs for local work: **`.env`** (`DEFAULT_USERNAME_ADMIN`, `DEFAULT_PASSWORD_ADMIN`, `BASE_URL`, …) — **`.cursor/rules/portal-env-credentials.mdc`**.
-
-### Issue identity
-
-- **`linear-cli i get <ISSUE_KEY>`** — full issue (description, state, team). Example: `PP-3388`.
-- **Note:** the CLI uses **`issues get`**, not `view` (`linear-cli i get` is the short form).
-
-List mine:
-
-```bash
-linear-cli i list --assignee me --limit 20
-```
-
-### Team workflow states
-
-State names differ by team. List them:
-
-```bash
-linear-cli statuses list --team "<Team name from issue>"
-```
-
-Use the exact **`-s` state name** from that list with `linear-cli i update`.
-
-### Start work
-
-```bash
-linear-cli i start <ISSUE_KEY>
-```
-
-Maps the issue to that team’s “started” state (e.g. **In Progress** or **To Deploy**—depends on Linear team config).
-
-### Update and comment
-
-```bash
-linear-cli i update <ISSUE_KEY> -s "To Test"
-linear-cli i comment <ISSUE_KEY> --body "Short markdown summary of what changed / how to verify."
-```
-
-Use **`--body`** (or **`-b`**) for comment text.
-
-### Conventions
-
-- Parse **`<ISSUE_KEY>`** only from the **current** user message (URL segment after `/issue/`, or pasted key). Do not substitute example keys from docs.
-- Keep Linear updates concise; include **`<ISSUE_KEY>`** in summaries.
-- **Local login:** **`DEFAULT_USERNAME_ADMIN`** / **`DEFAULT_PASSWORD_ADMIN`** in **`.env`** (see **`portal-env-credentials.mdc`**). Team vault / named QA users in **`test-documentation/`** are optional references only — never commit passwords.
+1. Fetch the issue and read its comments with the **`linear-workflow`** skill. It also covers team states,
+   starting work, updating the state and commenting.
+2. Check the state: proceed **only** from **`Waiting AI Development`** — see the **`linear-task-gates`** rule.
+   Wrong state → **stop**, report it, and ask for a Linear update or an explicit override. An issue in
+   **`Waiting AI Test`** belongs to the testing skills, not to this one.
+3. Local app: **`http://localhost:<port>`** — default **3000**, then **3001**, **3002**, … if busy. Confirm with
+   **`pp-dev.config.ts`** (or `pp-dev.config`) and the **`npm run dev`** / **`pp-dev`** terminal output.
+4. Portal login and instance URLs come from **`.env`** — see the **`portal-env-credentials`** skill. Never
+   commit passwords.
 
 ---
 
@@ -82,24 +27,24 @@ Use **`--body`** (or **`-b`**) for comment text.
 
 ### Preconditions (hard gate)
 
-1. **`linear-cli i get <ISSUE_KEY> -o json`** — confirm **`state.name`** is exactly **`Waiting AI Development`** (see **`.cursor/rules/linear-task-gates.mdc`**). If your team renamed this state, update the rule file after checking `linear-cli statuses list --team "<Team>"`.
+1. **`linear-cli i get <ISSUE_KEY> -o json`** — confirm **`state.name`** is exactly **`Waiting AI Development`** (see the **`linear-task-gates`** rule).
 2. If not: **stop** and report current state.
 
 ### After the gate — choose development mode (operator + agent)
 
-**Linear CLI** is the source of truth for the task: always **`linear-cli i get <ISSUE_KEY>`** (and **`linear-cli i start <ISSUE_KEY>`** when your team uses “start work” — see **[Linear CLI workflow](#linear-cli-workflow-portal-page--custom-app)** above).
+**Linear** is the source of truth for the task: always fetch the issue first (**`linear-cli i get <ISSUE_KEY>`**), and start it (**`linear-cli i start <ISSUE_KEY>`**) when your team uses “start work” — see the **`linear-workflow`** skill.
 
 The **operator** (human) decides with the agent which mode applies **before** heavy implementation. The agent should **ask once** if the issue is ambiguous (e.g. “new page” could mean greenfield or a route in an existing app).
 
 | Mode | When to use | What to do |
 |------|-------------|------------|
-| **Full** | New Portal Page / new repo / greenfield scaffold | Bootstrap per **[New Portal Page project](#new-portal-page-project-react--vite--pp-dev)** below, then implement from the issue. |
+| **Full** | New Portal Page / new repo / greenfield scaffold | Bootstrap per **[references/new-project.md](references/new-project.md)**, then implement from the issue. |
 | **Fixes** | Bug fix, regression, or small change in an **already** scaffolded repo | No new Vite shell; change **`src/`** (and config only if required). |
 
 ### Mode — Full (new React + Vite + pp-dev)
 
 1. Use **`linear-cli i get <ISSUE_KEY>`** for title, description, Figma links, US, AC (same issue throughout).
-2. Scaffold: **[New Portal Page project](#new-portal-page-project-react--vite--pp-dev)** — `npm create vite@latest` (**`react-ts`**), **`@metricinsights/pp-dev`**, **`pp-dev.config.ts`**, **`package.json`** scripts **`dev` / `build`** via **pp-dev**, **`tsconfig.node.json`** includes **`vite.config.ts`** and **`pp-dev.config.ts`**.
+2. Scaffold: **[references/new-project.md](references/new-project.md)** — `npm create vite@latest` (**`react-ts`**), **`@metricinsights/pp-dev`**, **`pp-dev.config.ts`**, **`package.json`** scripts **`dev` / `build`** via **pp-dev**, **`tsconfig.node.json`** includes **`vite.config.ts`** and **`pp-dev.config.ts`**.
 3. **Committed baseline** should look like a fresh Vite app + pp-dev only — **this repo’s layout is a reference**, not a dump of unrelated features:
    - **`src/`**, **`tsconfig.json`**, **`tsconfig.app.json`**, **`tsconfig.node.json`**, **`vite.config.ts`**, **`pp-dev.config.ts`**, **`index.html`**, **`package.json`** (+ lockfile).
    - Keep only **starter-level** files under **`src/`** (e.g. `main.tsx`, root `App`, `vite-env.d.ts`); add routes and features as the **Linear issue** demands.
@@ -119,7 +64,7 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 #### 1. Figma design
 
 - Open the **Figma link** from the issue (description, attachments, or comments) **when the issue or mode calls for UI work from design**.
-- Follow **[Figma implementation (MCP)](#figma-implementation-mcp)** below (node JSON, variables, tokens, Code Connect).
+- Follow the **`figma-implementation`** skill (node JSON, variables, tokens, Code Connect).
 
 #### 2. User Stories
 
@@ -134,16 +79,16 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 ### Credentials and instance config
 
 - Use **`.env`** at the repo root: **`BASE_URL`** (MI instance), **`APPLICATION_ID`** / **`APPLICATION_KEY`** when needed for API work, and **`DEFAULT_USERNAME_ADMIN`** / **`DEFAULT_PASSWORD_ADMIN`** for local login while implementing and manually verifying UI.
-- See **`.cursor/rules/portal-env-credentials.mdc`**. Do not commit secrets; copy from **`.env.example`** and fill **`.env`** locally only.
+- See the **`portal-env-credentials`** skill. Do not commit secrets; copy from **`.env.example`** and fill **`.env`** locally only.
 
 ### Implementation scope
 
-- **Focus:** deliver the **React / Vite** Portal Page behavior in **`src/`** (patterns in **`.cursorrules`** / **`.cursor/rules/`**).
-- **Not the primary goal here:** standing up full automated test suites, DoD-level QA matrices, or cross-browser matrices **unless** the issue explicitly demands them. For test-heavy / QA-only work, use **`.cursor/skills/testing-with-linear/SKILL.md`** and the **Waiting AI Test** gate instead.
+- **Focus:** deliver the **React / Vite** Portal Page behavior in **`src/`** (patterns in the **`code-style`** and **`frontend-architecture`** rules).
+- **Not the primary goal here:** standing up full automated test suites, DoD-level QA matrices, or cross-browser matrices **unless** the issue explicitly demands them. For test-heavy / QA-only work, use the **`testing-with-linear`** skill and the **Waiting AI Test** gate instead.
 
 ### Handoff
 
-- **Before final Linear comment / PR:** run **`npm run dev`**, copy the printed **Local** URL (port may not be 3000). With **`.env`** login vars set, run **`PP_LOCAL_APP_URL=<that-url>/ npm run dev:console-check`**. Fix any **console `error`** lines or **uncaught page errors** reported by the script. If Chromium is missing: **`npx playwright install chromium`**.
+- **Before the final Linear comment / PR:** run **`npm run dev`** and take the printed **Local** URL (the port may not be 3000). Open the changed pages with the **`playwright-cli`** skill and read `console`. Fix any console **`error`** lines and **uncaught page errors**. If Chromium is missing: **`npx playwright install chromium`**.
 - PR / review: **[Portal Page — code review](#portal-page--code-review)** below.
 - Done quality bar (when closing work): **[Portal Page — Definition of Done](#portal-page--definition-of-done)** below.
 
@@ -151,138 +96,9 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 
 ## New Portal Page project (React + Vite + pp-dev)
 
-### Node.js
-
-- Minimum **Node.js ≥ 18.17.0** (project policy).
-- **`@metricinsights/pp-dev` ≥ 1.0 requires Node.js ≥ 24** (declared in its `engines`) — align `engines` in `package.json` and CI images with whatever `pp-dev` version this repo pins.
-
-### Baseline layout (what “full” development should commit)
-
-Treat a **greenfield** Portal Page like a stock **Vite `react-ts`** app plus **pp-dev** — not a copy of another app’s feature code. A valid minimal tree (this repo is a structural reference only):
-
-- **`src/`** — entry (`main.tsx`), root component (`App.tsx` / `App.css` or equivalent), `vite-env.d.ts`, small assets as needed.
-- **`tsconfig.json`**, **`tsconfig.app.json`**, **`tsconfig.node.json`** — as generated by Vite; extend **`tsconfig.node.json`** `include` with **`vite.config.ts`** and **`pp-dev.config.ts`** (see below).
-- **`vite.config.ts`**, **`pp-dev.config.ts`**, **`index.html`**, **`package.json`** (with **`dev` / `build`** calling **pp-dev**).
-
-Exclude app-specific routes, domains, and large feature folders from “template” thinking — add those only as the Linear issue requires.
-
-### 1. Create Vite React + TypeScript app
-
-```bash
-npm create vite@latest portal-page -- --template react-ts
-```
-
-- Replace **`portal-page`** with the folder name, or use **`.`** to scaffold in the current directory (follow Vite prompts).
-
-```bash
-cd portal-page   # or stay in `.` if you used `.`
-npm install
-```
-
-### 2. Add PP Development Helper
-
-```bash
-npm install @metricinsights/pp-dev@latest
-```
-
-`pp-dev` declares Next.js as a peer dependency for its Next.js integration only — a plain Vite
-**`react-ts`** project can ignore an `npm install` peer-dependency warning about `next` unless you
-are wiring up the Next.js path (see **[Next.js Integration](#nextjs-integration)** if you are).
-
-### 3. `pp-dev.config.ts` (connect MI instance)
-
-Create **`pp-dev.config.ts`** at the repo root — **`@metricinsights/pp-dev` ≥ 1.0** uses a grouped
-config shape (`mi` / `app` / …), not the old flat fields:
-
-```typescript
-import { defineConfig } from '@metricinsights/pp-dev';
-
-export default defineConfig({
-  mi: {
-    url: 'https://metricinsights.com',
-    mode: 'standalone',
-  },
-  app: {
-    id: 1,
-    type: 'template',
-  },
-});
-```
-
-- Set **`mi.url`** and **`app.id`** to the real MI instance and Portal Page ID.
-- **`mi.mode: 'standalone'`** is required so the MI chrome does not override local styles/logic
-  during development (`'embedding'` keeps MI navigation).
-- **`app.type`**: **`'template'`** syncs back to the MI instance; **`'page'`** is standalone-only.
-
-#### Upgrading an older (pre-1.0) config
-
-If this repo's `pp-dev.config.*` still uses the flat 0.x fields (`backendBaseURL`, `personalAccessToken`,
-`miHudLess`, `integrateMiTopBar`, `v7Features`, `appId` / `portalPageId`, `templateName`, `templateLess`,
-`enableProxyCache`, `proxyCacheTTL`, `disableSSLValidation`, `distZip`, `versionPlugin`, `imageOptimizer`,
-`outDir`, `syncBackupsDir`), don't hand-edit it — run the built-in codemod:
-
-```bash
-npx @metricinsights/pp-dev migrate
-```
-
-| Option | Description |
-|---|---|
-| `[config]` | Path to the config file (auto-detected if omitted) |
-| `--dry-run` | Preview the migrated output without writing |
-| `--format ts\|js\|json` | Override the output format |
-| `--output <file>` | Write to a specific file instead of overwriting |
-| `--no-backup` | Skip creating a `.bak` backup of the original |
-
-It also detects legacy `pp-watch.config.*` files. By default it overwrites the original config
-in place after writing a `.bak` backup — use `--dry-run` first to review the result, and
-`--output <file>` if you'd rather not overwrite the original at all.
-
-### 4. TypeScript config for Node
-
-In **`tsconfig.node.json`**, extend **`include`** so the config is part of the project:
-
-```json
-"include": ["vite.config.ts", "pp-dev.config.ts"]
-```
-
-### 5. `package.json` scripts
-
-Run the dev server and build **through pp-dev**, not raw Vite alone:
-
-```json
-"scripts": {
-  "dev": "pp-dev",
-  "build": "pp-dev build",
-  "preview": "vite preview"
-}
-```
-
-(Adjust if your template already defines `dev`/`build` — replace with **`pp-dev`** / **`pp-dev build`**.)
-
-### 6. Verify
-
-```bash
-npm run dev
-```
-
-Open the URL printed in the terminal (often `http://localhost:3000/...`).
-
-### See also
-
-- **`setup-cursor-assistant.md`** — full Cursor assistant bootstrap.
-- **`pp-dev.config.ts`** in this repo — real-instance example.
-
----
-
-## Figma implementation (MCP)
-
-1. **Prioritize data over visuals** — Do not rely only on screenshots. Fetch node JSON and read spacing, gap, colors, font size.
-2. **Deep inspection** — For the selected node, recurse into children. Use `layoutMode`, `primaryAxisAlignItems`, `counterAxisAlignItems`.
-3. **Variables and styles** — Resolve Figma `styles` and `variables` to project tokens (CSS variables, SCSS variables, theme). Avoid raw hex when a named token exists.
-4. **Code Connect first** — If Code Connect is present, treat linked snippets and component docs as source of truth.
-5. **Auto-layout → CSS** — Map auto-layout to Flexbox/Grid (`space-between`, hug/fill, gaps).
-6. **Reuse in-repo UI** — Prefer existing components in **`src/components/`** before adding new primitives.
-7. **Token-safe review** — Reject diffs that replace semantic tokens with arbitrary constants unless explicitly allowed.
+For greenfield (**Full** mode) work, follow **[references/new-project.md](references/new-project.md)**: the
+Node.js requirement, the baseline layout, the Vite scaffold, `pp-dev.config.ts` (including the migration of a
+pre-1.0 config), the TypeScript config, the scripts and the verification step.
 
 ---
 
@@ -332,7 +148,7 @@ This section is the **entry point**. The **full, section-by-section checklist** 
 ### How agents should use it
 
 1. When an issue asks for **“DoD”** or **release readiness**, open **`DOD-FULL.md`** and walk the relevant sections (not every bullet applies to every change).
-2. Prefer **evidence** (PR link, CI green, screenshots in Linear **comments** per **`.cursor/skills/linear-report/SKILL.md`**) over ticking boxes blindly.
+2. Prefer **evidence** (PR link, CI green, screenshots in Linear **comments** per the **`linear-report`** skill) over ticking boxes blindly.
 3. **Living document:** if team policy changes, update **`DOD-FULL.md`** and keep this section as a short pointer.
 
 ### Quick map (see DOD-FULL for detail)
@@ -353,4 +169,4 @@ This section is the **entry point**. The **full, section-by-section checklist** 
 ### Related
 
 - **PR process:** **[Portal Page — code review](#portal-page--code-review)** above.
-- **Linear QA flow (separate skill):** **`.cursor/skills/testing-with-linear/SKILL.md`**
+- **Linear QA flow (separate skill):** **`testing-with-linear`**

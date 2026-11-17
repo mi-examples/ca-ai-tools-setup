@@ -1,7 +1,6 @@
 ---
 description: Detect missing or stale ca-ai-tools-setup configuration
-globs:
-alwaysApply: true
+apply: always
 ---
 
 # AI assistant setup health

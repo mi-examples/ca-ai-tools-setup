@@ -1,18 +1,21 @@
 ---
-description: Portal Page — component naming, SCSS modules, BEM, app context, constants, index.html globals
-globs:
-alwaysApply: true
+description: Portal Page code style — component naming, SCSS modules, BEM, app context, constants, index.html globals
+paths:
+  - src/**/*.ts
+  - src/**/*.tsx
+  - src/**/*.scss
+  - index.html
 ---
 
 # Portal Page code style
 
-Use when creating or editing **React + Vite + pp-dev** Portal Page / Custom App code. Mirror for Claude: **`.claude/agents/code-style.md`**.
+Use when creating or editing **React + Vite + pp-dev** Portal Page / Custom App code.
 
-Architecture, design-system-first, reuse, TypeScript discipline, and JS/TS formatting (tooling-first): **`.cursor/rules/frontend-architecture.mdc`**.
+Architecture, design-system-first, reuse, TypeScript discipline, and JS/TS formatting (tooling-first) are in the **`frontend-architecture`** rule.
 
 ## Components and files
 
-- **Filenames** use lowercase **kebab-case** (not PascalCase or camelCase). Full rules: **frontend-architecture** §7 File naming.
+- **Filenames** use lowercase **kebab-case** (not PascalCase or camelCase). Full rules: **File naming** in the **`frontend-architecture`** rule.
   - ✅ `header-main.tsx` · ❌ `HeaderMain.tsx` · ❌ `headerMain.tsx`
 - **One feature per folder** under `src/components/<feature>/` (kebab-case folder names).
 - **Default export** for the main component; name the symbol in **PascalCase** inside the file (`const HeaderMain = () => …`).

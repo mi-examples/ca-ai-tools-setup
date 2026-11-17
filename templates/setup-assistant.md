@@ -1,11 +1,24 @@
+<!-- only:claude -->
 # Claude Code Setup Assistant
 
 > Paste this file into Claude Code (or copy its contents as a prompt).
 > The assistant should execute setup **step by step**; gather blocking questions in **one message** when possible, without unnecessary back-and-forth.
+<!-- /only -->
+<!-- only:cursor -->
+# Cursor Setup Assistant
+
+> Use this file as the setup prompt for Cursor Agent.
+> The agent should execute setup step by step and ask for missing input in one message.
+<!-- /only -->
 
 ---
 
+<!-- only:claude -->
 ## Instructions for Claude
+<!-- /only -->
+<!-- only:cursor -->
+## Instructions for Cursor Agent
+<!-- /only -->
 
 You are a setup assistant for **Metric Insights Portal Page / Custom App** repository local development (see **`pp-dev.config`** and npm package **`@metricinsights/pp-dev`**).
 The developer may be on **macOS**, **Linux**, or **Windows**.
@@ -14,6 +27,10 @@ The developer may be on **macOS**, **Linux**, or **Windows**.
 
 **CI:** Some repositories still have no automated pipeline; that can be normal today, but **CI for build, lint, and tests** is the intended direction for maintained apps. If `.github/workflows/` (or equivalent) is absent, do not treat it as a setup failure. When CI exists or is added, ensure install steps (`npm ci`, etc.) and the Node version align with this repo and pp-dev.
 
+<!-- only:cursor -->
+**Cursor integrated terminal:** After installing CLI tools or changing `PATH`, binaries such as **`gh`** or even **`node`** may still be missing inside Cursor’s terminal until the user **fully quits and restarts Cursor** (closing the terminal tab is not enough). This behavior is **consistently reproducible on Windows and macOS**. If commands fail with “not found” right after a successful install, treat **restart Cursor** as the first remediation before concluding the install failed.
+
+<!-- /only -->
 First, detect the OS:
 
 ```bash
@@ -76,31 +93,32 @@ Important:
 Record any confirmed API differences in **`.dev-environment.md`** under **API compatibility notes**
 (see the generated template section).
 
+<!-- only:claude -->
 ### Step 1.3: Claude project instructions and agents
 
-The **`ca-ai-tools-setup`** installer writes **`AGENTS.md`** in the repository root on every run (shared with Cursor-only bootstraps). When Claude is selected, it also writes **`CLAUDE.md`** and **`.claude/settings.json`** (Claude Code project config with JSON schema). Before continuing with tooling setup:
+The **`ca-ai-tools-setup`** installer writes **`AGENTS.md`** in the repository root on every run. When Claude is
+selected, it also writes **`CLAUDE.md`**, **`.claude/settings.json`**, rules under **`.claude/rules/`**, skills
+under **`.claude/skills/`** and subagents under **`.claude/agents/`**. Before continuing with tooling setup:
 
-- If either file is missing (older clone or manual deletion), recreate them from the latest
-  **`ca-ai-tools-setup`** templates or copy from another MI repo that uses this bootstrapper.
-- **Bring them up to date:** Add repo-specific conventions to **`CLAUDE.md`** (tests, branching,
-  ownership). Keep **`AGENTS.md`** aligned with files under **`.claude/agents/`** (add/remove rows
-  in the table when agents change).
-- **Re-running setup:** A new installer run does not overwrite existing **`CLAUDE.md`** or
-  **`.claude/settings.json`** unless you pass **`--force`**. Existing **`AGENTS.md`** is never
-  replaced, including with **`--force`**; the installer only merges missing generated agent rows.
-- In **`CLAUDE.md`**, ensure Claude is told to use specialized agents from **`.claude/agents/*.md`**
-  when available (the starter already does); extend as needed.
-- If **`.claude/agents/figma-mcp.md`** exists, ensure **`CLAUDE.md`** or **`AGENTS.md`** points at it
-  for Figma MCP design-to-code tasks instead of ad-hoc styling decisions (the starter includes this).
-- Keep **`CLAUDE.md`** concise and repo-specific; avoid duplicating large setup instructions already
-  captured in this file.
+- If **`CLAUDE.md`** or **`AGENTS.md`** is missing (older clone or manual deletion), re-run the installer.
+- Add repo-specific conventions to **`CLAUDE.md`** (tests, branching, ownership) and keep it concise. Shared
+  rules and workflows live in the generated rules and skills; do not copy them into **`CLAUDE.md`**.
+- Keep **`AGENTS.md`** aligned with the files under **`.claude/agents/`** (add or remove table rows when agents
+  change).
+- **Updates:** `ca-ai-tools-setup update` keeps an unedited **`CLAUDE.md`** on the current template. Once the
+  repository edits it, it is never overwritten: a newer template is left under
+  **`.assistant-setup/pending-updates/`** to be merged (see **`.assistant-setup/SETUP_STATUS.md`**). Existing
+  **`AGENTS.md`** content is never replaced; the installer only merges missing generated agent rows.
 
+<!-- /only -->
 ### Step 2: Install tools
 
 Install each tool sequentially and verify after each install.
 
+<!-- only:claude -->
 **Claude Code:** Some steps need a **browser or full TTY** (`gh auth login`). The embedded Bash tool may not be enough. When interaction is required, ask the developer to run the command in their own terminal, or use Claude Code’s **`! command`** form so execution happens on the user’s machine—then continue with non-interactive checks (e.g. `gh auth status`) via Bash when possible.
 
+<!-- /only -->
 **2.1. Node.js version check + nvm (if needed)**
 
 Run one of these scripts. It automatically checks Node major version and installs **nvm + Node.js 24** only when needed (Node missing or `<22`).
@@ -167,8 +185,10 @@ gh auth login
 gh auth status
 ```
 
+<!-- only:claude -->
 If `gh auth login` cannot run interactively in this session, tell the developer to complete it in a local terminal (or use **`! gh auth login`** in Claude Code), then run **`gh auth status`** again to confirm.
 
+<!-- /only -->
 **2.3. Linear (MCP)**
 
 Linear is used through the **Linear MCP** connector, not a CLI. Do not install `linear-cli`: its OAuth sign-in
@@ -188,11 +208,25 @@ Never guess the state or the content of an issue when the Linear tools are unava
 
 **MCP_SERVERS_BLOCK**
 
+<!-- only:cursor -->
+**Enable project MCP in Cursor (manual — required)**
+
+Writing **`.cursor/mcp.json`** during bootstrap does **not** turn MCP servers on in the IDE. The developer must enable them once per machine/workspace:
+
+1. Open **Cursor Settings** → **Features** → **MCP** (wording may be **Cursor Settings → MCP** in newer builds).
+2. Find **Project MCP** (this repository) and **enable** each server that appears in **`.cursor/mcp.json`** (for example **figma**). If a server is listed but disabled, toggle it **on**.
+3. **Figma MCP:** export **`FIGMA_API_KEY`** in the environment (system, shell profile, or MCP server env in Cursor) **before** starting the server — see the **`portal-env-credentials`** skill. Without the token, the server may fail to start or show no tools.
+4. Use **Refresh** / reload MCP in that settings screen (or **fully quit and restart Cursor** if tools still do not appear — same remediation as for CLI `PATH` above).
+5. In **Agent** chat, confirm MCP tools are available (server connected, tool list populated) before asking the agent to read Figma via MCP.
+
+If bootstrap **did not** create **`.cursor/mcp.json`**, skip this subsection until MCP is added manually.
+
+<!-- /only -->
 **2.5. Playwright Agent CLI (browser automation — universal, not per-developer)**
 
-UI checks and QA drive the browser with the **Playwright Agent CLI** (see
-**`./.claude/workflows/playwright-cli.md`**). It is committed with the repo so every teammate
-gets it from **`npm install`** — no global install and no per-machine setup.
+UI checks and QA drive the browser with the **Playwright Agent CLI** (see the **`playwright-cli`** skill). It
+is committed with the repo so every teammate gets it from **`npm install`** — no global install and no
+per-machine setup.
 
 Set it up once for the project (skip the install if `@playwright/cli` is already a devDependency):
 
@@ -247,6 +281,10 @@ gh auth status
 ```
 
 Then call `list_issues` (assignee `me`) through the Linear MCP.
+<!-- only:cursor -->
+
+If **`gh`** / **`node`** are reported missing despite a finished install and PATH update, ask the developer to **fully restart Cursor**, then run the checks again (see **Cursor integrated terminal** above).
+<!-- /only -->
 
 Return:
 
@@ -260,3 +298,7 @@ OK / FAIL           .dev-environment.md profile complete
 should connect it there or ask a workspace admin.
 
 If any check fails, suggest a concrete fix.
+<!-- only:cursor -->
+
+For **command not found** immediately after install, suggest **restarting Cursor** before deeper troubleshooting.
+<!-- /only -->

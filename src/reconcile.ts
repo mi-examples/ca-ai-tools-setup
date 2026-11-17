@@ -467,7 +467,10 @@ function collisionPlan(
     );
   }
 
-  if (ownership === 'structured' && isMergeablePath(file.path)) {
+  // A structured file is merged to keep what the repository put into it. One that is still exactly
+  // what the generator wrote has nothing of the repository's, so it follows its template instead:
+  // a merge only ever adds, and would leave an untouched AGENTS.md listing agents that are gone.
+  if (ownership === 'structured' && isMergeablePath(file.path) && previous.baseline !== 'generated') {
     return {
       path: file.path,
       ownership,

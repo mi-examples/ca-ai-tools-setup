@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import type { Assistant } from '../src/constants.js';
 import { getGeneratedFiles } from '../src/generator.js';
 import { readTemplate } from '../src/templates.js';
 
@@ -11,38 +12,201 @@ function listFiles(dir: string): string[] {
     .flatMap((entry) => (entry.isDirectory() ? listFiles(path.join(dir, entry.name)) : [path.join(dir, entry.name)]));
 }
 
+/** Generated files by path, for one selection of assistants. */
+function generated(assistants: Assistant[], figma = false): Map<string, string> {
+  return new Map(getGeneratedFiles(assistants, figma, false).map((file) => [file.path, file.content]));
+}
+
+const SELECTIONS: Assistant[][] = [['cursor'], ['claude'], ['cursor', 'claude']];
+
 // PP-4664: six templates sat in the package for months with nothing reading them, and one of them
-// was later scheduled for a rewrite. A template the generator does not name is dead weight at best.
-test('every template file is read by the generator', () => {
+// was later scheduled for a rewrite. A template the generator does not use is dead weight at best.
+// Rules and skills are picked up by folder, so they are checked against the generated output.
+test('every template file is used by the generator', () => {
   const sources = listFiles('src')
-    .map((file) => fs.readFileSync(file, 'utf8'))
+    .map((source) => fs.readFileSync(source, 'utf8'))
     .join('\n');
+  const output = generated(['cursor', 'claude'], true);
   const unused = listFiles('templates')
-    .map((file) => path.relative('templates', file).split(path.sep).join('/'))
-    .filter((template) => !sources.includes(`'${template}'`));
+    .map((template) => path.relative('templates', template).split(path.sep).join('/'))
+    .filter(
+      (template) =>
+        !sources.includes(`'${template}'`) &&
+        !(/^(?:skills|rules)\//.test(template) && output.has(`.claude/${template}`)),
+    );
 
   assert.deepEqual(unused, []);
 });
 
-test('setup assistant templates keep MCP replacement marker', () => {
-  const cursorSetup = readTemplate('setup-cursor-assistant.md');
-  const claudeSetup = readTemplate('setup-claude-assistant.md');
+// PP-4665: the two setup documents were hand-maintained copies that differed in a few blocks.
+test('one setup template renders a document per assistant', () => {
+  const template = readTemplate('setup-assistant.md');
+  const claudeSetup = generated(['claude']).get('setup-claude-assistant.md')!;
+  const cursorSetup = generated(['cursor']).get('setup-cursor-assistant.md')!;
 
-  assert.match(cursorSetup, /\*\*MCP_SERVERS_BLOCK\*\*/);
-  assert.match(claudeSetup, /\*\*MCP_SERVERS_BLOCK\*\*/);
+  assert.match(template, /\*\*MCP_SERVERS_BLOCK\*\*/);
+
+  for (const setup of [claudeSetup, cursorSetup]) {
+    assert.doesNotMatch(setup, /<!-- \/?only|MCP_SERVERS_BLOCK/);
+    assert.match(setup, /\*\*2\.3\. Linear \(MCP\)\*\*/);
+    assert.match(setup, /\*\*2\.4\. MCP servers/);
+  }
+
+  assert.match(claudeSetup, /^# Claude Code Setup Assistant/);
+  assert.match(claudeSetup, /### Step 1\.3: Claude project instructions and agents/);
+  assert.doesNotMatch(claudeSetup, /Cursor integrated terminal|Enable project MCP in Cursor/);
+
+  assert.match(cursorSetup, /^# Cursor Setup Assistant/);
+  assert.match(cursorSetup, /\*\*Cursor integrated terminal:\*\*/);
+  assert.match(cursorSetup, /\*\*Enable project MCP in Cursor \(manual — required\)\*\*/);
+  assert.doesNotMatch(cursorSetup, /Step 1\.3|Instructions for Claude/);
 });
 
 test('setup health rule detects missing and stale tracked configuration', () => {
-  const healthRule = readTemplate('cursor/rules/assistant-setup-health.mdc');
-  const claudeInstructions = readTemplate('claude/CLAUDE.md');
-  const agents = readTemplate('AGENTS.md');
+  const output = generated(['cursor', 'claude']);
+  const cursorRule = output.get('.cursor/rules/assistant-setup-health.mdc')!;
+  const claudeRule = output.get('.claude/rules/assistant-setup-health.md')!;
 
-  assert.match(healthRule, /alwaysApply: true/);
-  assert.match(healthRule, /\.assistant-setup\/SETUP_STATUS\.md/);
-  assert.match(healthRule, /Exit code \*\*`2`\*\*/);
-  assert.match(healthRule, /Never run `update` or `--force` without explicit developer approval/);
-  assert.match(claudeInstructions, /\.assistant-setup\/SETUP_STATUS\.md/);
-  assert.match(agents, /\.assistant-setup\/SETUP_STATUS\.md/);
+  assert.match(cursorRule, /alwaysApply: true/);
+  // No frontmatter: Claude Code loads a rule without `paths` at launch.
+  assert.match(claudeRule, /^# AI assistant setup health/);
+
+  for (const rule of [cursorRule, claudeRule]) {
+    assert.match(rule, /\.assistant-setup\/SETUP_STATUS\.md/);
+    assert.match(rule, /Exit code \*\*`2`\*\*/);
+    assert.match(rule, /\.assistant-setup\/pending-updates\//);
+    assert.match(rule, /Never run `update` or `--force` without explicit developer approval/);
+  }
+
+  assert.match(output.get('CLAUDE.md')!, /\.assistant-setup\/SETUP_STATUS\.md/);
+  assert.match(output.get('AGENTS.md')!, /\.assistant-setup\/SETUP_STATUS\.md/);
+});
+
+// PP-4665: each rule has one source. Cursor and Claude Code scope rules with different
+// frontmatter, so the same body is rendered twice — never maintained twice.
+test('each rule is rendered for both assistants from one source', () => {
+  const output = generated(['cursor', 'claude']);
+  const body = (content: string): string => content.replace(/^---\n[\s\S]*?\n---\n+/, '');
+
+  for (const name of ['assistant-setup-health', 'linear-task-gates', 'code-style', 'frontend-architecture']) {
+    const cursorRule = output.get(`.cursor/rules/${name}.mdc`);
+    const claudeRule = output.get(`.claude/rules/${name}.md`);
+
+    assert.ok(cursorRule, `.cursor/rules/${name}.mdc`);
+    assert.ok(claudeRule, `.claude/rules/${name}.md`);
+    assert.equal(body(cursorRule), body(claudeRule), name);
+  }
+
+  const cursorCodeStyle = output.get('.cursor/rules/code-style.mdc')!;
+  const claudeCodeStyle = output.get('.claude/rules/code-style.md')!;
+
+  assert.match(cursorCodeStyle, /^globs: src\/\*\*\/\*\.ts,src\/\*\*\/\*\.tsx,src\/\*\*\/\*\.scss,index\.html$/m);
+  assert.match(cursorCodeStyle, /^alwaysApply: false$/m);
+  assert.match(claudeCodeStyle, /^---\npaths:\n {2}- "src\/\*\*\/\*\.ts"\n/);
+});
+
+// Every always-on rule is paid for on every request. Only what must hold at all times stays one.
+test('only the Linear gates and the setup health check are always-on', () => {
+  const alwaysOn = [...generated(['cursor', 'claude'], true)]
+    .filter(([file, content]) => file.startsWith('.cursor/rules/') && /^alwaysApply: true$/m.test(content))
+    .map(([file]) => file);
+
+  assert.deepEqual(alwaysOn.sort(), [
+    '.cursor/rules/assistant-setup-health.mdc',
+    '.cursor/rules/linear-task-gates.mdc',
+  ]);
+
+  const claudeAlwaysOn = [...generated(['claude'], true)]
+    .filter(([file, content]) => file.startsWith('.claude/rules/') && !content.startsWith('---\npaths:'))
+    .map(([file]) => file);
+
+  assert.deepEqual(claudeAlwaysOn.sort(), [
+    '.claude/rules/assistant-setup-health.md',
+    '.claude/rules/linear-task-gates.md',
+  ]);
+});
+
+// Cursor also loads `.claude/skills/`, so a copy under `.cursor/skills/` would show each skill twice.
+test('skills are generated into one folder', () => {
+  const skillFolders = (assistants: Assistant[]): string[] => [
+    ...new Set(
+      [...generated(assistants, true).keys()]
+        .map((file) => /^(\.(?:claude|cursor)\/skills)\//.exec(file)?.[1])
+        .filter((folder): folder is string => folder !== undefined),
+    ),
+  ];
+
+  assert.deepEqual(skillFolders(['cursor', 'claude']), ['.claude/skills']);
+  assert.deepEqual(skillFolders(['claude']), ['.claude/skills']);
+  assert.deepEqual(skillFolders(['cursor']), ['.cursor/skills']);
+
+  const skills = [...generated(['cursor', 'claude'], true).keys()]
+    .map((file) => /^\.claude\/skills\/([^/]+)\/SKILL\.md$/.exec(file)?.[1])
+    .filter((skill): skill is string => skill !== undefined);
+
+  // What used to be a Claude workflow, a Claude command or an on-demand Cursor rule is a skill.
+  for (const skill of [
+    'testing-flow',
+    'testing-with-linear',
+    'linear-workflow',
+    'linear-report',
+    'start-working-with-task',
+    'commit-convention',
+    'linear-merge-notification',
+    'portal-env-credentials',
+    'figma-implementation',
+  ]) {
+    assert.ok(skills.includes(skill), skill);
+  }
+});
+
+test('.claude/agents holds only real subagents and no workflow copies are generated', () => {
+  const files = [...generated(['cursor', 'claude'], true).keys()];
+
+  assert.deepEqual(files.filter((file) => file.startsWith('.claude/agents/')).sort(), [
+    '.claude/agents/linear-reporter.md',
+    '.claude/agents/qa-tester.md',
+    '.claude/agents/ui-verifier.md',
+  ]);
+  assert.deepEqual(files.filter((file) => file.startsWith('.claude/commands/')).sort(), [
+    '.claude/commands/customer-docs.md',
+    '.claude/commands/ui-check.md',
+  ]);
+  assert.deepEqual(
+    files.filter((file) => file.startsWith('.claude/workflows/') || file === '.cursorrules'),
+    [],
+  );
+});
+
+// A generated file that names a path the setup does not write sends the assistant to nothing.
+// It depends on the selection: a Cursor-only setup has no `.claude/`, a Claude-only one no `.cursor/`.
+test('generated files only point at files the same setup generates', () => {
+  const pathPattern = /(?:\.\/)?(\.(?:claude|cursor)\/[A-Za-z0-9_\-./]+\.(?:mdc|md|json))/g;
+  // Written by other tools or by the developer, or placeholders in prose.
+  const external = /qa-ai-rules|settings\.local\.json|mcp\.json$/;
+  const missing: string[] = [];
+
+  for (const assistants of SELECTIONS) {
+    for (const figma of [false, true]) {
+      const output = generated(assistants, figma);
+
+      for (const [file, content] of output) {
+        // Changing this skill needs an eval run (evals/customer-app-docs), so its two references
+        // to the Claude copy stay until PP-4660; they are wrong only in a Cursor-only setup.
+        if (file.includes('/customer-app-docs/')) {
+          continue;
+        }
+
+        for (const match of content.matchAll(pathPattern)) {
+          if (!output.has(match[1]) && !external.test(match[1])) {
+            missing.push(`${assistants.join('+')}${figma ? '+figma' : ''}: ${file} -> ${match[1]}`);
+          }
+        }
+      }
+    }
+  }
+
+  assert.deepEqual(missing, []);
 });
 
 // The file is regenerated per machine and records one developer's instance URL, shell and paths, so
@@ -52,8 +216,8 @@ test('setup health rule detects missing and stale tracked configuration', () => 
 // correct convention (mi-pp/novant-scorecard, 2026-09-21).
 test('developer environment guidance says the file is personal, never committed', () => {
   const devEnvironment = readTemplate('assistant-setup/dev-environment.md');
-  const cursorSetup = readTemplate('setup-cursor-assistant.md');
-  const claudeSetup = readTemplate('setup-claude-assistant.md');
+  const cursorSetup = generated(['cursor']).get('setup-cursor-assistant.md')!;
+  const claudeSetup = generated(['claude']).get('setup-claude-assistant.md')!;
 
   assert.match(readTemplate('gitignore'), /^\.dev-environment\.md$/mu);
   assert.match(devEnvironment, /personal and gitignored/iu);
@@ -67,24 +231,26 @@ test('developer environment guidance says the file is personal, never committed'
   }
 });
 
-test('playwright-cli skill and workflow ship the CLI as the browser-automation tool', () => {
+test('the playwright-cli skill ships the CLI as the browser-automation tool', () => {
   const skill = readTemplate('skills/playwright-cli/SKILL.md');
-  const workflow = readTemplate('claude/workflows/playwright-cli.md');
 
-  for (const doc of [skill, workflow]) {
-    assert.match(doc, /npx playwright-cli/);
-    assert.match(doc, /@playwright\/cli/);
-    // Universal, not per-developer: shipped as a pinned devDependency, workspace state gitignored.
-    assert.match(doc, /--save-dev @playwright\/cli/);
-    assert.match(doc, /\.playwright-cli\//);
-  }
+  assert.match(skill, /npx playwright-cli/);
+  assert.match(skill, /@playwright\/cli/);
+  // Universal, not per-developer: shipped as a pinned devDependency, workspace state gitignored.
+  assert.match(skill, /pinned devDependency/);
+  assert.match(skill, /--save-dev @playwright\/cli/);
+  assert.match(skill, /\.playwright-cli\//);
 });
 
-test('CLAUDE template sends browser automation to the Playwright CLI', () => {
+test('CLAUDE template routes by skill name and stays free of generated detail', () => {
   const claudeMd = readTemplate('claude/CLAUDE.md');
 
-  assert.match(claudeMd, /workflows\/playwright-cli\.md/);
-  assert.match(claudeMd, /pinned devDependency/);
+  assert.match(claudeMd, /`playwright-cli`/);
+  assert.match(claudeMd, /`start-working-with-task`/);
+  assert.match(claudeMd, /\.claude\/rules\//);
+  // It is a protected file: whatever is written here stops being updated once a team edits it.
+  assert.doesNotMatch(claudeMd, /workflows\/|\.cursor\/rules|linear-cli|Keeping Generated Files Current/);
+  assert.ok(claudeMd.split('\n').length < 70, 'CLAUDE.md should stay short');
 });
 
 // PP-4531: one browser tool. A template that still names the MCP server or its `playwright_*`
@@ -97,29 +263,23 @@ test('nothing generated mentions Playwright MCP', () => {
   }
 
   // The MCP section of the setup docs is rendered in code, so check the output as well.
-  for (const file of getGeneratedFiles(['cursor', 'claude'], true, false)) {
-    assert.doesNotMatch(file.content, playwrightMcp, file.path);
+  for (const [generatedPath, content] of generated(['cursor', 'claude'], true)) {
+    assert.doesNotMatch(content, playwrightMcp, generatedPath);
   }
 });
 
-test('cursor legacy rules stub keeps canonical QA skills and deprecates ai-testing/ui-check', () => {
-  const cursorRules = readTemplate('cursor/cursorrules');
+test('AGENTS template lists the Claude subagents, and only when Claude is selected', () => {
+  const withClaude = generated(['cursor', 'claude']).get('AGENTS.md')!;
+  const cursorOnly = generated(['cursor']).get('AGENTS.md')!;
 
-  assert.match(cursorRules, /Primary project rules/);
-  assert.match(cursorRules, /`\.cursor\/rules\/`/);
-  assert.match(cursorRules, /`AGENTS\.md`/);
-  assert.match(cursorRules, /testing-with-linear\/SKILL\.md/);
-  assert.match(cursorRules, /Deprecated redirects.*ai-testing.*ui-check/s);
-});
+  for (const agent of ['qa-tester.md', 'ui-verifier.md', 'linear-reporter.md']) {
+    assert.ok(withClaude.includes(`\`${agent}\``), agent);
+  }
 
-test('AGENTS template lists core Claude agents', () => {
-  const agents = readTemplate('AGENTS.md');
-
-  assert.match(agents, /`code-style\.md`/);
-  assert.match(agents, /`qa-tester\.md`/);
-  assert.match(agents, /`ui-verifier\.md`/);
-  assert.match(agents, /`linear-reporter\.md`/);
-  assert.match(agents, /content is preserved, including with \*\*`--force`\*\*/);
+  assert.doesNotMatch(withClaude, /code-style\.md|<!-- /);
+  assert.match(withClaude, /content is preserved, including with \*\*`--force`\*\*/);
+  assert.doesNotMatch(cursorOnly, /\.claude\/|qa-tester|<!-- /);
+  assert.match(cursorOnly, /`\.cursor\/skills\/`/);
 });
 
 test('customer docs skill keeps the source-precedence and verification contract', () => {
@@ -280,14 +440,4 @@ test('customer docs say Custom App and show the platform as a version only', () 
   assert.doesNotMatch(body, /portal[ -]?pages?/iu);
   assert.doesNotMatch(body, /staging|\bQA\b|\bdev\b|\bUAT\b|sandbox|https?:\/\//iu);
   assert.match(body, /<span class="label">Platform<\/span>Metric Insights \d+\.\d+\.\d+[a-z]?\s*</u);
-});
-
-test('rules README documents deprecated ai-testing and ui-check stubs', () => {
-  const rulesReadme = readTemplate('cursor/rules/README.md');
-
-  assert.match(rulesReadme, /code-style/);
-  assert.match(rulesReadme, /testing-with-linear/);
-  assert.match(rulesReadme, /Deprecated/);
-  assert.match(rulesReadme, /ai-testing/);
-  assert.match(rulesReadme, /ui-check/);
 });

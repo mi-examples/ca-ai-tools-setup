@@ -29,6 +29,17 @@ List mine:
 linear-cli i list --assignee me --limit 20
 ```
 
+## Comments
+
+Always read the comments before generating test cases, deciding the scope or posting results:
+
+```bash
+linear-cli api query -o json --compact \
+  'query { issue(id: "<ISSUE_KEY>") { comments { nodes { body createdAt user { name } } } } }'
+```
+
+Comments may contain revised acceptance criteria, product decisions, dev notes, review feedback, or verification URLs. If they conflict with the original description, the latest relevant dev / product / review comment takes precedence.
+
 ## Team workflow states
 
 State names differ by team. List them:
