@@ -16,7 +16,7 @@ engagement still gets the cover page — it is what makes the document readable 
 The skill is four files:
 
 ```text
-   customer-app-docs/   ·   mirrored to .cursor/skills/ and .claude/skills/
+   customer-app-docs/   ·   in {{SKILLS_ROOT}}/
    ┌─────────────────────────────────────────────────────────────────────────────────┐
    │ SKILL.md   ·   ALWAYS READ                                                      │
    │ the source schema · claim types and ownership · run order, 7 steps              │
@@ -153,7 +153,7 @@ stop. Missing test docs are recorded as `absent (not expected)` for a legacy rep
 Launch them in a single message so they run concurrently. Each writes
 `docs/customer/<customer-slug>/facts/<app-slug>.md` and returns a short summary. Prompt each with:
 
-> Read-only. Read `.claude/skills/customer-app-docs/references/verify.md` and follow it to extract
+> Read-only. Read `{{SKILLS_ROOT}}/customer-app-docs/references/verify.md` and follow it to extract
 > every documentable fact about the app `<slug>` (`<kind>`) into a fact ledger at `<ledger path>`,
 > header first. Read all three sources before judging any claim: Linear `<refs>` description **and
 > every comment**, the code at `<tag>` under `<globs>`, and `test-documentation/<CONTEXT_KEY>/`.
@@ -194,7 +194,7 @@ is unresolved.
 ### 4. Write
 
 ```bash
-cp .claude/skills/customer-app-docs/assets/example.html docs/customer/<customer-slug>/<flow-slug>.html
+cp {{SKILLS_ROOT}}/customer-app-docs/assets/example.html docs/customer/<customer-slug>/<flow-slug>.html
 ```
 
 Then replace everything inside `<body>` and set `--accent` in the `:root` block. **Never edit the
@@ -240,7 +240,7 @@ reader wonder whether they are two things. Translate while drafting; do not leav
 
 ### 5. Audit — one subagent, blind to the drafting
 
-> Read-only. Read `.claude/skills/customer-app-docs/SKILL.md`, `references/sections.md` and the
+> Read-only. Read `{{SKILLS_ROOT}}/customer-app-docs/SKILL.md`, `references/sections.md` and the
 > "Audit pass" section of `references/verify.md`. Audit `<document path>` against the ledgers in
 > `<facts dir>` in **two passes**: every statement must trace to a ledger row, and every high-risk
 > row — `conflict`, `reported`, single-source, or owning source silent — must be **re-derived from

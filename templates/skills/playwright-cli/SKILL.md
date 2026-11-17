@@ -207,9 +207,8 @@ repeated logins.
 ### 3. Verification flow
 
 1. Navigate to the target page (`goto`), then `snapshot`.
-2. Compare against the acceptance criteria, reference screenshot, or Figma node (fetch node
-   data via Figma MCP rules; check layout, spacing, colors, typography with `eval` computed
-   styles).
+2. Compare against the acceptance criteria, reference screenshot, or Figma node (check layout,
+   spacing, colors, typography with `eval` computed styles).
 3. `console` — check for `TypeError`, `Error`, `Uncaught`.
 4. `requests` / `request <n>` — verify API data behind the UI.
 5. Test responsive behavior with `resize` or `--device`.

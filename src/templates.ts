@@ -17,9 +17,9 @@ const TEMPLATE_VALUES: Readonly<Record<string, string>> = {
  * text such as `{{page}}` passes through. An unknown name is a typo in a template and throws:
  * left alone, it would reach a repository as a literal `{{…}}` inside a command.
  */
-export function renderTemplateValues(template: string): string {
+export function renderTemplateValues(template: string, extra: Readonly<Record<string, string>> = {}): string {
   return template.replace(/\{\{([A-Z][A-Z0-9_]*)\}\}/g, (placeholder, name: string) => {
-    const value = TEMPLATE_VALUES[name];
+    const value = extra[name] ?? TEMPLATE_VALUES[name];
 
     if (value === undefined) {
       throw new Error(`Unknown template placeholder "${placeholder}".`);
@@ -29,10 +29,14 @@ export function renderTemplateValues(template: string): string {
   });
 }
 
-export function readTemplate(relativePath: string): string {
+/**
+ * `extra` carries the values that depend on where the template is generated, such as
+ * `SKILLS_ROOT` for a skill file. A template that uses one must be read with it.
+ */
+export function readTemplate(relativePath: string, extra: Readonly<Record<string, string>> = {}): string {
   const fullPath = path.join(templateRoot, relativePath);
 
-  return renderTemplateValues(fs.readFileSync(fullPath, 'utf8'));
+  return renderTemplateValues(fs.readFileSync(fullPath, 'utf8'), extra);
 }
 
 /** Every file under a template directory, as template-relative paths with forward slashes, sorted. */
@@ -45,7 +49,12 @@ export function listTemplateFiles(relativeDir: string): string[] {
   return walk(relativeDir).sort();
 }
 
-const BLOCK_CONDITIONS = new Set(['cursor', 'claude', 'cursor-only']);
+const BLOCK_CONDITIONS = new Set(['cursor', 'claude', 'cursor-only', 'figma', 'no-figma']);
+
+/** What the setup includes besides the assistants; decides the `figma` / `no-figma` blocks. */
+export type TemplateFeatures = {
+  figma?: boolean;
+};
 
 /**
  * Keep or drop the assistant-specific blocks of a shared template:
@@ -54,18 +63,31 @@ const BLOCK_CONDITIONS = new Set(['cursor', 'claude', 'cursor-only']);
  *     …lines kept when Cursor is selected…
  *     <!-- /only -->
  *
- * Conditions: `cursor`, `claude`, and `cursor-only` (Cursor selected, Claude not). The marker lines
- * never reach the output. One template with blocks replaces a hand-maintained copy per assistant.
+ * Conditions: `cursor`, `claude`, `cursor-only` (Cursor selected, Claude not), and `figma` /
+ * `no-figma` (Figma MCP and its skills are generated, or not). The marker lines never reach the
+ * output. One template with blocks replaces a hand-maintained copy per assistant, and keeps a file
+ * from pointing at a skill or a document this setup does not generate.
  */
-export function renderAssistantBlocks(template: string, assistants: readonly Assistant[]): string {
+export function renderAssistantBlocks(
+  template: string,
+  assistants: readonly Assistant[],
+  features: TemplateFeatures = {},
+): string {
   const applies = (condition: string): boolean => {
     if (!BLOCK_CONDITIONS.has(condition)) {
       throw new Error(`Unknown template block condition "${condition}".`);
     }
 
-    return condition === 'cursor-only'
-      ? assistants.includes('cursor') && !assistants.includes('claude')
-      : assistants.includes(condition as Assistant);
+    switch (condition) {
+      case 'cursor-only':
+        return assistants.includes('cursor') && !assistants.includes('claude');
+      case 'figma':
+        return features.figma === true;
+      case 'no-figma':
+        return features.figma !== true;
+      default:
+        return assistants.includes(condition as Assistant);
+    }
   };
 
   const rendered = template.replace(

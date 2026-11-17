@@ -40,7 +40,9 @@ kept current by `ca-ai-tools-setup`:
 | After a commit or merge on a Linear-issue branch | `linear-merge-notification` |
 | Credentials and instance URLs | `portal-env-credentials` |
 | Customer-facing documentation | `customer-app-docs` |
-| Figma design to code (when Figma MCP is set up) | `figma-implementation`, `figma-code-connect` |
+<!-- only:figma -->
+| Figma design to code | `figma-implementation`, `figma-code-connect` |
+<!-- /only -->
 
 Customer-facing documentation is written **only when a person asks for it** — never on your own initiative,
 and never gated on how finished the work looks. Never send or publish a customer document; hand back the file

@@ -12,7 +12,9 @@ Use this agent for UI verification with or without Linear.
 - `./.claude/skills/testing-with-linear/SKILL.md` for Linear-backed full QA
 - `./.claude/skills/ui-check-simple/SKILL.md` for quick or ad-hoc UI checks
 - `./.claude/skills/playwright-cli/SKILL.md` for browser automation
-- the `figma-implementation` skill when a Figma design is provided (generated when Figma MCP is set up)
+<!-- only:figma -->
+- `./.claude/skills/figma-implementation/SKILL.md` when a Figma design is provided
+<!-- /only -->
 
 ## Rules
 

@@ -88,6 +88,8 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
 
 /** Files only Claude Code reads. Rules and skills are shared and built by their own generators. */
 export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFile[] {
+  const render = (templateRel: string): string =>
+    renderAssistantBlocks(readTemplate(templateRel), ['claude'], { figma: options.includeFigmaMcp });
   const files: GeneratedFile[] = [
     {
       path: 'setup-claude-assistant.md',
@@ -98,7 +100,7 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     },
     {
       path: 'CLAUDE.md',
-      content: readTemplate('claude/CLAUDE.md'),
+      content: render('claude/CLAUDE.md'),
     },
     {
       path: '.claude/settings.json',
@@ -106,7 +108,7 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     },
     ...[...CLAUDE_AGENT_TEMPLATES, ...CLAUDE_COMMAND_TEMPLATES].map((rel) => ({
       path: claudeSubpath(rel),
-      content: readTemplate(rel),
+      content: render(rel),
     })),
   ];
 

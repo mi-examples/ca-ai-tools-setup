@@ -7,15 +7,19 @@ description: Quick UI verification without Linear—run dev server, open the pag
 
 Quick UI verification **without Linear**. Optionally accepts a **Figma link** or **reference screenshot** for comparison.
 
-Depends on: **`playwright-cli`** (browser automation, `npx playwright-cli ...`). Optionally Figma
-MCP rules for node data.
+Depends on: **`playwright-cli`** (browser automation, `npx playwright-cli ...`).
+<!-- only:figma -->
+Optional: **`figma-implementation`** (node data for a Figma link).
+<!-- /only -->
 
 ## 1. Input
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | Target page / component | Yes | URL, route, or component name to verify |
-| Figma link | No | Figma URL or node ID — read via Figma MCP rules for node data |
+<!-- only:figma -->
+| Figma link | No | Figma URL or node ID — read with the **`figma-implementation`** skill |
+<!-- /only -->
 | Reference screenshot | No | Image file to compare against |
 | Description | No | What to verify if no reference provided |
 
@@ -53,7 +57,12 @@ npx playwright-cli snapshot                                 # verify authenticat
 
 1. Navigate to the target page (`goto`)
 2. `snapshot` the current state; add `screenshot --filename=...` when the check is visual
-3. If **Figma link** provided — fetch node data via Figma MCP rules, compare layout, spacing, colors, typography against the screenshot
+<!-- only:figma -->
+3. If **Figma link** provided — fetch node data with the **`figma-implementation`** skill, compare layout, spacing, colors, typography against the screenshot
+<!-- /only -->
+<!-- only:no-figma -->
+3. If **Figma link** provided — Figma MCP is not set up in this repository, so ask for a reference screenshot or the expected values instead
+<!-- /only -->
 4. If **reference screenshot** provided — compare visually
 5. If **description only** — verify the described behavior / appearance
 6. Check `console` for JS errors

@@ -119,6 +119,11 @@ Open the URL printed in the terminal (often `http://localhost:3000/...`).
 
 ## See also
 
-- **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** — full assistant bootstrap.
+<!-- only:cursor -->
+- **`setup-cursor-assistant.md`** — full assistant bootstrap for Cursor.
+<!-- /only -->
+<!-- only:claude -->
+- **`setup-claude-assistant.md`** — full assistant bootstrap for Claude Code.
+<!-- /only -->
 - **`pp-dev.config.ts`** in this repo — real-instance example.
 

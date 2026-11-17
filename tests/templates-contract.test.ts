@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { MIN_NODE_MAJOR, PLAYWRIGHT_CLI_VERSION, type Assistant } from '../src/constants.js';
 import { getGeneratedFiles } from '../src/generator.js';
-import { readTemplate, renderTemplateValues } from '../src/templates.js';
+import { readTemplate, renderAssistantBlocks, renderTemplateValues } from '../src/templates.js';
 
 function listFiles(dir: string): string[] {
   return fs
@@ -178,28 +178,50 @@ test('.claude/agents holds only real subagents and no workflow copies are genera
   );
 });
 
-// A generated file that names a path the setup does not write sends the assistant to nothing.
-// It depends on the selection: a Cursor-only setup has no `.claude/`, a Claude-only one no `.cursor/`.
+// A generated file that names something the setup does not write sends the assistant to nothing.
+// What exists depends on the selection: a Cursor-only setup has no `.claude/`, a Claude-only one no
+// `.cursor/`, and the Figma skills come only with Figma MCP. Three kinds of reference are checked:
+// paths under an assistant folder (files and folders), skills named as "the `x` skill", and the
+// setup documents.
 test('generated files only point at files the same setup generates', () => {
-  const pathPattern = /(?:\.\/)?(\.(?:claude|cursor)\/[A-Za-z0-9_\-./]+\.(?:mdc|md|json))/g;
-  // Written by other tools or by the developer, or placeholders in prose.
+  const pathPattern = /(?:\.\/)?(\.(?:claude|cursor)\/[A-Za-z0-9_\-./]*[A-Za-z0-9_-])/g;
+  const skillPattern = /\*{0,2}`([a-z][a-z0-9-]+)`\*{0,2} skills?\b|\bskill \*{0,2}`([a-z][a-z0-9-]+)`/g;
+  const setupDocPattern = /setup-(?:cursor|claude)-assistant\.md/g;
+  // Written by other tools or by the developer.
   const external = /qa-ai-rules|settings\.local\.json|mcp\.json$/;
   const missing: string[] = [];
 
   for (const assistants of SELECTIONS) {
     for (const figma of [false, true]) {
       const output = generated(assistants, figma);
+      const label = `${assistants.join('+')}${figma ? '+figma' : ''}`;
+      const folders = new Set(
+        [...output.keys()].flatMap((filePath) => {
+          const parts = filePath.split('/');
+
+          return parts.slice(1).map((_part, index) => parts.slice(0, index + 1).join('/'));
+        }),
+      );
+      const skills = new Set(
+        [...output.keys()].flatMap((filePath) => /\/skills\/([^/]+)\/SKILL\.md$/.exec(filePath)?.[1] ?? []),
+      );
 
       for (const [file, content] of output) {
-        // Changing this skill needs an eval run (evals/customer-app-docs), so its two references
-        // to the Claude copy stay until PP-4660; they are wrong only in a Cursor-only setup.
-        if (file.includes('/customer-app-docs/')) {
-          continue;
+        for (const [, target] of content.matchAll(pathPattern)) {
+          if (!output.has(target) && !folders.has(target) && !external.test(target)) {
+            missing.push(`${label}: ${file} -> ${target}`);
+          }
         }
 
-        for (const match of content.matchAll(pathPattern)) {
-          if (!output.has(match[1]) && !external.test(match[1])) {
-            missing.push(`${assistants.join('+')}${figma ? '+figma' : ''}: ${file} -> ${match[1]}`);
+        for (const [, before, after] of content.matchAll(skillPattern)) {
+          if (!skills.has(before ?? after)) {
+            missing.push(`${label}: ${file} -> skill ${before ?? after}`);
+          }
+        }
+
+        for (const [setupDoc] of content.matchAll(setupDocPattern)) {
+          if (!output.has(setupDoc)) {
+            missing.push(`${label}: ${file} -> ${setupDoc}`);
           }
         }
       }
@@ -207,6 +229,64 @@ test('generated files only point at files the same setup generates', () => {
   }
 
   assert.deepEqual(missing, []);
+});
+
+// The Figma skills are generated only together with Figma MCP. Without it nothing may send the
+// assistant to them, or to the "Figma MCP rules" that an older release had and this one does not.
+test('nothing points at the Figma skills unless Figma MCP is generated', () => {
+  for (const assistants of SELECTIONS) {
+    for (const [filePath, content] of generated(assistants, false)) {
+      assert.doesNotMatch(content, /figma-implementation|figma-code-connect|Figma MCP rules/, filePath);
+      assert.doesNotMatch(content, /<!-- \/?only/, `${filePath} keeps a block marker`);
+    }
+
+    const withFigma = generated(assistants, true);
+    const root = assistants.includes('claude') ? '.claude/skills' : '.cursor/skills';
+
+    assert.match(withFigma.get(`${root}/ui-check-simple/SKILL.md`)!, /`figma-implementation`/);
+    assert.match(withFigma.get(`${root}/ai-development/SKILL.md`)!, /Follow the \*\*`figma-implementation`\*\* skill/);
+    assert.doesNotMatch(withFigma.get(`${root}/ai-development/SKILL.md`)!, /Figma MCP is not set up/);
+  }
+
+  assert.match(generated(['claude'], false).get('.claude/skills/ai-development/SKILL.md')!, /Figma MCP is not set up/);
+  assert.doesNotMatch(generated(['claude'], false).get('CLAUDE.md')!, /Figma design to code/);
+  assert.match(generated(['claude'], true).get('CLAUDE.md')!, /\| Figma design to code \| `figma-implementation`/);
+});
+
+// A skill prompts subagents with the full path of its own files, so the path has to be the folder
+// the skill was really generated into — `.cursor/skills` in a Cursor-only setup.
+test('a skill names its own files under the folder it is generated into', () => {
+  const cursorOnly = generated(['cursor']).get('.cursor/skills/customer-app-docs/SKILL.md')!;
+  const withClaude = generated(['cursor', 'claude']).get('.claude/skills/customer-app-docs/SKILL.md')!;
+
+  assert.match(cursorOnly, /Read `\.cursor\/skills\/customer-app-docs\/references\/verify\.md`/);
+  assert.match(cursorOnly, /cp \.cursor\/skills\/customer-app-docs\/assets\/example\.html /);
+  assert.doesNotMatch(cursorOnly, /\.claude\//);
+  assert.match(withClaude, /Read `\.claude\/skills\/customer-app-docs\/references\/verify\.md`/);
+  assert.doesNotMatch(withClaude, /\.cursor\//);
+});
+
+test('template blocks follow the assistants and the Figma selection', () => {
+  const template = [
+    'always',
+    '<!-- only:figma -->',
+    'with figma',
+    '<!-- /only -->',
+    '<!-- only:no-figma -->',
+    'without figma',
+    '<!-- /only -->',
+    '<!-- only:cursor-only -->',
+    'cursor alone',
+    '<!-- /only -->',
+    '',
+  ].join('\n');
+
+  assert.equal(renderAssistantBlocks(template, ['cursor'], { figma: true }), 'always\nwith figma\ncursor alone\n');
+  assert.equal(renderAssistantBlocks(template, ['cursor', 'claude']), 'always\nwithout figma\n');
+  assert.throws(
+    () => renderAssistantBlocks('<!-- only:figmaa -->\nx\n<!-- /only -->\n', ['claude']),
+    /Unknown template block/,
+  );
 });
 
 // The file is regenerated per machine and records one developer's instance URL, shell and paths, so
@@ -412,7 +492,7 @@ test('AGENTS template lists the Claude subagents, and only when Claude is select
 });
 
 test('customer docs skill keeps the source-precedence and verification contract', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const sections = readTemplate('skills/customer-app-docs/references/sections.md');
   const verify = readTemplate('skills/customer-app-docs/references/verify.md');
 
@@ -498,7 +578,7 @@ test('customer docs skill keeps the source-precedence and verification contract'
 });
 
 test('customer docs template is self-contained and carries the page rules', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const template = readTemplate('skills/customer-app-docs/assets/example.html');
 
   assert.match(skill, /assets\/example\.html/);
@@ -519,7 +599,7 @@ test('customer docs template is self-contained and carries the page rules', () =
 // PP-4465: generated customer docs leaked Linear keys and GitHub details. The ledger keeps them; the
 // document, and the worked example it is copied from, must not.
 test('customer docs keep ticket keys and GitHub info out of the document', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const sections = readTemplate('skills/customer-app-docs/references/sections.md');
   const verify = readTemplate('skills/customer-app-docs/references/verify.md');
   const template = readTemplate('skills/customer-app-docs/assets/example.html');
@@ -543,7 +623,7 @@ test('customer docs keep ticket keys and GitHub info out of the document', () =>
 // PP-4538: customer docs mixed "Portal Page" with "Custom App" and could name internal MI
 // environments. One term for the customer, and the platform by its version number only.
 test('customer docs say Custom App and show the platform as a version only', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const sections = readTemplate('skills/customer-app-docs/references/sections.md');
   const verify = readTemplate('skills/customer-app-docs/references/verify.md');
   const template = readTemplate('skills/customer-app-docs/assets/example.html');

@@ -352,9 +352,10 @@ line endings normalized for Windows/macOS/Linux checkouts. It contains no timest
 produces identical tracked output.
 
 `.assistant-setup/SETUP_STATUS.md` is the agent-facing marker. Its absence means setup is missing or incomplete;
-its embedded package version identifies what generated the repository. The always-on
-`.cursor/rules/assistant-setup-health.mdc` rule tells Cursor and Claude to run the read-only `check` command when
-freshness matters and to request approval before any update.
+its embedded package version identifies what generated the repository. The always-on `assistant-setup-health`
+rule (`.cursor/rules/assistant-setup-health.mdc` for Cursor, `.claude/rules/assistant-setup-health.md` for Claude
+Code) tells the assistant to run the read-only `check` command when freshness matters and to request approval
+before any update.
 
 ## Options
 

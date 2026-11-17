@@ -8,7 +8,10 @@ description: End-to-end QA testing flow—generate test cases, execute them in a
 End-to-end QA testing: **context → test cases → browser execution → bug investigation → local results**.
 
 Depends on: **`test-documentation`** (TC and bug report format), **`playwright-cli`** (browser
-automation), optionally **`figma-implementation`** (design reference).
+automation).
+<!-- only:figma -->
+Optional: **`figma-implementation`** (design reference).
+<!-- /only -->
 
 ## 0. Known limitations & lessons learned
 
@@ -29,7 +32,9 @@ Linear is **optional**. Use whichever is available:
 | Linear issue | Read **`linear-workflow`** skill → `get_issue` for acceptance criteria |
 | Linear comments | **Always fetch** with `list_comments` — may contain revised criteria, product decisions, dev notes, or verification URLs that override the description |
 | User-provided | Description, acceptance criteria, or screenshots from the conversation |
+<!-- only:figma -->
 | Figma design | Optional. Figma link or node ID — fetch via **`figma-implementation`** skill to extract expected layout, spacing, colors, typography for visual verification |
+<!-- /only -->
 | Codebase | Analyze `src/components/`, `src/pages/`, SCSS modules, `src/types/`, `src/api/` |
 
 If no explicit context is given, analyze the codebase to identify testable behavior. When a Figma link is provided, include visual accuracy checks in the generated test cases. When Linear comments are present, reconcile them with the issue description — **latest dev/review comments take precedence** over the original description.

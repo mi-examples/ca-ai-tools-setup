@@ -14,7 +14,9 @@ Depends on: **`linear-workflow`** (Linear MCP tools), **`testing-flow`** (test e
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `ISSUE_KEY` | **Yes** | Linear issue key (e.g. `PP-3388`) or full Linear URL |
+<!-- only:figma -->
 | Figma link | No | Figma URL or node ID — passed to **`testing-flow`** for visual accuracy checks via **`figma-implementation`** skill |
+<!-- /only -->
 
 Parse `<ISSUE_KEY>` from the **current** user message only (URL segment after `/issue/`, or pasted key). Do not use example keys from docs.
 
