@@ -83,8 +83,8 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 
 ### Credentials and instance config
 
-- Use **`.env`** at the repo root: **`BASE_URL`** (MI instance), **`APPLICATION_ID`** / **`APPLICATION_KEY`** when needed for API work, and **`DEFAULT_USERNAME_ADMIN`** / **`DEFAULT_PASSWORD_ADMIN`** for local login while implementing and manually verifying UI.
-- See the **`portal-env-credentials`** skill. Do not commit secrets; copy from **`.env.example`** and fill **`.env`** locally only.
+- Everything comes from **`.env`** at the repo root. With **`MI_ACCESS_TOKEN`** set there is no login while implementing and verifying UI; the variable names, the password path and the login URL are in the **`portal-env-credentials`** skill.
+- Do not commit secrets; copy from **`.env.example`** and fill **`.env`** locally only.
 
 ### Implementation scope
 

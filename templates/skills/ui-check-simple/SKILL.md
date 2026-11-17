@@ -33,20 +33,15 @@ Proxy config in `pp-dev.config.ts`. Default port 3000 (then 3001, 3002, … if b
 
 ## 3. Auth
 
-Read `.env` for credentials. Three roles are available — actual usernames come from env vars:
+Follow the **`portal-env-credentials`** skill — a token when one is set, a password otherwise. Use the
+**Admin** role by default unless a specific role is requested.
 
-| Role | Username var | Password var |
-|------|-------------|-------------|
-| **Regular** | `QA_USER_REGULAR` | `QA_PASS_REGULAR` |
-| **Power** | `QA_USER_POWER` | `QA_PASS_POWER` |
-| **Admin** | `QA_USER_ADMIN` | `QA_PASS_ADMIN` |
-
-Use **Admin** role by default unless a specific role is requested.
-
-### Form login
+With a token, open the page itself (`http://localhost:<port>`, or `http://<role>.localhost:<port>` as a
+role). With a password, sign in at `/login`:
 
 ```bash
-npx playwright-cli open <BASE_URL or PAGE_URL from .env>   # redirects to /auth
+set -a && . ./.env && set +a                                # load .env into this shell; prints nothing
+npx playwright-cli open http://localhost:<port>/login
 npx playwright-cli snapshot                                 # refs for the login form
 npx playwright-cli fill <user-ref> "$QA_USER_ADMIN"
 npx playwright-cli fill <pass-ref> "$QA_PASS_ADMIN" --submit

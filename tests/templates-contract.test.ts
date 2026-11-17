@@ -374,8 +374,81 @@ test('developer environment guidance says the file is personal, never committed'
     assert.match(setup, /Never commit \*\*`\.dev-environment\.md`\*\*/u);
     assert.doesNotMatch(setup, /^- Commit \*\*`\.dev-environment\.md`\*\*/mu);
     assert.match(setup, /Do not add it to the setup PR/u);
-    assert.match(setup, /\.mi-credentials\.local\.env/u);
+    // PP-4663: one file for secrets, and it is the one every repository already ignores.
+    assert.match(setup, /Credentials and tokens belong in \*\*`\.env`\*\*/u);
+    assert.doesNotMatch(setup, /\.mi-credentials\.local\.env/u);
   }
+});
+
+// PP-4663: the same portal login was described with five sets of names in three files and three
+// login URLs, so the assistant had to guess. The names are listed once, in the credentials skill;
+// everything else may use a name from that list and nothing else.
+test('one credential scheme: every variable a template names is listed in the credentials skill', () => {
+  const credentialName = new RegExp(
+    [
+      'MI_[A-Z]+(?:_[A-Z]+)*',
+      'QA_(?:USER|PASS)_[A-Z]+',
+      'DEFAULT_(?:USERNAME|PASSWORD)_[A-Z]+',
+      'PP_(?:USER|PASS|LOCAL_APP_URL)',
+      'PAGE_URL',
+      'BASE_URL',
+      'APPLICATION_(?:ID|KEY)',
+    ]
+      .map((name) => `\\b${name}\\b`)
+      .join('|'),
+    'g',
+  );
+
+  for (const assistants of SELECTIONS) {
+    const output = generated(assistants, true);
+    const root = assistants.includes('claude') ? '.claude/skills' : '.cursor/skills';
+    const skillPath = `${root}/portal-env-credentials/SKILL.md`;
+    const skill = output.get(skillPath)!;
+    const [scheme, olderNames] = skill.split('## Older names');
+    const listed = new Set(scheme.match(credentialName));
+
+    for (const name of ['MI_ACCESS_TOKEN', 'MI_ACCESS_TOKEN_REGULAR', 'DEFAULT_USERNAME_ADMIN', 'QA_USER_POWER']) {
+      assert.ok(listed.has(name), `${name} is not listed in the credentials skill`);
+    }
+
+    // The retired names live only in the "Older names" table, as a documented fallback.
+    for (const retired of ['MI_USERNAME', 'MI_PASSWORD', 'PP_USER', 'PP_PASS', 'PAGE_URL', 'PP_LOCAL_APP_URL']) {
+      assert.equal(listed.has(retired), false, `${retired} is still part of the scheme`);
+      assert.ok(olderNames.includes(retired), `${retired} is not documented as an older name`);
+    }
+
+    for (const [filePath, content] of output) {
+      if (filePath === skillPath) {
+        continue;
+      }
+
+      for (const name of content.match(credentialName) ?? []) {
+        assert.ok(listed.has(name), `${filePath} names ${name}, which the credentials skill does not list`);
+      }
+
+      assert.doesNotMatch(content, /\.mi-credentials/, filePath);
+    }
+  }
+
+  assert.match(readTemplate('gitignore'), /^\.env$/mu);
+});
+
+test('one login URL: /login, and only on the password path', () => {
+  for (const assistants of SELECTIONS) {
+    for (const [filePath, content] of generated(assistants, true)) {
+      assert.doesNotMatch(content, /\/auth\/login|redirects to \/auth|localhost:[<\w>]+\/auth\b/, filePath);
+    }
+  }
+
+  const skill = generated(['claude']).get('.claude/skills/portal-env-credentials/SKILL.md')!;
+
+  assert.match(skill, /`<local app>\/login` — the only login URL/);
+  // Token first: no login page at all, and roles through pp-dev's per-user hosts.
+  assert.match(skill, /there is no login page/);
+  assert.match(skill, /\/@api\/users/);
+  assert.match(skill, /regular\.localhost:<port>/);
+  // The role token is read from .env inside the command, never written into it.
+  assert.match(skill, /node --env-file=\.env -e "[^\n]*process\.env\.MI_ACCESS_TOKEN_REGULAR/);
 });
 
 test('the playwright-cli skill ships the CLI as the browser-automation tool', () => {

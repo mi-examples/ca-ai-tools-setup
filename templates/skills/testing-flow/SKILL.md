@@ -15,7 +15,7 @@ Optional: **`figma-implementation`** (design reference).
 
 ## 0. Known limitations & lessons learned
 
-- **Dev server & auth** — sandbox permissions may block `npm run dev`; use `pp-dev.config.ts` proxy. Auth credentials come from `.env` role vars.
+- **Dev server & auth** — sandbox permissions may block `npm run dev`; use `pp-dev.config.ts` proxy. Sign in as the **`portal-env-credentials`** skill describes.
 - **Always verify TC count.** Count TCs in `test-cases.md` and pass the exact list (TC-01..TC-N) to the browser agent — it may silently skip TCs otherwise.
 - **TC generation must stay within scope.** Do not elevate implementation details into hard pass/fail criteria. Expected results should match the **acceptance criteria** from the provided context.
 - **Multi-user testing needs explicit session switching.** Group TCs by role to minimize logout/re-login overhead.
@@ -55,15 +55,9 @@ test-documentation/
 
 ### Environment & auth
 
-Read `.env` (gitignored) for target environment. **Never hardcode credentials.**
-
-Three QA roles are available. Actual usernames and passwords come from `.env` — never hardcode them in skills or test cases.
-
-| Role | Username var | Password var |
-|------|-------------|-------------|
-| **Regular** | `QA_USER_REGULAR` | `QA_PASS_REGULAR` |
-| **Power** | `QA_USER_POWER` | `QA_PASS_POWER` |
-| **Admin** | `QA_USER_ADMIN` | `QA_PASS_ADMIN` |
+Credentials, URLs and the sign-in steps are in the **`portal-env-credentials`** skill — a token when one is
+set, a password otherwise. **Never hardcode credentials** in skills or test cases; name the roles
+**Regular**, **Power** and **Admin**.
 
 ### Dev server
 
@@ -82,10 +76,14 @@ Generate per **`test-documentation`** skill. Additionally analyze source code fo
 Drive the browser with the **`playwright-cli`** skill (`npx playwright-cli ...`). It has the full
 command reference, the targeting rules and the known limitations.
 
-### Authentication (form login)
+### Authentication
+
+Follow the **`portal-env-credentials`** skill. With a token, open the page itself: `http://localhost:<port>`
+as yourself, `http://<role>.localhost:<port>` as a role. With a password, sign in at `/login`:
 
 ```bash
-npx playwright-cli open <BASE_URL or PAGE_URL from .env>   # redirects to /auth
+set -a && . ./.env && set +a                                # load .env into this shell; prints nothing
+npx playwright-cli open http://localhost:<port>/login
 npx playwright-cli snapshot                                 # refs for the login form
 npx playwright-cli fill <user-ref> "$QA_USER_<ROLE>"
 npx playwright-cli fill <pass-ref> "$QA_PASS_<ROLE>" --submit

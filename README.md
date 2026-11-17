@@ -473,9 +473,10 @@ npm test
 - Obsolete QA flow cleanup (PP-3640): every re-run removes legacy **`ai-testing`** / **`ui-check`** skills and **`.claude/workflows/ui-check.md`** if they still exist from older bootstraps, then deletes any **empty parent folders** left behind (e.g. `.cursor/skills/ai-testing/`).
 - Setup assistant markdown files are always refreshed by the legacy generation flow. For subsequent tracked updates,
   prefer `check` and `update`, which use recorded baselines instead of blanket replacement.
-- `.dev-environment.md` is tracked repository guidance and may describe **Authentication** (`MI_ACCESS_TOKEN`,
-  `/data/page/index/auth/info`, session cookies), but must not contain credentials. Store **`MI_USERNAME` /
-  `MI_PASSWORD`** only in **`.mi-credentials.local.env`** (gitignored).
+- `.dev-environment.md` is personal and gitignored. It may describe **Authentication** (`MI_ACCESS_TOKEN` status,
+  the `/data/page/index/auth/info` check, which users need a password) but must not contain credentials. Tokens
+  and passwords live in the target repository's **`.env`**; the names are listed once, in the generated
+  `portal-env-credentials` skill.
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.
 - **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories on **`@metricinsights/pp-dev` ≥ 1.0** need **Node.js ≥ 24** (declared in its `engines`); align `engines` and workflow images in those app repos when you adopt that pp-dev version.
 - **CI:** Consumer app repositories may not have GitHub Actions (or other CI) yet—that is still often the exception—but the goal is for **build / lint / test on every change** to become the default. This tool does not generate CI files; add workflows in each app repo when you standardize, and pin the same Node version you use locally (see above for pp-dev).

@@ -181,24 +181,23 @@ npm run dev
 Proxy config in `pp-dev.config.ts`. Default port **3000** (then 3001, 3002, … if busy) —
 resolve the real port from config, server logs, or the browser.
 
-### 2. Auth (form login)
+### 2. Auth
 
-Read `.env` for credentials. Three abstract roles — actual usernames come from env vars:
+Variable names and the sign-in steps are in the **`portal-env-credentials`** skill: a token when one is set,
+a password otherwise. Use **Admin** by default unless a specific role is requested. Never paste secrets
+into chat.
 
-| Role | Username var | Password var |
-|------|--------------|--------------|
-| **Regular** | `QA_USER_REGULAR` | `QA_PASS_REGULAR` |
-| **Power** | `QA_USER_POWER` | `QA_PASS_POWER` |
-| **Admin** | `QA_USER_ADMIN` | `QA_PASS_ADMIN` |
-
-Use **Admin** by default unless a specific role is requested. Never paste secrets into chat.
+- **With a token** there is nothing to fill in: open `http://localhost:<port>` as yourself, or
+  `http://<role>.localhost:<port>` as a role added through that skill.
+- **With a password**, sign in at `/login`:
 
 ```bash
-npx playwright-cli open http://localhost:3000        # redirects to /auth (or /login)
-npx playwright-cli snapshot                           # get refs for the login form
+set -a && . ./.env && set +a                                # load .env into this shell; prints nothing
+npx playwright-cli open http://localhost:<port>/login
+npx playwright-cli snapshot                                 # refs for the login form
 npx playwright-cli fill <user-ref> "$QA_USER_ADMIN"
 npx playwright-cli fill <pass-ref> "$QA_PASS_ADMIN" --submit
-npx playwright-cli snapshot                           # verify authenticated state
+npx playwright-cli snapshot                                 # verify authenticated state
 ```
 
 Reuse the session across checks with `state-save auth.json` / `state-load auth.json` to skip
