@@ -60,7 +60,8 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
       '',
       'If needed later, create **`.mcp.json`** at the repository root and merge into existing `mcpServers` keys.',
       '',
-      'For **Figma MCP**, use **`figma-developer-mcp`**, set **`FIGMA_API_KEY`**, then reload MCP in Claude Code.',
+      'To add **Figma MCP**, re-run the setup with **`--mcp-figma yes`**: it writes the server entry and the ' +
+        'Figma skill together.',
     ].join('\n');
   }
 
@@ -76,18 +77,22 @@ function renderClaudeMcpSection(options: GenerateClaudeOptions): string {
       '`enabledMcpjsonServers`, `permissions.allow`); re-run the installer with **`--force`** if you replaced ' +
       '`.mcp.json` without refreshing settings.',
     '- If the file was removed, recreate it and merge with any existing `mcpServers` keys.',
-    '- For **Figma MCP**, export **`FIGMA_API_KEY`** before server start, then reload MCP in Claude Code.',
-    '- For Figma work, use the **`figma-implementation`** and **`figma-code-connect`** skills.',
+    '- For **Figma MCP**, put the personal access token into **`.env`** at the repository root as ' +
+      '**`FIGMA_API_KEY=...`** — the server reads that file itself, with no OAuth sign-in — or set it as an ' +
+      'environment variable. Then reload MCP in Claude Code.',
+    '- For Figma work, use the **`figma-implementation`** skill.',
     '- After changes in `.mcp.json`, reload MCP and verify selected tools are available.',
     '',
     '```json',
-    buildMcpJson({ includeFigmaMcp: true }).trimEnd(),
+    buildMcpJson({ includeFigmaMcp: true, target: 'claude' }).trimEnd(),
     '```',
   ].join('\n');
 }
 
 /** Files only Claude Code reads. Rules and skills are shared and built by their own generators. */
 export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFile[] {
+  const render = (templateRel: string): string =>
+    renderAssistantBlocks(readTemplate(templateRel), ['claude'], { figma: options.includeFigmaMcp });
   const files: GeneratedFile[] = [
     {
       path: 'setup-claude-assistant.md',
@@ -98,7 +103,7 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     },
     {
       path: 'CLAUDE.md',
-      content: readTemplate('claude/CLAUDE.md'),
+      content: render('claude/CLAUDE.md'),
     },
     {
       path: '.claude/settings.json',
@@ -106,14 +111,14 @@ export function generateClaudeFiles(options: GenerateClaudeOptions): GeneratedFi
     },
     ...[...CLAUDE_AGENT_TEMPLATES, ...CLAUDE_COMMAND_TEMPLATES].map((rel) => ({
       path: claudeSubpath(rel),
-      content: readTemplate(rel),
+      content: render(rel),
     })),
   ];
 
   if (options.includeFigmaMcp) {
     files.push({
       path: '.mcp.json',
-      content: buildMcpJson({ includeFigmaMcp: true }),
+      content: buildMcpJson({ includeFigmaMcp: true, target: 'claude' }),
     });
   }
 

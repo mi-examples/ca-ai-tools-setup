@@ -19,8 +19,12 @@ function asServerMap(value: unknown): Record<string, unknown> {
   return {};
 }
 
+/**
+ * A reference to an environment variable instead of a value, in any spelling the generator has
+ * used: `${NAME}`, `${NAME:-}` (Claude Code, empty default) or `${env:NAME}` (Cursor).
+ */
 function isPlaceholderToken(value: unknown): value is string {
-  return typeof value === 'string' && /^\$\{[A-Z0-9_]+\}$/.test(value);
+  return typeof value === 'string' && /^\$\{(?:env:)?[A-Z0-9_]+(?::-)?\}$/.test(value);
 }
 
 function mergeServerConfig(existingServer: unknown, incomingServer: unknown): Record<string, unknown> {
@@ -57,7 +61,7 @@ function mergeServerConfig(existingServer: unknown, incomingServer: unknown): Re
  * Other top-level keys: incoming wins where defined, then `mcpServers` is the merged map.
  *
  * Token safety rule:
- * - if incoming `env` value is a placeholder (for example `${FIGMA_API_KEY}`)
+ * - if incoming `env` value is a placeholder (for example `${FIGMA_API_KEY:-}`)
  *   and existing value is a non-placeholder string token, preserve the existing token.
  */
 export function mergeMcpJson(existingContent: string, incomingContent: string): string {
@@ -130,9 +134,10 @@ export function hasNoMcpServers(content: string): boolean {
 
 /**
  * Remove servers the generator wrote earlier and no longer generates. A server goes only when it
- * still equals the generated definition: an entry the repository edited, or one that only shares
- * the name, is repository-owned and stays. Returns the input untouched when nothing was removed,
- * so an unaffected file is never reformatted.
+ * still equals a generated definition — `retired` gives one definition per name, or a list when the
+ * generator has written the server in more than one form. An entry the repository edited, or one
+ * that only shares the name, is repository-owned and stays. Returns the input untouched when
+ * nothing was removed, so an unaffected file is never reformatted.
  */
 export function pruneRetiredMcpServers(content: string, retired: Record<string, unknown>): string {
   const doc = parseJsonObject(content);
@@ -145,7 +150,9 @@ export function pruneRetiredMcpServers(content: string, retired: Record<string, 
   let changed = false;
 
   for (const [name, definition] of Object.entries(retired)) {
-    if (name in servers && isDeepStrictEqual(servers[name], definition)) {
+    const variants: unknown[] = Array.isArray(definition) ? definition : [definition];
+
+    if (name in servers && variants.some((variant) => isDeepStrictEqual(servers[name], variant))) {
       delete servers[name];
       changed = true;
     }

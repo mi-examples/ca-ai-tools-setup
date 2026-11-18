@@ -17,7 +17,7 @@ goes and its frontmatter.
 | `setup-cursor-assistant.md`, `.cursorignore`                                                                                                                                       | Cursor selected                                | `templates/setup-assistant.md`, `templates/cursor/cursorignore` |
 | `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                  | Claude selected                                | `templates/setup-assistant.md`, `templates/claude/CLAUDE.md`    |
 | `.claude/agents/*` (`qa-tester`, `ui-verifier`, `linear-reporter`), `.claude/commands/*` (`/ui-check`, `/customer-docs`)                                                           | Claude selected                                | `templates/claude/*`                                            |
-| `.cursor/mcp.json`, `.mcp.json`, the `figma-implementation` and `figma-code-connect` skills                                                                                        | Figma MCP selected                             | `src/generators/mcp.ts`, `templates/skills/figma-*`             |
+| `.cursor/mcp.json`, `.mcp.json`, the `figma-implementation` skill                                                                                                                  | Figma MCP selected                             | `src/generators/mcp.ts`, `templates/skills/figma-*`             |
 
 **Rules** (`assistant-setup-health`, `linear-task-gates`, `code-style`, `frontend-architecture`): the first two
 apply always, the other two only to files under `src/`. A rule source declares `apply: always` or a `paths`
@@ -201,7 +201,9 @@ npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants 
 
 ### MCP — enable Figma
 
-Figma is the only MCP server the setup writes (requires **`FIGMA_API_KEY`**). Browser automation does not use
+Figma is the only MCP server the setup writes. It is the Framelink server (`figma-developer-mcp`, pinned to a
+version), signed in with a personal access token — no OAuth. Put the token into the target repository's `.env`
+as **`FIGMA_API_KEY`**; the server reads it from there, or from an environment variable. Browser automation does not use
 MCP: it runs through the Playwright CLI (`npx playwright-cli`), which ships with the generated skills.
 
 ```bash
@@ -352,9 +354,10 @@ line endings normalized for Windows/macOS/Linux checkouts. It contains no timest
 produces identical tracked output.
 
 `.assistant-setup/SETUP_STATUS.md` is the agent-facing marker. Its absence means setup is missing or incomplete;
-its embedded package version identifies what generated the repository. The always-on
-`.cursor/rules/assistant-setup-health.mdc` rule tells Cursor and Claude to run the read-only `check` command when
-freshness matters and to request approval before any update.
+its embedded package version identifies what generated the repository. The always-on `assistant-setup-health`
+rule (`.cursor/rules/assistant-setup-health.mdc` for Cursor, `.claude/rules/assistant-setup-health.md` for Claude
+Code) tells the assistant to run the read-only `check` command when freshness matters and to request approval
+before any update.
 
 ## Options
 
@@ -470,9 +473,10 @@ npm test
 - Obsolete QA flow cleanup (PP-3640): every re-run removes legacy **`ai-testing`** / **`ui-check`** skills and **`.claude/workflows/ui-check.md`** if they still exist from older bootstraps, then deletes any **empty parent folders** left behind (e.g. `.cursor/skills/ai-testing/`).
 - Setup assistant markdown files are always refreshed by the legacy generation flow. For subsequent tracked updates,
   prefer `check` and `update`, which use recorded baselines instead of blanket replacement.
-- `.dev-environment.md` is tracked repository guidance and may describe **Authentication** (`MI_ACCESS_TOKEN`,
-  `/data/page/index/auth/info`, session cookies), but must not contain credentials. Store **`MI_USERNAME` /
-  `MI_PASSWORD`** only in **`.mi-credentials.local.env`** (gitignored).
+- `.dev-environment.md` is personal and gitignored. It may describe **Authentication** (`MI_ACCESS_TOKEN` status,
+  the `/data/page/index/auth/info` check, which users need a password) but must not contain credentials. Tokens
+  and passwords live in the target repository's **`.env`**; the names are listed once, in the generated
+  `portal-env-credentials` skill.
 - Page workflow context file (`.assistant-setup/page-workflow-context.md`) is generated as a shared artifact and can be refined per project.
 - **Node.js:** This package keeps **`engines.node` `>=20`** for running the bootstrap CLI. Repositories on **`@metricinsights/pp-dev` ≥ 1.0** need **Node.js ≥ 24** (declared in its `engines`); align `engines` and workflow images in those app repos when you adopt that pp-dev version.
 - **CI:** Consumer app repositories may not have GitHub Actions (or other CI) yet—that is still often the exception—but the goal is for **build / lint / test on every change** to become the default. This tool does not generate CI files; add workflows in each app repo when you standardize, and pin the same Node version you use locally (see above for pp-dev).

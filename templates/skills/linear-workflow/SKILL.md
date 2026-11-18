@@ -49,4 +49,4 @@ State names differ by team. List them with **`list_issue_statuses`** (`team`: th
 
 - Keep Linear updates concise; include **`<ISSUE_KEY>`** in summaries.
 - Ask before posting a comment or changing a state, unless the user asked for exactly that.
-- **QA login** for local app: use role-based credentials from `.env` (`QA_USER_REGULAR` / `QA_PASS_REGULAR`, `QA_USER_POWER` / `QA_PASS_POWER`, `QA_USER_ADMIN` / `QA_PASS_ADMIN`). Reference roles as **Regular**, **Power**, **Admin** in documentation — never hardcode usernames.
+- **QA login** for the local app: follow the **`portal-env-credentials`** skill. Reference roles as **Regular**, **Power**, **Admin** in documentation — never hardcode usernames.

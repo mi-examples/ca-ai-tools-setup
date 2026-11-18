@@ -33,7 +33,7 @@ test-documentation/
 
 Three standard roles used in test cases: **Regular**, **Power**, **Admin**.
 
-In test case steps, write `Login as Regular`, `Login as Admin`, etc. If a reusable template contains legacy placeholders such as `QA_PP_Regular`, normalize them to these role names. Actual usernames and passwords are resolved from `.env` vars (`QA_USER_REGULAR` / `QA_PASS_REGULAR`, `QA_USER_POWER` / `QA_PASS_POWER`, `QA_USER_ADMIN` / `QA_PASS_ADMIN`). Never hardcode usernames or passwords in test documentation.
+In test case steps, write `Login as Regular`, `Login as Admin`, etc. If a reusable template contains legacy placeholders such as `QA_PP_Regular`, normalize them to these role names. Actual tokens, usernames and passwords come from `.env` — see the **`portal-env-credentials`** skill. Never hardcode usernames or passwords in test documentation.
 
 ## Test cases
 

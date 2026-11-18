@@ -64,7 +64,12 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 #### 1. Figma design
 
 - Open the **Figma link** from the issue (description, attachments, or comments) **when the issue or mode calls for UI work from design**.
-- Follow the **`figma-implementation`** skill (node JSON, variables, tokens, Code Connect).
+<!-- only:figma -->
+- Follow the **`figma-implementation`** skill (node data, tokens, assets, visual check against the design).
+<!-- /only -->
+<!-- only:no-figma -->
+- Figma MCP is not set up in this repository, so the design cannot be read from here. Ask the developer for the values the work needs (sizes, spacing, colors, text), or to add Figma MCP by re-running the setup with `--mcp-figma yes`.
+<!-- /only -->
 
 #### 2. User Stories
 
@@ -78,8 +83,8 @@ Work **in this order**; extract links and text from the **fetched** Linear issue
 
 ### Credentials and instance config
 
-- Use **`.env`** at the repo root: **`BASE_URL`** (MI instance), **`APPLICATION_ID`** / **`APPLICATION_KEY`** when needed for API work, and **`DEFAULT_USERNAME_ADMIN`** / **`DEFAULT_PASSWORD_ADMIN`** for local login while implementing and manually verifying UI.
-- See the **`portal-env-credentials`** skill. Do not commit secrets; copy from **`.env.example`** and fill **`.env`** locally only.
+- Everything comes from **`.env`** at the repo root. With **`MI_ACCESS_TOKEN`** set there is no login while implementing and verifying UI; the variable names, the password path and the login URL are in the **`portal-env-credentials`** skill.
+- Do not commit secrets; copy from **`.env.example`** and fill **`.env`** locally only.
 
 ### Implementation scope
 

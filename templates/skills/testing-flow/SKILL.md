@@ -8,11 +8,14 @@ description: End-to-end QA testing flow—generate test cases, execute them in a
 End-to-end QA testing: **context → test cases → browser execution → bug investigation → local results**.
 
 Depends on: **`test-documentation`** (TC and bug report format), **`playwright-cli`** (browser
-automation), optionally **`figma-implementation`** (design reference).
+automation).
+<!-- only:figma -->
+Optional: **`figma-implementation`** (design reference).
+<!-- /only -->
 
 ## 0. Known limitations & lessons learned
 
-- **Dev server & auth** — sandbox permissions may block `npm run dev`; use `pp-dev.config.ts` proxy. Auth credentials come from `.env` role vars.
+- **Dev server & auth** — sandbox permissions may block `npm run dev`; use `pp-dev.config.ts` proxy. Sign in as the **`portal-env-credentials`** skill describes.
 - **Always verify TC count.** Count TCs in `test-cases.md` and pass the exact list (TC-01..TC-N) to the browser agent — it may silently skip TCs otherwise.
 - **TC generation must stay within scope.** Do not elevate implementation details into hard pass/fail criteria. Expected results should match the **acceptance criteria** from the provided context.
 - **Multi-user testing needs explicit session switching.** Group TCs by role to minimize logout/re-login overhead.
@@ -29,7 +32,9 @@ Linear is **optional**. Use whichever is available:
 | Linear issue | Read **`linear-workflow`** skill → `get_issue` for acceptance criteria |
 | Linear comments | **Always fetch** with `list_comments` — may contain revised criteria, product decisions, dev notes, or verification URLs that override the description |
 | User-provided | Description, acceptance criteria, or screenshots from the conversation |
+<!-- only:figma -->
 | Figma design | Optional. Figma link or node ID — fetch via **`figma-implementation`** skill to extract expected layout, spacing, colors, typography for visual verification |
+<!-- /only -->
 | Codebase | Analyze `src/components/`, `src/pages/`, SCSS modules, `src/types/`, `src/api/` |
 
 If no explicit context is given, analyze the codebase to identify testable behavior. When a Figma link is provided, include visual accuracy checks in the generated test cases. When Linear comments are present, reconcile them with the issue description — **latest dev/review comments take precedence** over the original description.
@@ -50,15 +55,9 @@ test-documentation/
 
 ### Environment & auth
 
-Read `.env` (gitignored) for target environment. **Never hardcode credentials.**
-
-Three QA roles are available. Actual usernames and passwords come from `.env` — never hardcode them in skills or test cases.
-
-| Role | Username var | Password var |
-|------|-------------|-------------|
-| **Regular** | `QA_USER_REGULAR` | `QA_PASS_REGULAR` |
-| **Power** | `QA_USER_POWER` | `QA_PASS_POWER` |
-| **Admin** | `QA_USER_ADMIN` | `QA_PASS_ADMIN` |
+Credentials, URLs and the sign-in steps are in the **`portal-env-credentials`** skill — a token when one is
+set, a password otherwise. **Never hardcode credentials** in skills or test cases; name the roles
+**Regular**, **Power** and **Admin**.
 
 ### Dev server
 
@@ -77,13 +76,15 @@ Generate per **`test-documentation`** skill. Additionally analyze source code fo
 Drive the browser with the **`playwright-cli`** skill (`npx playwright-cli ...`). It has the full
 command reference, the targeting rules and the known limitations.
 
-### Authentication (form login)
+### Authentication
+
+Follow the **`portal-env-credentials`** skill. With a token, open the page itself: `http://localhost:<port>`
+as yourself, `http://<role>.localhost:<port>` as a role. With a password, sign in on the host that skill names for the user — the role's own host when your token is set — and fill the form with its command, which reads `.env` without a shell and prints neither value:
 
 ```bash
-npx playwright-cli open <BASE_URL or PAGE_URL from .env>   # redirects to /auth
+npx playwright-cli open <login URL>                         # the host that skill names for this user
 npx playwright-cli snapshot                                 # refs for the login form
-npx playwright-cli fill <user-ref> "$QA_USER_<ROLE>"
-npx playwright-cli fill <pass-ref> "$QA_PASS_<ROLE>" --submit
+# fill both fields with that skill's "node --env-file=.env" command — never put a password into a command
 npx playwright-cli snapshot                                 # verify authenticated state
 ```
 

@@ -18,10 +18,10 @@ The CLI ships **with the repository** so every team member gets it from a plain
 
 1. `@playwright/cli` is a **pinned devDependency** in `package.json`. If it is missing, add it:
    ```bash
-   npm install --save-dev @playwright/cli@0.1.17
+   npm install --save-dev @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}}
    ```
 2. Invoke it as **`npx playwright-cli ...`** — this resolves the pinned local version. A global
-   install is optional. If no local version is present, `npx -y @playwright/cli@0.1.17 ...` works
+   install is optional. If no local version is present, `npx -y @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}} ...` works
    as a fallback.
 3. Confirm it resolves: `npx playwright-cli --version`.
 4. Ensure the CLI workspace state is **gitignored** (never commit it):
@@ -181,24 +181,21 @@ npm run dev
 Proxy config in `pp-dev.config.ts`. Default port **3000** (then 3001, 3002, … if busy) —
 resolve the real port from config, server logs, or the browser.
 
-### 2. Auth (form login)
+### 2. Auth
 
-Read `.env` for credentials. Three abstract roles — actual usernames come from env vars:
+Variable names and the sign-in steps are in the **`portal-env-credentials`** skill: a token when one is set,
+a password otherwise. Use **Admin** by default unless a specific role is requested. Never paste secrets
+into chat.
 
-| Role | Username var | Password var |
-|------|--------------|--------------|
-| **Regular** | `QA_USER_REGULAR` | `QA_PASS_REGULAR` |
-| **Power** | `QA_USER_POWER` | `QA_PASS_POWER` |
-| **Admin** | `QA_USER_ADMIN` | `QA_PASS_ADMIN` |
-
-Use **Admin** by default unless a specific role is requested. Never paste secrets into chat.
+- **With a token** there is nothing to fill in: open `http://localhost:<port>` as yourself, or
+  `http://<role>.localhost:<port>` as a role added through that skill.
+- **With a password**, sign in on the host that skill names for the user — the role's own host when your token is set — and fill the form with its command, which reads `.env` without a shell and prints neither value:
 
 ```bash
-npx playwright-cli open http://localhost:3000        # redirects to /auth (or /login)
-npx playwright-cli snapshot                           # get refs for the login form
-npx playwright-cli fill <user-ref> "$QA_USER_ADMIN"
-npx playwright-cli fill <pass-ref> "$QA_PASS_ADMIN" --submit
-npx playwright-cli snapshot                           # verify authenticated state
+npx playwright-cli open <login URL>                         # the host that skill names for this user
+npx playwright-cli snapshot                                 # refs for the login form
+# fill both fields with that skill's "node --env-file=.env" command — never put a password into a command
+npx playwright-cli snapshot                                 # verify authenticated state
 ```
 
 Reuse the session across checks with `state-save auth.json` / `state-load auth.json` to skip
@@ -207,9 +204,8 @@ repeated logins.
 ### 3. Verification flow
 
 1. Navigate to the target page (`goto`), then `snapshot`.
-2. Compare against the acceptance criteria, reference screenshot, or Figma node (fetch node
-   data via Figma MCP rules; check layout, spacing, colors, typography with `eval` computed
-   styles).
+2. Compare against the acceptance criteria, reference screenshot, or Figma node (check layout,
+   spacing, colors, typography with `eval` computed styles).
 3. `console` — check for `TypeError`, `Error`, `Uncaught`.
 4. `requests` / `request <n>` — verify API data behind the UI.
 5. Test responsive behavior with `resize` or `--device`.

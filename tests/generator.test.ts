@@ -375,8 +375,8 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.ok(claudeMcp.mcpServers.figma);
   assert.equal(claudeMcp.mcpServers.playwright, undefined);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-implementation/SKILL.md')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/SKILL.md')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/references/api.md')), true);
+  // PP-4661: this skill needed the official Figma MCP, which the setup does not register.
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills')), false);

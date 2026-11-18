@@ -2,3 +2,5 @@
 # Generated per developer machine — never commit it. It records the local instance
 # URL, shell profile and paths, which differ for everyone and leak environment detail.
 .dev-environment.md
+# Tokens, passwords and instance values. Commit .env.example with placeholders instead.
+.env

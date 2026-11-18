@@ -7,15 +7,19 @@ description: Quick UI verification without Linear—run dev server, open the pag
 
 Quick UI verification **without Linear**. Optionally accepts a **Figma link** or **reference screenshot** for comparison.
 
-Depends on: **`playwright-cli`** (browser automation, `npx playwright-cli ...`). Optionally Figma
-MCP rules for node data.
+Depends on: **`playwright-cli`** (browser automation, `npx playwright-cli ...`).
+<!-- only:figma -->
+Optional: **`figma-implementation`** (node data for a Figma link).
+<!-- /only -->
 
 ## 1. Input
 
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | Target page / component | Yes | URL, route, or component name to verify |
-| Figma link | No | Figma URL or node ID — read via Figma MCP rules for node data |
+<!-- only:figma -->
+| Figma link | No | Figma URL or node ID — read with the **`figma-implementation`** skill |
+<!-- /only -->
 | Reference screenshot | No | Image file to compare against |
 | Description | No | What to verify if no reference provided |
 
@@ -29,23 +33,16 @@ Proxy config in `pp-dev.config.ts`. Default port 3000 (then 3001, 3002, … if b
 
 ## 3. Auth
 
-Read `.env` for credentials. Three roles are available — actual usernames come from env vars:
+Follow the **`portal-env-credentials`** skill — a token when one is set, a password otherwise. Use the
+**Admin** role by default unless a specific role is requested.
 
-| Role | Username var | Password var |
-|------|-------------|-------------|
-| **Regular** | `QA_USER_REGULAR` | `QA_PASS_REGULAR` |
-| **Power** | `QA_USER_POWER` | `QA_PASS_POWER` |
-| **Admin** | `QA_USER_ADMIN` | `QA_PASS_ADMIN` |
-
-Use **Admin** role by default unless a specific role is requested.
-
-### Form login
+With a token, open the page itself (`http://localhost:<port>`, or `http://<role>.localhost:<port>` as a
+role). With a password, sign in on the host that skill names for the user — the role's own host when your token is set — and fill the form with its command, which reads `.env` without a shell and prints neither value:
 
 ```bash
-npx playwright-cli open <BASE_URL or PAGE_URL from .env>   # redirects to /auth
+npx playwright-cli open <login URL>                         # the host that skill names for this user
 npx playwright-cli snapshot                                 # refs for the login form
-npx playwright-cli fill <user-ref> "$QA_USER_ADMIN"
-npx playwright-cli fill <pass-ref> "$QA_PASS_ADMIN" --submit
+# fill both fields with that skill's "node --env-file=.env" command — never put a password into a command
 npx playwright-cli snapshot                                 # verify authenticated state
 ```
 
@@ -53,7 +50,12 @@ npx playwright-cli snapshot                                 # verify authenticat
 
 1. Navigate to the target page (`goto`)
 2. `snapshot` the current state; add `screenshot --filename=...` when the check is visual
-3. If **Figma link** provided — fetch node data via Figma MCP rules, compare layout, spacing, colors, typography against the screenshot
+<!-- only:figma -->
+3. If **Figma link** provided — fetch node data with the **`figma-implementation`** skill, compare layout, spacing, colors, typography against the screenshot
+<!-- /only -->
+<!-- only:no-figma -->
+3. If **Figma link** provided — Figma MCP is not set up in this repository, so ask for a reference screenshot or the expected values instead
+<!-- /only -->
 4. If **reference screenshot** provided — compare visually
 5. If **description only** — verify the described behavior / appearance
 6. Check `console` for JS errors

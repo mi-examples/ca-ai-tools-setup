@@ -2,9 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Assistant } from '../src/constants.js';
+import {
+  FIGMA_MCP_PACKAGE,
+  FIGMA_MCP_TOOLS,
+  FIGMA_MCP_VERSION,
+  MIN_NODE_MAJOR,
+  PLAYWRIGHT_CLI_VERSION,
+  type Assistant,
+} from '../src/constants.js';
 import { getGeneratedFiles } from '../src/generator.js';
-import { readTemplate } from '../src/templates.js';
+import { readTemplate, renderAssistantBlocks, renderTemplateValues } from '../src/templates.js';
 
 function listFiles(dir: string): string[] {
   return fs
@@ -178,28 +185,50 @@ test('.claude/agents holds only real subagents and no workflow copies are genera
   );
 });
 
-// A generated file that names a path the setup does not write sends the assistant to nothing.
-// It depends on the selection: a Cursor-only setup has no `.claude/`, a Claude-only one no `.cursor/`.
+// A generated file that names something the setup does not write sends the assistant to nothing.
+// What exists depends on the selection: a Cursor-only setup has no `.claude/`, a Claude-only one no
+// `.cursor/`, and the Figma skills come only with Figma MCP. Three kinds of reference are checked:
+// paths under an assistant folder (files and folders), skills named as "the `x` skill", and the
+// setup documents.
 test('generated files only point at files the same setup generates', () => {
-  const pathPattern = /(?:\.\/)?(\.(?:claude|cursor)\/[A-Za-z0-9_\-./]+\.(?:mdc|md|json))/g;
-  // Written by other tools or by the developer, or placeholders in prose.
+  const pathPattern = /(?:\.\/)?(\.(?:claude|cursor)\/[A-Za-z0-9_\-./]*[A-Za-z0-9_-])/g;
+  const skillPattern = /\*{0,2}`([a-z][a-z0-9-]+)`\*{0,2} skills?\b|\bskill \*{0,2}`([a-z][a-z0-9-]+)`/g;
+  const setupDocPattern = /setup-(?:cursor|claude)-assistant\.md/g;
+  // Written by other tools or by the developer.
   const external = /qa-ai-rules|settings\.local\.json|mcp\.json$/;
   const missing: string[] = [];
 
   for (const assistants of SELECTIONS) {
     for (const figma of [false, true]) {
       const output = generated(assistants, figma);
+      const label = `${assistants.join('+')}${figma ? '+figma' : ''}`;
+      const folders = new Set(
+        [...output.keys()].flatMap((filePath) => {
+          const parts = filePath.split('/');
+
+          return parts.slice(1).map((_part, index) => parts.slice(0, index + 1).join('/'));
+        }),
+      );
+      const skills = new Set(
+        [...output.keys()].flatMap((filePath) => /\/skills\/([^/]+)\/SKILL\.md$/.exec(filePath)?.[1] ?? []),
+      );
 
       for (const [file, content] of output) {
-        // Changing this skill needs an eval run (evals/customer-app-docs), so its two references
-        // to the Claude copy stay until PP-4660; they are wrong only in a Cursor-only setup.
-        if (file.includes('/customer-app-docs/')) {
-          continue;
+        for (const [, target] of content.matchAll(pathPattern)) {
+          if (!output.has(target) && !folders.has(target) && !external.test(target)) {
+            missing.push(`${label}: ${file} -> ${target}`);
+          }
         }
 
-        for (const match of content.matchAll(pathPattern)) {
-          if (!output.has(match[1]) && !external.test(match[1])) {
-            missing.push(`${assistants.join('+')}${figma ? '+figma' : ''}: ${file} -> ${match[1]}`);
+        for (const [, before, after] of content.matchAll(skillPattern)) {
+          if (!skills.has(before ?? after)) {
+            missing.push(`${label}: ${file} -> skill ${before ?? after}`);
+          }
+        }
+
+        for (const [setupDoc] of content.matchAll(setupDocPattern)) {
+          if (!output.has(setupDoc)) {
+            missing.push(`${label}: ${file} -> ${setupDoc}`);
           }
         }
       }
@@ -207,6 +236,124 @@ test('generated files only point at files the same setup generates', () => {
   }
 
   assert.deepEqual(missing, []);
+});
+
+// The Figma skills are generated only together with Figma MCP. Without it nothing may send the
+// assistant to them, or to the "Figma MCP rules" that an older release had and this one does not.
+test('nothing points at the Figma skills unless Figma MCP is generated', () => {
+  for (const assistants of SELECTIONS) {
+    for (const [filePath, content] of generated(assistants, false)) {
+      assert.doesNotMatch(content, /figma-implementation|figma-code-connect|Figma MCP rules/, filePath);
+      assert.doesNotMatch(content, /<!-- \/?only/, `${filePath} keeps a block marker`);
+    }
+
+    const withFigma = generated(assistants, true);
+    const root = assistants.includes('claude') ? '.claude/skills' : '.cursor/skills';
+
+    assert.match(withFigma.get(`${root}/ui-check-simple/SKILL.md`)!, /`figma-implementation`/);
+    assert.match(withFigma.get(`${root}/ai-development/SKILL.md`)!, /Follow the \*\*`figma-implementation`\*\* skill/);
+    assert.doesNotMatch(withFigma.get(`${root}/ai-development/SKILL.md`)!, /Figma MCP is not set up/);
+  }
+
+  assert.match(generated(['claude'], false).get('.claude/skills/ai-development/SKILL.md')!, /Figma MCP is not set up/);
+  assert.doesNotMatch(generated(['claude'], false).get('CLAUDE.md')!, /Figma design to code/);
+  assert.match(generated(['claude'], true).get('CLAUDE.md')!, /\| Figma design to code \| `figma-implementation`/);
+});
+
+// A skill prompts subagents with the full path of its own files, so the path has to be the folder
+// the skill was really generated into — `.cursor/skills` in a Cursor-only setup.
+// PP-4661: the setup registered Framelink while one skill called tools only the official Figma MCP
+// has, so that skill could never work. The server is one, pinned, and the templates name its tools.
+test('every Figma tool a template names exists on the server the setup registers', () => {
+  const output = generated(['cursor', 'claude'], true);
+  const skill = output.get('.claude/skills/figma-implementation/SKILL.md')!;
+  // Tools are the only snake_case names in backticks in that skill; parameters are camelCase.
+  const named = new Set([...skill.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map(([, tool]) => tool));
+
+  assert.deepEqual([...named].sort(), [...FIGMA_MCP_TOOLS].sort());
+
+  for (const [filePath, content] of output) {
+    // Tools of the official Figma MCP, and a server name that belonged to one project.
+    assert.doesNotMatch(
+      content,
+      /get_design_context|get_variable_defs|get_code_connect|get_context_for_code_connect|get_metadata|project-0-/,
+      filePath,
+    );
+  }
+
+  assert.equal(output.has('.claude/skills/figma-code-connect/SKILL.md'), false);
+});
+
+test('the Figma server is pinned and takes its token without OAuth, per client', () => {
+  type Server = { command: string; args: string[]; env: Record<string, string> };
+  const output = generated(['cursor', 'claude'], true);
+  const server = (filePath: string): Server =>
+    (JSON.parse(output.get(filePath)!) as { mcpServers: { figma: Server } }).mcpServers.figma;
+  const claude = server('.mcp.json');
+  const cursor = server('.cursor/mcp.json');
+
+  for (const config of [claude, cursor]) {
+    assert.equal(config.args[1], `${FIGMA_MCP_PACKAGE}@${FIGMA_MCP_VERSION}`);
+    assert.equal(config.env.FRAMELINK_TELEMETRY, 'off');
+    assert.doesNotMatch(JSON.stringify(config), /oauth/i);
+  }
+
+  // Claude Code: an unset variable must become an empty value, not the literal placeholder, so the
+  // server falls back to the repository's .env instead of sending a bogus token to Figma.
+  assert.equal(claude.env.FIGMA_API_KEY, '${FIGMA_API_KEY:-}');
+  // Cursor: its own placeholder syntax, and the .env file and image folder by explicit path.
+  assert.equal(cursor.env.FIGMA_API_KEY, '${env:FIGMA_API_KEY}');
+  assert.deepEqual(cursor.args.slice(3), ['--env', '${workspaceFolder}/.env', '--image-dir', '${workspaceFolder}']);
+
+  // The setup documents show the same entry they tell the developer to check.
+  assert.ok(output.get('setup-claude-assistant.md')!.includes(`"${FIGMA_MCP_PACKAGE}@${FIGMA_MCP_VERSION}"`));
+  assert.match(output.get('setup-cursor-assistant.md')!, /\$\{workspaceFolder\}\/\.env/);
+});
+
+// Two reference files of a skill were generated with nothing in them; a link to an empty file is a
+// dead end the assistant still spends a read on.
+test('no generated file is empty', () => {
+  for (const assistants of SELECTIONS) {
+    for (const figma of [false, true]) {
+      for (const [filePath, content] of generated(assistants, figma)) {
+        assert.notEqual(content.trim(), '', filePath);
+      }
+    }
+  }
+});
+
+test('a skill names its own files under the folder it is generated into', () => {
+  const cursorOnly = generated(['cursor']).get('.cursor/skills/customer-app-docs/SKILL.md')!;
+  const withClaude = generated(['cursor', 'claude']).get('.claude/skills/customer-app-docs/SKILL.md')!;
+
+  assert.match(cursorOnly, /Read `\.cursor\/skills\/customer-app-docs\/references\/verify\.md`/);
+  assert.match(cursorOnly, /cp \.cursor\/skills\/customer-app-docs\/assets\/example\.html /);
+  assert.doesNotMatch(cursorOnly, /\.claude\//);
+  assert.match(withClaude, /Read `\.claude\/skills\/customer-app-docs\/references\/verify\.md`/);
+  assert.doesNotMatch(withClaude, /\.cursor\//);
+});
+
+test('template blocks follow the assistants and the Figma selection', () => {
+  const template = [
+    'always',
+    '<!-- only:figma -->',
+    'with figma',
+    '<!-- /only -->',
+    '<!-- only:no-figma -->',
+    'without figma',
+    '<!-- /only -->',
+    '<!-- only:cursor-only -->',
+    'cursor alone',
+    '<!-- /only -->',
+    '',
+  ].join('\n');
+
+  assert.equal(renderAssistantBlocks(template, ['cursor'], { figma: true }), 'always\nwith figma\ncursor alone\n');
+  assert.equal(renderAssistantBlocks(template, ['cursor', 'claude']), 'always\nwithout figma\n');
+  assert.throws(
+    () => renderAssistantBlocks('<!-- only:figmaa -->\nx\n<!-- /only -->\n', ['claude']),
+    /Unknown template block/,
+  );
 });
 
 // The file is regenerated per machine and records one developer's instance URL, shell and paths, so
@@ -227,7 +374,116 @@ test('developer environment guidance says the file is personal, never committed'
     assert.match(setup, /Never commit \*\*`\.dev-environment\.md`\*\*/u);
     assert.doesNotMatch(setup, /^- Commit \*\*`\.dev-environment\.md`\*\*/mu);
     assert.match(setup, /Do not add it to the setup PR/u);
-    assert.match(setup, /\.mi-credentials\.local\.env/u);
+    // PP-4663: one file for secrets, and it is the one every repository already ignores.
+    assert.match(setup, /Credentials and tokens belong in \*\*`\.env`\*\*/u);
+    assert.doesNotMatch(setup, /\.mi-credentials\.local\.env/u);
+  }
+});
+
+// PP-4663: the same portal login was described with five sets of names in three files and three
+// login URLs, so the assistant had to guess. The names are listed once, in the credentials skill;
+// everything else may use a name from that list and nothing else.
+test('one credential scheme: every variable a template names is listed in the credentials skill', () => {
+  const credentialName = new RegExp(
+    [
+      'MI_[A-Z]+(?:_[A-Z]+)*',
+      'QA_(?:USER|PASS)_[A-Z]+',
+      'DEFAULT_(?:USERNAME|PASSWORD)_[A-Z]+',
+      'PP_(?:USER|PASS|LOCAL_APP_URL)',
+      'PAGE_URL',
+      'BASE_URL',
+      'APPLICATION_(?:ID|KEY)',
+    ]
+      .map((name) => `\\b${name}\\b`)
+      .join('|'),
+    'g',
+  );
+
+  for (const assistants of SELECTIONS) {
+    const output = generated(assistants, true);
+    const root = assistants.includes('claude') ? '.claude/skills' : '.cursor/skills';
+    const skillPath = `${root}/portal-env-credentials/SKILL.md`;
+    const skill = output.get(skillPath)!;
+    const [scheme, olderNames] = skill.split('## Older names');
+    const listed = new Set(scheme.match(credentialName));
+
+    for (const name of ['MI_ACCESS_TOKEN', 'MI_ACCESS_TOKEN_REGULAR', 'DEFAULT_USERNAME_ADMIN', 'QA_USER_POWER']) {
+      assert.ok(listed.has(name), `${name} is not listed in the credentials skill`);
+    }
+
+    // The retired names live only in the "Older names" table, as a documented fallback.
+    for (const retired of ['MI_USERNAME', 'MI_PASSWORD', 'PP_USER', 'PP_PASS', 'PAGE_URL', 'PP_LOCAL_APP_URL']) {
+      assert.equal(listed.has(retired), false, `${retired} is still part of the scheme`);
+      assert.ok(olderNames.includes(retired), `${retired} is not documented as an older name`);
+    }
+
+    for (const [filePath, content] of output) {
+      if (filePath === skillPath) {
+        continue;
+      }
+
+      for (const name of content.match(credentialName) ?? []) {
+        assert.ok(listed.has(name), `${filePath} names ${name}, which the credentials skill does not list`);
+      }
+
+      assert.doesNotMatch(content, /\.mi-credentials/, filePath);
+    }
+  }
+
+  assert.match(readTemplate('gitignore'), /^\.env$/mu);
+});
+
+test('one login URL: /login, and only on the password path', () => {
+  for (const assistants of SELECTIONS) {
+    for (const [filePath, content] of generated(assistants, true)) {
+      assert.doesNotMatch(content, /\/auth\/login|redirects to \/auth|localhost:[<\w>]+\/auth\b/, filePath);
+    }
+  }
+
+  const skill = generated(['claude']).get('.claude/skills/portal-env-credentials/SKILL.md')!;
+
+  assert.match(skill, /`\/login` on the host you sign in on — the only login path/);
+  // Token first: no login page at all, and roles through pp-dev's per-user hosts.
+  assert.match(skill, /there is no login page/);
+  assert.match(skill, /\/@api\/users/);
+  assert.match(skill, /regular\.localhost:<port>/);
+  // The role token is read from .env inside the command, never written into it.
+  assert.match(skill, /node --env-file=\.env -e "[^\n]*process\.env\.MI_ACCESS_TOKEN_REGULAR/);
+});
+
+// PR #25 review. With the developer's token set, pp-dev signs every request on localhost as the
+// developer, so a role that has only a password must sign in on its own host — or the run tests
+// the developer's permissions. And a password must reach the form unchanged and unseen: a shell
+// loader rewrites `$`, quotes and `#`, and the CLI prints the text it fills in.
+test('a password role signs in on its own host, and no shell or output touches the password', () => {
+  const output = generated(['cursor', 'claude'], true);
+  const skill = output.get('.claude/skills/portal-env-credentials/SKILL.md')!;
+
+  assert.match(
+    skill,
+    /\| `MI_ACCESS_TOKEN` is set[^\n]*\| the role's own host: `http:\/\/<role>\.localhost:<port>\/login` \|/,
+  );
+  assert.match(skill, /\| no `MI_ACCESS_TOKEN` \| `http:\/\/localhost:<port>\/login` \|/);
+  assert.match(skill, /always answers \*\*as you\*\*/);
+  assert.match(skill, /name:'regular',kind:'session'/);
+  assert.match(skill, /`user\.loginUrl`/);
+
+  // The form is filled by Node with values from process.env, and the CLI output is discarded.
+  const fill = /node --env-file=\.env -e "[^\n]*'fill'[^\n]*"/.exec(skill)?.[0] ?? '';
+
+  assert.match(fill, /process\.env\.QA_USER_REGULAR/);
+  assert.match(fill, /process\.env\.QA_PASS_REGULAR,'--submit'/);
+  assert.match(fill, /stdio:'ignore'/);
+  assert.doesNotMatch(fill, /shell:\s*true|execSync\(/);
+
+  for (const [filePath, content] of output) {
+    // No shell loader for .env, and no password or username expanded by a shell.
+    assert.doesNotMatch(content, /set -a|\. \.\/\.env|Get-Content \.env/, filePath);
+    assert.doesNotMatch(content, /"\$(?:QA_(?:USER|PASS)|DEFAULT_(?:USERNAME|PASSWORD))_|\$env:QA_/, filePath);
+  }
+
+  for (const name of ['playwright-cli', 'testing-flow', 'ui-check-simple']) {
+    assert.match(output.get(`.claude/skills/${name}/SKILL.md`)!, /the role's own host when your token is set/);
   }
 });
 
@@ -240,6 +496,50 @@ test('the playwright-cli skill ships the CLI as the browser-automation tool', ()
   assert.match(skill, /pinned devDependency/);
   assert.match(skill, /--save-dev @playwright\/cli/);
   assert.match(skill, /\.playwright-cli\//);
+});
+
+// PP-4662: the templates named four different Node.js versions and pinned the CLI in several
+// files, so a bump meant a search — and the setup script skipped the upgrade on Node 22 although
+// pp-dev needs 24. Both versions now come from src/constants.ts through placeholders.
+test('templates take the Playwright CLI and Node.js versions from one place', () => {
+  const pinnedInTemplate = listFiles('templates')
+    .filter((template) => /@playwright\/cli@\d|nvm (?:install|use) \d/.test(fs.readFileSync(template, 'utf8')))
+    .map((template) => path.relative('templates', template).split(path.sep).join('/'));
+
+  assert.deepEqual(pinnedInTemplate, []);
+
+  for (const assistants of SELECTIONS) {
+    for (const [filePath, content] of generated(assistants, true)) {
+      assert.doesNotMatch(content, /\{\{[A-Z][A-Z0-9_]*\}\}/, `${filePath} keeps an unfilled placeholder`);
+
+      for (const [, version] of content.matchAll(/@playwright\/cli@([\w.-]+)/g)) {
+        assert.equal(version, PLAYWRIGHT_CLI_VERSION, `${filePath} pins another @playwright/cli version`);
+      }
+
+      // "Node.js 24", "Node.js ≥ 24", "Node.js version: `<v24.x>`", "nvm install 24".
+      const nodeMajors = [
+        ...content.matchAll(/Node(?:\.js)?(?: version: `<v| ≥ | >= | )(\d+)/g),
+        ...content.matchAll(/nvm (?:install|use) (\d+)/g),
+      ];
+
+      for (const [mention, major] of nodeMajors) {
+        assert.equal(Number(major), MIN_NODE_MAJOR, `${filePath}: "${mention}"`);
+      }
+    }
+  }
+
+  const setup = generated(['claude']).get('setup-claude-assistant.md')!;
+
+  assert.match(setup, new RegExp(`npm install --save-dev @playwright/cli@${PLAYWRIGHT_CLI_VERSION}\\b`));
+  // The script upgrades whenever the major is below the requirement, not below an older one.
+  assert.match(setup, new RegExp(`"\\$NODE_MAJOR" -ge ${MIN_NODE_MAJOR} \\]`));
+  assert.match(setup, new RegExp(`\\$nodeMajor -ge ${MIN_NODE_MAJOR}\\)`));
+  assert.match(setup, new RegExp(`nvm install ${MIN_NODE_MAJOR}$`, 'm'));
+});
+
+test('an unknown template placeholder is an error; lower-case braces pass through', () => {
+  assert.equal(renderTemplateValues('v{{MIN_NODE_MAJOR}} {{page}}'), `v${MIN_NODE_MAJOR} {{page}}`);
+  assert.throws(() => renderTemplateValues('{{PLAYWRIGHT_VERSION}}'), /Unknown template placeholder/);
 });
 
 test('CLAUDE template routes by skill name and stays free of generated detail', () => {
@@ -368,7 +668,7 @@ test('AGENTS template lists the Claude subagents, and only when Claude is select
 });
 
 test('customer docs skill keeps the source-precedence and verification contract', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const sections = readTemplate('skills/customer-app-docs/references/sections.md');
   const verify = readTemplate('skills/customer-app-docs/references/verify.md');
 
@@ -454,7 +754,7 @@ test('customer docs skill keeps the source-precedence and verification contract'
 });
 
 test('customer docs template is self-contained and carries the page rules', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const template = readTemplate('skills/customer-app-docs/assets/example.html');
 
   assert.match(skill, /assets\/example\.html/);
@@ -475,7 +775,7 @@ test('customer docs template is self-contained and carries the page rules', () =
 // PP-4465: generated customer docs leaked Linear keys and GitHub details. The ledger keeps them; the
 // document, and the worked example it is copied from, must not.
 test('customer docs keep ticket keys and GitHub info out of the document', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const sections = readTemplate('skills/customer-app-docs/references/sections.md');
   const verify = readTemplate('skills/customer-app-docs/references/verify.md');
   const template = readTemplate('skills/customer-app-docs/assets/example.html');
@@ -499,7 +799,7 @@ test('customer docs keep ticket keys and GitHub info out of the document', () =>
 // PP-4538: customer docs mixed "Portal Page" with "Custom App" and could name internal MI
 // environments. One term for the customer, and the platform by its version number only.
 test('customer docs say Custom App and show the platform as a version only', () => {
-  const skill = readTemplate('skills/customer-app-docs/SKILL.md');
+  const skill = readTemplate('skills/customer-app-docs/SKILL.md', { SKILLS_ROOT: '.claude/skills' });
   const sections = readTemplate('skills/customer-app-docs/references/sections.md');
   const verify = readTemplate('skills/customer-app-docs/references/verify.md');
   const template = readTemplate('skills/customer-app-docs/assets/example.html');

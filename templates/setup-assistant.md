@@ -23,7 +23,7 @@
 You are a setup assistant for **Metric Insights Portal Page / Custom App** repository local development (see **`pp-dev.config`** and npm package **`@metricinsights/pp-dev`**).
 The developer may be on **macOS**, **Linux**, or **Windows**.
 
-**Node.js:** Recent **`@metricinsights/pp-dev`** requires **Node.js 22 or newer**. Prefer matching **`package.json` `engines`**, local tooling, and any **CI** job (e.g. GitHub Actions `setup-node`) to the same major version the project actually uses for `npm run dev` / `pp-dev`.
+**Node.js:** Recent **`@metricinsights/pp-dev`** requires **Node.js {{MIN_NODE_MAJOR}} or newer**. Prefer matching **`package.json` `engines`**, local tooling, and any **CI** job (e.g. GitHub Actions `setup-node`) to the same major version the project actually uses for `npm run dev` / `pp-dev`.
 
 **CI:** Some repositories still have no automated pipeline; that can be normal today, but **CI for build, lint, and tests** is the intended direction for maintained apps. If `.github/workflows/` (or equivalent) is absent, do not treat it as a setup failure. When CI exists or is added, ensure install steps (`npm ci`, etc.) and the Node version align with this repo and pp-dev.
 
@@ -45,15 +45,15 @@ uname -s
 
 Before asking the developer, read **`pp-dev.config`** in the repo root for the current dev setup (port, plugin options, and related settings).
 
-**If `/.dev-environment.md` exists in the repo root, read it next** — especially the **Authentication** section: local App URL, **`MI_ACCESS_TOKEN`** checks (`GET …/data/page/index/auth/info`), session-cookie login steps, and the **`.mi-credentials.local.env`** convention. Follow that file as the source of truth for this machine; align questions and commands with the recorded OS/shell.
+**If `/.dev-environment.md` exists in the repo root, read it next** — especially the **Authentication** section: local App URL, the result of the **`MI_ACCESS_TOKEN`** check and which users need a password. Follow that file as the source of truth for this machine; align questions and commands with the recorded OS/shell.
 
 This workflow targets the **Portal Page / Custom App** dev server at **`http://localhost:<port>`**. The **default port is 3000**; if 3000 is already in use, the next free port is typically used (**3001**, **3002**, and so on). Resolve the actual port from **`pp-dev.config`**, the dev server output, or the URL in the browser once the server is up.
 
 The server **must be running** before access — usually **`npm run dev`**, **`npx pp-dev`**, or for **Next.js** projects the same commands or **`npx pp-dev next`** (the main tooling is **`@metricinsights/pp-dev`** on npm). If the repo is Next.js (e.g. `next` in `package.json` or a `next.config.*` file), prefer clarifying which dev command this project uses.
 
-Backend access uses **`MI_ACCESS_TOKEN`** in **`.env`** for the **local dev proxy** (the server forwards to the real backend — no manual token wiring from outside). If `.env` is missing or the token is not configured yet, ask whether they will add it or treat it as pending. When validating, follow **`.dev-environment.md`**: GET **`/data/page/index/auth/info`** on **localhost**, successful JSON includes **`user`**.
+Backend access uses **`MI_ACCESS_TOKEN`** in **`.env`**: the local dev proxy signs every request with it, so there is no login page. If `.env` is missing or the token is not configured yet, ask whether they will add it or treat it as pending. To validate, GET **`/data/page/index/auth/info`** on **localhost** — a JSON answer with **`user`** means the token works. Variable names, role tokens and the password path are described once, in the **`portal-env-credentials`** skill.
 
-If the backend instance version is **old** or token auth is unavailable, fall back to UI login at **`http://localhost:<port>/login`** and session-cookie flows described in **`.dev-environment.md`**. Prefer having the developer store **`MI_USERNAME`** / **`MI_PASSWORD`** in **`.mi-credentials.local.env`** (gitignored) rather than pasting secrets into chat.
+If the instance is **old** or cannot issue tokens, sign in at **`http://localhost:<port>/login`** with **`DEFAULT_USERNAME_ADMIN`** / **`DEFAULT_PASSWORD_ADMIN`** from **`.env`** — never paste a password into chat.
 
 Ask the developer for all required details in a single message:
 
@@ -64,7 +64,9 @@ I need your details to configure the environment:
 
 2. API token: is `MI_ACCESS_TOKEN` already set in .env? If not, say "not configured yet" or describe how you'll add it.
 
-3. If token auth will not work: confirm you've added MI_USERNAME and MI_PASSWORD to .mi-credentials.local.env (gitignored), or say you'll use browser login only — do not paste passwords into .dev-environment.md or this chat.
+3. If token auth will not work: confirm DEFAULT_USERNAME_ADMIN and DEFAULT_PASSWORD_ADMIN are set in .env (gitignored) — do not paste passwords into .dev-environment.md or this chat.
+
+4. QA roles (optional): which of MI_ACCESS_TOKEN_REGULAR / _POWER / _ADMIN, or QA_USER_* / QA_PASS_*, are set in .env? Names only — no values.
 ```
 
 ### Step 1.1: Build page working context
@@ -121,20 +123,20 @@ Install each tool sequentially and verify after each install.
 <!-- /only -->
 **2.1. Node.js version check + nvm (if needed)**
 
-Run one of these scripts. It automatically checks Node major version and installs **nvm + Node.js 24** only when needed (Node missing or `<22`).
+Run one of these scripts. It automatically checks Node major version and installs **nvm + Node.js {{MIN_NODE_MAJOR}}** only when needed (Node missing or `<{{MIN_NODE_MAJOR}}`).
 
 **macOS/Linux:**
 
 ```bash
 NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)
-if [ "$NODE_MAJOR" -ge 22 ]; then
-  echo "Node.js $(node -v) satisfies minimum >=22. Skipping nvm/Node install."
+if [ "$NODE_MAJOR" -ge {{MIN_NODE_MAJOR}} ]; then
+  echo "Node.js $(node -v) satisfies minimum >={{MIN_NODE_MAJOR}}. Skipping nvm/Node install."
 else
   command -v nvm >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-  nvm install 24
-  nvm use 24
+  nvm install {{MIN_NODE_MAJOR}}
+  nvm use {{MIN_NODE_MAJOR}}
 fi
 node -v
 ```
@@ -143,15 +145,15 @@ node -v
 
 ```powershell
 try { $nodeMajor = [int](node -p "process.versions.node.split('.')[0]") } catch { $nodeMajor = 0 }
-if ($nodeMajor -ge 22) {
-  Write-Host "Node.js $(node -v) satisfies minimum >=22. Skipping nvm/Node install."
+if ($nodeMajor -ge {{MIN_NODE_MAJOR}}) {
+  Write-Host "Node.js $(node -v) satisfies minimum >={{MIN_NODE_MAJOR}}. Skipping nvm/Node install."
 } else {
   if (-not (Get-Command nvm -ErrorAction SilentlyContinue)) {
     winget install CoreyButler.NVMforWindows
     $env:Path = "$env:Path;$env:ProgramFiles\nvm"
   }
-  nvm install 24
-  nvm use 24
+  nvm install {{MIN_NODE_MAJOR}}
+  nvm use {{MIN_NODE_MAJOR}}
 }
 node -v
 ```
@@ -216,7 +218,7 @@ Writing **`.cursor/mcp.json`** during bootstrap does **not** turn MCP servers on
 
 1. Open **Cursor Settings** → **Features** → **MCP** (wording may be **Cursor Settings → MCP** in newer builds).
 2. Find **Project MCP** (this repository) and **enable** each server that appears in **`.cursor/mcp.json`** (for example **figma**). If a server is listed but disabled, toggle it **on**.
-3. **Figma MCP:** export **`FIGMA_API_KEY`** in the environment (system, shell profile, or MCP server env in Cursor) **before** starting the server — see the **`portal-env-credentials`** skill. Without the token, the server may fail to start or show no tools.
+3. **Figma MCP:** put the personal access token into **`.env`** at the repository root as **`FIGMA_API_KEY=...`** — the server reads that file itself — or set it as a system environment variable; see the **`portal-env-credentials`** skill. No OAuth sign-in is involved. Without the token every Figma request fails.
 4. Use **Refresh** / reload MCP in that settings screen (or **fully quit and restart Cursor** if tools still do not appear — same remediation as for CLI `PATH` above).
 5. In **Agent** chat, confirm MCP tools are available (server connected, tool list populated) before asking the agent to read Figma via MCP.
 
@@ -233,7 +235,7 @@ Set it up once for the project (skip the install if `@playwright/cli` is already
 
 ```bash
 # 1. Pin the CLI as a devDependency so `npm install` provides it for the whole team
-npm install --save-dev @playwright/cli@0.1.17
+npm install --save-dev @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}}
 
 # 2. Confirm it resolves via the local install (no global needed)
 npx playwright-cli --version
@@ -250,7 +252,7 @@ Add the CLI workspace state to **`.gitignore`** and never commit it:
 ```
 
 Invoke the CLI as **`npx playwright-cli ...`** (resolves the pinned local version;
-`npx -y @playwright/cli@0.1.17 ...` is a fallback when no local install is present).
+`npx -y @playwright/cli@{{PLAYWRIGHT_CLI_VERSION}} ...` is a fallback when no local install is present).
 
 ### Step 3: Developer environment profile (finalize after setup)
 
@@ -262,7 +264,7 @@ committing it would leak your environment into everyone else's checkout (generat
 - If the file is missing, create it from the generated template. Do not add it to the setup PR.
 - **Local app URL convention** (`http://localhost:<port>` — default **3000**, otherwise next free port; record
   the configured default and how developers discover overrides).
-- **Authentication** section: **`MI_ACCESS_TOKEN`** status, validation notes (`/data/page/index/auth/info`), session vs token, and **Credentials** line — **usernames only** in **`.dev-environment.md`**; passwords belong in **`.mi-credentials.local.env`** (add **`/.mi-credentials.local.env`** to **`.gitignore`**).
+- **Authentication** section: **`MI_ACCESS_TOKEN`** status and the result of the check (`/data/page/index/auth/info`), which role tokens are set, and which users need a password — **usernames only**; tokens and passwords stay in **`.env`**.
 - **API compatibility notes** for your Metric Insights instance (confirmed endpoint/field differences;
   see Step 1.2).
 - **Last verification date** for your profile (when URL, auth, and API checks were last confirmed).
@@ -270,7 +272,7 @@ committing it would leak your environment into everyone else's checkout (generat
   correct syntax for each platform.
 - Keep platform notes explicit (for example: "PowerShell users should avoid `&&` and Bash heredocs").
 - Never commit **`.dev-environment.md`** — `ca-ai-tools-setup` adds it to **`.gitignore`** for exactly
-  this reason. Credentials and tokens belong in **`.mi-credentials.local.env`**, also ignored.
+  this reason. Credentials and tokens belong in **`.env`**, also ignored.
 
 ### Step 4: Final verification
 
