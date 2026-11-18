@@ -1,7 +1,6 @@
 ---
 description: Detect missing or stale ca-ai-tools-setup configuration
-globs:
-alwaysApply: true
+apply: always
 ---
 
 # AI assistant setup health
@@ -16,6 +15,8 @@ Before non-trivial work that depends on repository rules, skills, agents, MCP, o
    matters.
 5. Exit code **`2`** means the tracked setup is stale, incomplete, or requires migration. Report that state and
    propose a reviewable update PR.
+6. If **`.assistant-setup/pending-updates/`** exists, an update left newer templates there for files the team
+   edited (for example **`CLAUDE.md`**). Tell the developer and follow the merge steps in **`SETUP_STATUS.md`**.
 
 Never run `update` or `--force` without explicit developer approval. A failed check is an error to report,
 not proof that the setup is current.

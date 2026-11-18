@@ -1,11 +1,24 @@
+<!-- only:claude -->
+# Claude Code Setup Assistant
+
+> Paste this file into Claude Code (or copy its contents as a prompt).
+> The assistant should execute setup **step by step**; gather blocking questions in **one message** when possible, without unnecessary back-and-forth.
+<!-- /only -->
+<!-- only:cursor -->
 # Cursor Setup Assistant
 
 > Use this file as the setup prompt for Cursor Agent.
 > The agent should execute setup step by step and ask for missing input in one message.
+<!-- /only -->
 
 ---
 
+<!-- only:claude -->
+## Instructions for Claude
+<!-- /only -->
+<!-- only:cursor -->
 ## Instructions for Cursor Agent
+<!-- /only -->
 
 You are a setup assistant for **Metric Insights Portal Page / Custom App** repository local development (see **`pp-dev.config`** and npm package **`@metricinsights/pp-dev`**).
 The developer may be on **macOS**, **Linux**, or **Windows**.
@@ -14,8 +27,10 @@ The developer may be on **macOS**, **Linux**, or **Windows**.
 
 **CI:** Some repositories still have no automated pipeline; that can be normal today, but **CI for build, lint, and tests** is the intended direction for maintained apps. If `.github/workflows/` (or equivalent) is absent, do not treat it as a setup failure. When CI exists or is added, ensure install steps (`npm ci`, etc.) and the Node version align with this repo and pp-dev.
 
-**Cursor integrated terminal:** After installing CLI tools or changing `PATH` (for example `~/bin` or `%USERPROFILE%\bin`), binaries such as **`gh`**, **`linear-cli`**, or even **`node`** may still be missing inside Cursor’s terminal until the user **fully quits and restarts Cursor** (closing the terminal tab is not enough). This behavior is **consistently reproducible on Windows and macOS**. If commands fail with “not found” right after a successful install, treat **restart Cursor** as the first remediation before concluding the install failed.
+<!-- only:cursor -->
+**Cursor integrated terminal:** After installing CLI tools or changing `PATH`, binaries such as **`gh`** or even **`node`** may still be missing inside Cursor’s terminal until the user **fully quits and restarts Cursor** (closing the terminal tab is not enough). This behavior is **consistently reproducible on Windows and macOS**. If commands fail with “not found” right after a successful install, treat **restart Cursor** as the first remediation before concluding the install failed.
 
+<!-- /only -->
 First, detect the OS:
 
 ```bash
@@ -78,10 +93,32 @@ Important:
 Record any confirmed API differences in **`.dev-environment.md`** under **API compatibility notes**
 (see the generated template section).
 
+<!-- only:claude -->
+### Step 1.3: Claude project instructions and agents
+
+The **`ca-ai-tools-setup`** installer writes **`AGENTS.md`** in the repository root on every run. When Claude is
+selected, it also writes **`CLAUDE.md`**, **`.claude/settings.json`**, rules under **`.claude/rules/`**, skills
+under **`.claude/skills/`** and subagents under **`.claude/agents/`**. Before continuing with tooling setup:
+
+- If **`CLAUDE.md`** or **`AGENTS.md`** is missing (older clone or manual deletion), re-run the installer.
+- Add repo-specific conventions to **`CLAUDE.md`** (tests, branching, ownership) and keep it concise. Shared
+  rules and workflows live in the generated rules and skills; do not copy them into **`CLAUDE.md`**.
+- Keep **`AGENTS.md`** aligned with the files under **`.claude/agents/`** (add or remove table rows when agents
+  change).
+- **Updates:** `ca-ai-tools-setup update` keeps an unedited **`CLAUDE.md`** on the current template. Once the
+  repository edits it, it is never overwritten: a newer template is left under
+  **`.assistant-setup/pending-updates/`** to be merged (see **`.assistant-setup/SETUP_STATUS.md`**). Existing
+  **`AGENTS.md`** content is never replaced; the installer only merges missing generated agent rows.
+
+<!-- /only -->
 ### Step 2: Install tools
 
 Install each tool sequentially and verify after each install.
 
+<!-- only:claude -->
+**Claude Code:** Some steps need a **browser or full TTY** (`gh auth login`). The embedded Bash tool may not be enough. When interaction is required, ask the developer to run the command in their own terminal, or use Claude Code’s **`! command`** form so execution happens on the user’s machine—then continue with non-interactive checks (e.g. `gh auth status`) via Bash when possible.
+
+<!-- /only -->
 **2.1. Node.js version check + nvm (if needed)**
 
 Run one of these scripts. It automatically checks Node major version and installs **nvm + Node.js 24** only when needed (Node missing or `<22`).
@@ -148,140 +185,49 @@ gh auth login
 gh auth status
 ```
 
-**2.3. linear-cli**
+<!-- only:claude -->
+If `gh auth login` cannot run interactively in this session, tell the developer to complete it in a local terminal (or use **`! gh auth login`** in Claude Code), then run **`gh auth status`** again to confirm.
 
-Check first whether `linear-cli` is already installed:
+<!-- /only -->
+**2.3. Linear (MCP)**
 
-- **macOS/Linux**: `command -v linear-cli && linear-cli --version`
-- **Windows (PowerShell)**: `Get-Command linear-cli -ErrorAction SilentlyContinue; if ($?) { linear-cli --version }`
+Linear is used through the **Linear MCP** connector. It normally comes with the organization's subscription, so
+this setup adds no Linear server to **`.mcp.json`** / **`.cursor/mcp.json`** and there is nothing to install. The
+Linear CLI earlier setups used can no longer be authorized.
 
-If `linear-cli` is already available, skip installation and continue with PATH/auth checks. Install only when the command is missing.
+Check that the Linear tools are available in this session — for example `get_issue`, `list_issues`,
+`list_comments`, `save_comment` (the client may show them with its own server prefix). Then list the
+developer's assigned issues with `list_issues` (assignee `me`) to confirm the connection works.
 
-Detect OS and architecture. Fetch releases from the GitHub API (newest first) and download the platform archive from [https://github.com/Finesssee/linear-cli/releases](https://github.com/Finesssee/linear-cli/releases). **The latest release may not ship every platform binary.** If the asset is missing for your OS/arch (404), iterate through older releases until a download succeeds—use the first tag that provides the expected filename.
+- **The tools respond:** record `Linear MCP: connected` and continue.
+- **The tools are missing or return an error:** Linear MCP is not connected in this client. Ask the developer
+  to enable or reconnect the Linear connector in the client's connector / MCP settings; if it is not offered
+  there, the organization's admin has to make it available. Record `Linear MCP: not connected` and **continue
+  with the rest of the setup** — this is not a setup failure.
 
-**macOS:**
+Never guess the state or the content of an issue when the Linear tools are unavailable.
 
-```bash
-ARCH=$(uname -m)
-if [ "$ARCH" = "arm64" ]; then
-  ASSET="linear-cli-aarch64-apple-darwin.tar.gz"
-else
-  ASSET="linear-cli-x86_64-apple-darwin.tar.gz"
-fi
-mkdir -p ~/bin
-LINEAR_CLI_VERSION=""
-for tag in $(curl -sL "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'); do
-  if curl -fsL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${tag}/${ASSET}"; then
-    LINEAR_CLI_VERSION=$tag
-    break
-  fi
-done
-if [ -z "$LINEAR_CLI_VERSION" ]; then
-  echo "No release found with ${ASSET} (checked recent releases)." >&2
-  exit 1
-fi
-echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
-tar -xzf /tmp/linear-cli.tar.gz -C ~/bin/
-chmod +x ~/bin/linear-cli
-rm /tmp/linear-cli.tar.gz
-~/bin/linear-cli --version
-```
+**MCP_SERVERS_BLOCK**
 
-**Linux:**
-
-```bash
-ARCH=$(uname -m)
-if [ "$ARCH" = "aarch64" ]; then
-  ASSET="linear-cli-aarch64-unknown-linux-gnu.tar.gz"
-else
-  ASSET="linear-cli-x86_64-unknown-linux-gnu.tar.gz"
-fi
-mkdir -p ~/bin
-LINEAR_CLI_VERSION=""
-for tag in $(curl -sL "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100" | grep '"tag_name"' | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/'); do
-  if curl -fsL -o /tmp/linear-cli.tar.gz "https://github.com/Finesssee/linear-cli/releases/download/${tag}/${ASSET}"; then
-    LINEAR_CLI_VERSION=$tag
-    break
-  fi
-done
-if [ -z "$LINEAR_CLI_VERSION" ]; then
-  echo "No release found with ${ASSET} (checked recent releases)." >&2
-  exit 1
-fi
-echo "Installing linear-cli ${LINEAR_CLI_VERSION}"
-tar -xzf /tmp/linear-cli.tar.gz -C ~/bin/
-chmod +x ~/bin/linear-cli
-rm /tmp/linear-cli.tar.gz
-~/bin/linear-cli --version
-```
-
-**Windows (PowerShell):**
-
-```powershell
-$assetName = "linear-cli-x86_64-pc-windows-msvc.zip"
-$releases = Invoke-RestMethod -Uri "https://api.github.com/repos/Finesssee/linear-cli/releases?per_page=100"
-New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\bin" | Out-Null
-$version = $null
-foreach ($rel in $releases) {
-  $tag = $rel.tag_name
-  $url = "https://github.com/Finesssee/linear-cli/releases/download/$tag/$assetName"
-  try {
-    Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\linear-cli.zip" -ErrorAction Stop
-    $version = $tag
-    break
-  } catch {
-    continue
-  }
-}
-if (-not $version) { throw "No release found with $assetName (checked recent releases)." }
-Write-Host "Installing linear-cli $version"
-Expand-Archive -Path "$env:TEMP\linear-cli.zip" -DestinationPath "$env:USERPROFILE\bin" -Force
-Remove-Item "$env:TEMP\linear-cli.zip"
-```
-
-Ensure the install directory is in PATH:
-
-- **macOS/Linux (zsh):**
-  ```bash
-  echo $PATH | grep -q "$HOME/bin" && echo "OK" || { echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc; }
-  ```
-- **macOS/Linux (bash):**
-  ```bash
-  echo $PATH | grep -q "$HOME/bin" && echo "OK" || { echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc; }
-  ```
-- **Windows:** Add `%USERPROFILE%\bin` to system PATH via Settings → Environment Variables, or:
-  ```powershell
-  $p = [Environment]::GetEnvironmentVariable("PATH","User"); if ($p -notlike "*$env:USERPROFILE\bin*") { [Environment]::SetEnvironmentVariable("PATH","$env:USERPROFILE\bin;$p","User") }
-  ```
-
-Verify:
-
-```bash
-linear-cli --version
-linear-cli auth oauth
-linear-cli i list --assignee me
-```
-
-**PLAYWRIGHT_MCP_BLOCK**
-
-**2.5. Enable project MCP in Cursor (manual — required)**
+<!-- only:cursor -->
+**Enable project MCP in Cursor (manual — required)**
 
 Writing **`.cursor/mcp.json`** during bootstrap does **not** turn MCP servers on in the IDE. The developer must enable them once per machine/workspace:
 
 1. Open **Cursor Settings** → **Features** → **MCP** (wording may be **Cursor Settings → MCP** in newer builds).
-2. Find **Project MCP** (this repository) and **enable** each server that appears in **`.cursor/mcp.json`** (for example **playwright**, **figma**). If a server is listed but disabled, toggle it **on**.
-3. **Figma MCP:** export **`FIGMA_API_KEY`** in the environment (system, shell profile, or MCP server env in Cursor) **before** starting the server — see **`.cursor/rules/portal-env-credentials.mdc`**. Without the token, the server may fail to start or show no tools.
+2. Find **Project MCP** (this repository) and **enable** each server that appears in **`.cursor/mcp.json`** (for example **figma**). If a server is listed but disabled, toggle it **on**.
+3. **Figma MCP:** export **`FIGMA_API_KEY`** in the environment (system, shell profile, or MCP server env in Cursor) **before** starting the server — see the **`portal-env-credentials`** skill. Without the token, the server may fail to start or show no tools.
 4. Use **Refresh** / reload MCP in that settings screen (or **fully quit and restart Cursor** if tools still do not appear — same remediation as for CLI `PATH` above).
-5. In **Agent** chat, confirm MCP tools are available (server connected, tool list populated) before asking the agent to drive the browser or Figma via MCP.
+5. In **Agent** chat, confirm MCP tools are available (server connected, tool list populated) before asking the agent to read Figma via MCP.
 
 If bootstrap **did not** create **`.cursor/mcp.json`**, skip this subsection until MCP is added manually.
 
-**2.6. Playwright Agent CLI (browser automation — universal, not per-developer)**
+<!-- /only -->
+**2.5. Playwright Agent CLI (browser automation — universal, not per-developer)**
 
-The repo also ships the **Playwright Agent CLI** as a token-efficient alternative to Playwright
-MCP for UI checks and QA (see **`.cursor/skills/playwright-cli/SKILL.md`**). It is committed with
-the repo so every teammate gets it from **`npm install`** — no global install and, unlike MCP,
-no manual per-machine enablement. Both the CLI and MCP paths stay available; nothing is removed.
+UI checks and QA drive the browser with the **Playwright Agent CLI** (see the **`playwright-cli`** skill). It
+is committed with the repo so every teammate gets it from **`npm install`** — no global install and no
+per-machine setup.
 
 Set it up once for the project (skip the install if `@playwright/cli` is already a devDependency):
 
@@ -328,22 +274,32 @@ committing it would leak your environment into everyone else's checkout (generat
 
 ### Step 4: Final verification
 
-If **`gh`** / **`linear-cli`** / **`node`** are reported missing despite a finished install and PATH update, ask the developer to **fully restart Cursor**, then run the checks again (see **Cursor integrated terminal** above).
-
 Run:
 
 ```bash
 node -v
 gh auth status
-linear-cli i list --assignee me --limit 3
 ```
+
+Then call `list_issues` (assignee `me`) through the Linear MCP.
+<!-- only:cursor -->
+
+If **`gh`** / **`node`** are reported missing despite a finished install and PATH update, ask the developer to **fully restart Cursor**, then run the checks again (see **Cursor integrated terminal** above).
+<!-- /only -->
 
 Return:
 
 ```
-OK / FAIL  GitHub CLI — authentication
-OK / FAIL  linear-cli — authentication
-OK / FAIL  .dev-environment.md profile complete
+OK / FAIL           GitHub CLI — authentication
+OK / NOT CONNECTED  Linear MCP — tools respond
+OK / FAIL           .dev-environment.md profile complete
 ```
 
-If any check fails, suggest a concrete fix. For **command not found** immediately after install, suggest **restarting Cursor** before deeper troubleshooting.
+`NOT CONNECTED` is not a failed setup: say that Linear MCP is not available in this client and that the developer
+should connect it there or ask a workspace admin.
+
+If any check fails, suggest a concrete fix.
+<!-- only:cursor -->
+
+For **command not found** immediately after install, suggest **restarting Cursor** before deeper troubleshooting.
+<!-- /only -->

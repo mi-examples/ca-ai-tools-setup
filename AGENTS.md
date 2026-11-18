@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## What this repo does
 
-`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/rules/*.mdc`, modular QA skills under `.cursor/skills/`, `CLAUDE.md`, `.claude/workflows/`, `.claude/settings.json`, `.mcp.json`, `LINEAR_CLI.md`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
+`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/rules/*.mdc`, modular QA skills under `.cursor/skills/`, `CLAUDE.md`, `.claude/workflows/`, `.claude/settings.json`, `.mcp.json`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
 
 ## Commands
 
@@ -43,7 +43,7 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 - `src/generators/portal-page-ai.ts` — shared Cursor rules and Portal Page skills (QA modular stack, ai-development)
 - `src/generators/mcp.ts` — constructs MCP JSON config objects
 - `src/mcp-json-merge.ts` — union-merges existing `.mcp.json` / `.cursor/mcp.json` with generated config (generated names win on conflict)
-- `src/previous-setup.ts` — reads `.cursor/ca-ai-tools-setup.json` or `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)
+- `src/previous-setup.ts` — reads `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)
 - `src/qa-ai-rules-setup.ts` / `src/qa-ai-rules-choice.ts` — optional `@metricinsights/qa-ai-rules` post-setup in the target repo
 - `src/package-manager.ts` — detects npm / pnpm / Yarn (Berry vs classic) / Bun to choose `npx`, `pnpm dlx`, `yarn dlx`, or `bunx`
 - `templates/` — all markdown and JSON templates; read at runtime by `src/templates.ts`

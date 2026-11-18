@@ -71,31 +71,20 @@ try {
 
   run(
     process.execPath,
-    [
-      cliPath,
-      '--target',
-      targetRoot,
-      '--assistants',
-      'cursor,claude',
-      '--yes',
-      '--mcp-playwright',
-      'yes',
-      '--mcp-figma',
-      'yes',
-    ],
+    [cliPath, '--target', targetRoot, '--assistants', 'cursor,claude', '--yes', '--mcp-figma', 'yes'],
     { cwd: installRoot },
   );
 
   const generatedFiles = listFiles(targetRoot);
 
-  assert.equal(generatedFiles.length, 81, 'packed CLI should generate the complete setup');
-  assert.ok(fs.existsSync(path.join(targetRoot, '.cursor', 'skills', 'ai-development', 'SKILL.md')));
+  assert.equal(generatedFiles.length, 48, 'packed CLI should generate the complete setup');
+  // One skills folder: with Claude selected it is .claude/skills, and Cursor reads it from there.
+  assert.equal(fs.existsSync(path.join(targetRoot, '.cursor', 'skills')), false);
+  assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'rules', 'assistant-setup-health.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.cursor', 'rules', 'assistant-setup-health.mdc')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'ai-development', 'SKILL.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'customer-app-docs', 'SKILL.md')));
-  assert.ok(
-    fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'customer-app-docs', 'assets', 'example.html')),
-  );
+  assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'skills', 'customer-app-docs', 'assets', 'example.html')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.claude', 'commands', 'customer-docs.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.assistant-setup', 'SETUP_STATUS.md')));
   assert.ok(fs.existsSync(path.join(targetRoot, '.assistant-setup', 'ca-ai-tools-setup.json')));

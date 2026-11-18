@@ -16,7 +16,6 @@ import {
 import {
   pickAssistants,
   pickFigmaMcpInclude,
-  pickPlaywrightMcpInclude,
   pickQaAiRulesInclude,
   pickTargetDir,
   promptExistingMcpActions,
@@ -24,7 +23,6 @@ import {
 import { printReconcileSummary, printSummary, type QaAiRulesSummaryHook } from './cli-summary.js';
 import { buildErrorJson, buildGenerateJson, buildReconcileJson, CliError, writeCliJson } from './cli-json.js';
 import { parseAssistantsArg } from './assistants.js';
-import { parsePlaywrightMcpArg } from './playwright-mcp-choice.js';
 import { parseFigmaMcpArg } from './figma-mcp-choice.js';
 import { parseQaAiRulesArg } from './qa-ai-rules-choice.js';
 import { checkSetup, updateSetup, type ReconcileConfiguration } from './reconcile.js';
@@ -41,10 +39,9 @@ async function runGenerate(args: CliArgs): Promise<void> {
   const targetDir = await pickTargetDir(args);
   const previousDefaults = args.yes ? null : loadPreviousInteractiveDefaults(targetDir);
   const assistants = await pickAssistants(args, previousDefaults);
-  const playwrightMcpInclude = await pickPlaywrightMcpInclude(args, previousDefaults);
   const figmaMcpInclude = await pickFigmaMcpInclude(args, previousDefaults);
   const qaAiRulesInclude = await pickQaAiRulesInclude(args, previousDefaults);
-  const files = getGeneratedFiles(assistants, playwrightMcpInclude, figmaMcpInclude, qaAiRulesInclude);
+  const files = getGeneratedFiles(assistants, figmaMcpInclude, qaAiRulesInclude);
   const existingFileActions = await promptExistingMcpActions(args, targetDir, files);
 
   const result = generateSetup({
@@ -52,7 +49,6 @@ async function runGenerate(args: CliArgs): Promise<void> {
     assistants,
     force: Boolean(args.force),
     dryRun: Boolean(args.dryRun),
-    playwrightMcpInclude,
     figmaMcpInclude,
     qaAiRulesInclude,
     existingFileActions,
@@ -98,7 +94,6 @@ async function runGenerate(args: CliArgs): Promise<void> {
       buildGenerateJson(
         targetDir,
         assistants,
-        playwrightMcpInclude,
         figmaMcpInclude,
         qaAiRulesInclude,
         qaAiRulesHook,
@@ -114,7 +109,6 @@ async function runGenerate(args: CliArgs): Promise<void> {
   printSummary(
     targetDir,
     assistants,
-    playwrightMcpInclude,
     figmaMcpInclude,
     qaAiRulesInclude,
     qaAiRulesHook,
@@ -127,7 +121,6 @@ async function runGenerate(args: CliArgs): Promise<void> {
 function resolveReconcileConfiguration(args: CliArgs, previous: InteractiveDefaults): ReconcileConfiguration {
   return {
     assistants: parseAssistantsArg(args.assistants) ?? previous.assistants,
-    playwrightMcpInclude: parsePlaywrightMcpArg(mcpPlaywrightCliRaw(args)) ?? previous.playwrightMcpInclude,
     figmaMcpInclude: parseFigmaMcpArg(mcpFigmaCliRaw(args)) ?? previous.figmaMcpInclude,
     qaAiRulesInclude: parseQaAiRulesArg(qaAiRulesCliRaw(args)) ?? previous.qaAiRulesInclude,
   };
@@ -187,7 +180,6 @@ async function runReconcile(args: CliArgs, mode: 'check' | 'update'): Promise<vo
   const configuration = resolveReconcileConfiguration(args, previous);
   const files = getGeneratedFiles(
     configuration.assistants,
-    configuration.playwrightMcpInclude,
     configuration.figmaMcpInclude,
     configuration.qaAiRulesInclude,
   );
@@ -236,6 +228,15 @@ async function run(args: CliArgs): Promise<void> {
     process.stdout.write(`${getCliPackageVersion()}\n`);
 
     return;
+  }
+
+  // Accepted so callers that still pass it keep working, but it selects nothing. stderr, so a
+  // `--json` run still writes exactly one document to stdout.
+  if (mcpPlaywrightCliRaw(args) !== undefined) {
+    console.warn(
+      '[ca-ai-tools-setup] --mcp-playwright is deprecated and ignored: Playwright MCP is no longer generated. ' +
+        'Browser automation uses the Playwright CLI (`npx playwright-cli`).',
+    );
   }
 
   const mode = cliMode(args);

@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 const MCP_CONFIG_PATHS = new Set<string>(['.cursor/mcp.json', '.mcp.json']);
 const MERGEABLE_PATHS = new Set<string>([...MCP_CONFIG_PATHS, '.claude/settings.json', 'AGENTS.md', '.gitignore']);
 
@@ -96,6 +98,124 @@ export function mergeMcpJson(existingContent: string, incomingContent: string): 
   };
 
   return `${JSON.stringify(out, null, 2)}\n`;
+}
+
+function parseJsonObject(content: string): Record<string, unknown> | null {
+  try {
+    const parsed: unknown = JSON.parse(content);
+
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Names under `mcpServers`; empty when the content is not a JSON object. */
+export function mcpServerNames(content: string): string[] {
+  return Object.keys(asServerMap(parseJsonObject(content)?.mcpServers));
+}
+
+/** True when the file holds nothing except an empty (or missing) `mcpServers` map. */
+export function hasNoMcpServers(content: string): boolean {
+  const doc = parseJsonObject(content);
+
+  if (!doc) {
+    return false;
+  }
+
+  return Object.keys(doc).every((key) => key === 'mcpServers') && Object.keys(asServerMap(doc.mcpServers)).length === 0;
+}
+
+/**
+ * Remove servers the generator wrote earlier and no longer generates. A server goes only when it
+ * still equals the generated definition: an entry the repository edited, or one that only shares
+ * the name, is repository-owned and stays. Returns the input untouched when nothing was removed,
+ * so an unaffected file is never reformatted.
+ */
+export function pruneRetiredMcpServers(content: string, retired: Record<string, unknown>): string {
+  const doc = parseJsonObject(content);
+
+  if (!doc) {
+    return content;
+  }
+
+  const servers = { ...asServerMap(doc.mcpServers) };
+  let changed = false;
+
+  for (const [name, definition] of Object.entries(retired)) {
+    if (name in servers && isDeepStrictEqual(servers[name], definition)) {
+      delete servers[name];
+      changed = true;
+    }
+  }
+
+  return changed ? `${JSON.stringify({ ...doc, mcpServers: servers }, null, 2)}\n` : content;
+}
+
+/**
+ * Remove what the generator added to `.claude/settings.json` for servers it no longer generates:
+ * the name in `enabledMcpjsonServers` and the matching `mcp__<name>` permission rules. When the
+ * last enabled server goes, `enableAllProjectMcpServers` goes with it — the generator only sets
+ * that flag together with the list. Returns the input untouched when nothing was removed.
+ */
+export function pruneRetiredClaudeSettings(content: string, retiredServerNames: readonly string[]): string {
+  const doc = parseJsonObject(content);
+
+  if (!doc || retiredServerNames.length === 0) {
+    return content;
+  }
+
+  const retired = new Set(retiredServerNames);
+  const retiredRules = new Set(retiredServerNames.flatMap((name) => [`mcp__${name}`, `mcp__${name}__*`]));
+  const out: Record<string, unknown> = { ...doc };
+  let changed = false;
+
+  if (Array.isArray(doc.enabledMcpjsonServers)) {
+    const kept = (doc.enabledMcpjsonServers as unknown[]).filter(
+      (name) => !(typeof name === 'string' && retired.has(name)),
+    );
+
+    if (kept.length !== doc.enabledMcpjsonServers.length) {
+      changed = true;
+
+      if (kept.length > 0) {
+        out.enabledMcpjsonServers = kept;
+      } else {
+        delete out.enabledMcpjsonServers;
+        delete out.enableAllProjectMcpServers;
+      }
+    }
+  }
+
+  const permissions = doc.permissions;
+
+  if (permissions !== null && typeof permissions === 'object' && !Array.isArray(permissions)) {
+    const perms = { ...(permissions as Record<string, unknown>) };
+
+    if (Array.isArray(perms.allow)) {
+      const kept = (perms.allow as unknown[]).filter((rule) => !(typeof rule === 'string' && retiredRules.has(rule)));
+
+      if (kept.length !== perms.allow.length) {
+        changed = true;
+
+        if (kept.length > 0) {
+          perms.allow = kept;
+        } else {
+          delete perms.allow;
+        }
+
+        if (Object.keys(perms).length > 0) {
+          out.permissions = perms;
+        } else {
+          delete out.permissions;
+        }
+      }
+    }
+  }
+
+  return changed ? `${JSON.stringify(out, null, 2)}\n` : content;
 }
 
 /**

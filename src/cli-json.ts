@@ -1,16 +1,10 @@
 import type { Assistant } from './constants.js';
 import { QA_AI_RULES_PACKAGE } from './constants.js';
-import {
-  resolveFigmaMcpTargets,
-  resolvePlaywrightMcpTargets,
-  type GenerateResult,
-  type FigmaMcpTargets,
-  type PlaywrightMcpTargets,
-} from './generator.js';
+import { resolveFigmaMcpTargets, type GenerateResult, type FigmaMcpTargets } from './generator.js';
 import type { CliMode } from './cli-args.js';
 import type { ReconcileAction, ReconcileResult, ReconcileState } from './reconcile.js';
 import { getCliPackageProvenance, type CliPackageProvenance } from './setup-log.js';
-import type { FileOwnership } from './setup-metadata.js';
+import { NO_MCP_TARGETS, type FileOwnership, type McpTargets } from './setup-metadata.js';
 import type { QaAiRulesSummaryHook } from './cli-summary.js';
 
 /**
@@ -59,6 +53,8 @@ export type CliJsonReconcilePayload = {
   missing: string[];
   outdated: string[];
   orphaned: string[];
+  /** Protected files whose new template was left under `.assistant-setup/pending-updates/`. */
+  pendingMerges: string[];
   plan: CliJsonFilePlan[];
   exitCode: 0 | 2;
 };
@@ -71,7 +67,11 @@ export type CliJsonGeneratePayload = {
   cli: CliPackageProvenance;
   dryRun: boolean;
   assistants: Assistant[];
-  playwrightMcp: PlaywrightMcpTargets;
+  /**
+   * Always `false` / `false`: Playwright MCP is no longer generated (PP-4531). The key stays so the
+   * schema 1 shape is unchanged for existing consumers; drop it with the next schema version.
+   */
+  playwrightMcp: McpTargets;
   figmaMcp: FigmaMcpTargets;
   qaAiRules: {
     enabled: boolean;
@@ -136,6 +136,7 @@ export function buildReconcileJson(
     missing: result.missing,
     outdated: result.outdated,
     orphaned: result.orphaned,
+    pendingMerges: result.pendingMerges,
   };
 
   // Mirrors runReconcile()'s exit-code rule exactly — a consumer that reads the payload and one
@@ -173,7 +174,6 @@ export function buildReconcileJson(
 export function buildGenerateJson(
   targetDir: string,
   assistants: Assistant[],
-  playwrightMcpInclude: boolean,
   figmaMcpInclude: boolean,
   qaAiRulesInclude: boolean,
   qaAiRulesHook: QaAiRulesSummaryHook,
@@ -198,7 +198,7 @@ export function buildGenerateJson(
     cli: getCliPackageProvenance(),
     dryRun,
     assistants,
-    playwrightMcp: resolvePlaywrightMcpTargets(assistants, playwrightMcpInclude),
+    playwrightMcp: NO_MCP_TARGETS,
     figmaMcp: resolveFigmaMcpTargets(assistants, figmaMcpInclude),
     qaAiRules: {
       enabled: qaAiRulesInclude,

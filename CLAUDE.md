@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo does
 
-`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/skills/ui-check/SKILL.md`, `CLAUDE.md`, `.claude/skills/ui-check/SKILL.md`, `.claude/settings.json`, `.mcp.json`, `LINEAR_CLI.md`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
+`ca-ai-tools-setup` is a private CLI tool that bootstraps AI assistant setup files (Cursor and Claude Code) into target repositories. It generates `.cursorrules`, `.cursor/skills/ui-check/SKILL.md`, `CLAUDE.md`, `.claude/skills/ui-check/SKILL.md`, `.claude/settings.json`, `.mcp.json`, `AGENTS.md`, and related markdown docs from templates in `templates/`.
 
 ## Commands
 
@@ -43,7 +43,7 @@ node dist/cli.js --target ../some-other-repo --assistants cursor,claude --dry-ru
 - `src/generators/mcp.ts` — constructs MCP JSON config objects
 - `src/mcp-json-merge.ts` — union-merges existing `.mcp.json` / `.cursor/mcp.json` with generated config (generated names win on conflict)
 - `src/cli-json.ts` — the `--json` payload contract (`CLI_JSON_SCHEMA_VERSION`, currently `1`) and the `CliError` codes automated callers branch on. Bump the schema version on any breaking shape change: `mi-pp/repo-standards`' org-wide rollout (PP-4239) pins against it instead of parsing the prose summary from `cli-summary.ts`
-- `src/previous-setup.ts` — reads `.cursor/ca-ai-tools-setup.json` or `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)
+- `src/previous-setup.ts` — reads `.assistant-setup/ca-ai-tools-setup.json` to pre-fill interactive prompts on re-runs (including QA AI rules preference)
 - `src/qa-ai-rules-setup.ts` / `src/qa-ai-rules-choice.ts` — optional `@metricinsights/qa-ai-rules` post-setup in the target repo
 - `src/package-manager.ts` — detects npm / pnpm / Yarn (Berry vs classic) / Bun to choose `npx`, `pnpm dlx`, `yarn dlx`, or `bunx`
 - `templates/` — all markdown and JSON templates; read at runtime by `src/templates.ts` (including `readUiCheckSkillTemplate()` for `.cursor` vs `.claude` skill paths)

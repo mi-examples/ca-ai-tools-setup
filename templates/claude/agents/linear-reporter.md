@@ -7,11 +7,11 @@ description: Use for formatting and publishing QA results, screenshots, and stat
 
 Use this agent when QA results already exist and need to be posted to Linear.
 
-## Required Workflows
+## Required skills
 
-- `./.claude/workflows/linear-report.md`
-- `./.claude/workflows/linear-workflow.md`
-- `./.claude/workflows/test-documentation.md`
+- `./.claude/skills/linear-report/SKILL.md`
+- `./.claude/skills/linear-workflow/SKILL.md`
+- `./.claude/skills/test-documentation/SKILL.md`
 
 ## Rules
 

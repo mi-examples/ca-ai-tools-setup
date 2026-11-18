@@ -2,21 +2,33 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Assistant } from './constants.js';
 import type { GeneratedFile } from './generators/types.js';
-import { isMergeablePath, mergeFile } from './mcp-json-merge.js';
+import { generatedMcpServerDefinitions } from './generators/mcp.js';
+import {
+  hasNoMcpServers,
+  isMcpConfigPath,
+  isMergeablePath,
+  mcpServerNames,
+  mergeFile,
+  pruneRetiredClaudeSettings,
+  pruneRetiredMcpServers,
+} from './mcp-json-merge.js';
 import {
   createSetupMetadata,
   hashContent,
   isSafeSetupPath,
   type FileOwnership,
+  type GeneratedMcpTargets,
+  legacyGeneratedMcpTargets,
   type LoadedSetupMetadata,
   normalizeSetupPath,
   ownershipForPath,
+  PENDING_UPDATES_DIR,
   serializeSetupMetadata,
   SETUP_METADATA_PATH,
   type SetupFileRecord,
 } from './setup-metadata.js';
 import { getCliPackageProvenance } from './setup-log.js';
-import { REMOVABLE_LEGACY_SETUP_PATHS, resolveFigmaMcpTargets, resolvePlaywrightMcpTargets } from './generator.js';
+import { removeEmptyParentDirs, resolveFigmaMcpTargets, retiredSetupPaths } from './generator.js';
 
 /**
  * Repository-owned files that are merged into, never replaced — not by --force either. Mirrors
@@ -37,6 +49,18 @@ export type ReconcileFilePlan = {
   reason?: string;
   desiredContent?: string;
   currentContent?: string;
+  /**
+   * Exact content the file holds once `action` is applied — set for every create, overwrite and
+   * merge. It differs from `desiredContent` whenever repository content survives: a merge, or a
+   * structured file that only loses its generated entries.
+   */
+  resultContent?: string;
+  /**
+   * Set for a protected file that keeps repository content while its template changed. The file is
+   * never overwritten; the new template is written under `PENDING_UPDATES_DIR` instead, so an
+   * assistant can merge it into the repository's version with the developer.
+   */
+  pendingTemplate?: string;
   previous?: SetupFileRecord;
 };
 
@@ -50,7 +74,6 @@ export type ReconcilePlan = {
 
 export type ReconcileConfiguration = {
   assistants: Assistant[];
-  playwrightMcpInclude: boolean;
   figmaMcpInclude: boolean;
   qaAiRulesInclude: boolean;
 };
@@ -80,6 +103,8 @@ export type ReconcileResult = {
   missing: string[];
   outdated: string[];
   orphaned: string[];
+  /** Protected files whose new template waits under `PENDING_UPDATES_DIR` to be merged by hand. */
+  pendingMerges: string[];
   plan: ReconcilePlan;
 };
 
@@ -104,12 +129,195 @@ function desiredSetupFiles(files: GeneratedFile[]): GeneratedFile[] {
   return desiredFiles;
 }
 
+const CURSOR_MCP_PATH = '.cursor/mcp.json';
+const ROOT_MCP_PATH = '.mcp.json';
+const CLAUDE_SETTINGS_PATH = '.claude/settings.json';
+
+/** Drops from a structured file what the generator wrote earlier and no longer generates. */
+type RetiredEntryPruner = (filePath: string, content: string) => string;
+
+/**
+ * A semantic merge only ever adds, so a server the generator stops writing would stay in
+ * `.mcp.json`, `.cursor/mcp.json` and `.claude/settings.json` forever. The recorded configuration
+ * says which servers the previous setup wrote into each file; whatever is on that list and not in
+ * the new output is retired and removed before the merge. An entry the repository changed — or a
+ * server of its own that merely shares the name — is left alone.
+ */
+function createRetiredEntryPruner(
+  targetDir: string,
+  generatedBefore: GeneratedMcpTargets | undefined,
+  desiredFiles: readonly GeneratedFile[],
+): RetiredEntryPruner {
+  if (!generatedBefore) {
+    return (_filePath, content) => content;
+  }
+
+  const definitions = generatedMcpServerDefinitions();
+  const desiredServers = (filePath: string): Set<string> =>
+    new Set(mcpServerNames(desiredFiles.find((file) => file.path === filePath)?.content ?? ''));
+  const retiredServers = (filePath: string): string[] => {
+    const target = filePath === CURSOR_MCP_PATH ? 'cursorFile' : 'projectRootFile';
+    const stillGenerated = desiredServers(filePath === CLAUDE_SETTINGS_PATH ? ROOT_MCP_PATH : filePath);
+
+    return Object.entries(generatedBefore)
+      .filter(([name, targets]) => targets[target] && !stillGenerated.has(name))
+      .map(([name]) => name);
+  };
+  const pruneMcp = (filePath: string, content: string): string =>
+    pruneRetiredMcpServers(
+      content,
+      Object.fromEntries(retiredServers(filePath).map((name) => [name, definitions[name]])),
+    );
+
+  return (filePath, content) => {
+    if (isMcpConfigPath(filePath)) {
+      return pruneMcp(filePath, content);
+    }
+
+    if (filePath !== CLAUDE_SETTINGS_PATH) {
+      return content;
+    }
+
+    // Settings only lose a server that is really gone from `.mcp.json`: a repository-owned entry
+    // under the same name survives the pruning there and still needs to be enabled here.
+    const remaining = new Set([
+      ...mcpServerNames(pruneMcp(ROOT_MCP_PATH, readCurrentFile(targetDir, ROOT_MCP_PATH) ?? '')),
+      ...desiredServers(ROOT_MCP_PATH),
+    ]);
+
+    return pruneRetiredClaudeSettings(
+      content,
+      retiredServers(filePath).filter((name) => !remaining.has(name)),
+    );
+  };
+}
+
+/** A tracked file that is still exactly what the generator wrote, with no repository content in it. */
+function isUntouchedGeneratedFile(content: string, record: SetupFileRecord): boolean {
+  return record.baseline === 'generated' && hashContent(content) === record.contentHash;
+}
+
+/** Plan for a tracked file that this release no longer generates. */
+function orphanPlan(
+  filePath: string,
+  currentContent: string,
+  previous: SetupFileRecord,
+  force: boolean,
+  prune: RetiredEntryPruner,
+): ReconcileFilePlan {
+  const base = {
+    path: filePath,
+    ownership: previous.ownership,
+    state: 'orphaned' as const,
+    currentContent,
+    previous,
+  };
+
+  // Still exactly what the generator wrote: nothing of the repository's is in it, protected or not.
+  if (isUntouchedGeneratedFile(currentContent, previous)) {
+    return { ...base, action: 'remove', reason: 'File is no longer produced by this release.' };
+  }
+
+  // A protected file the repository edited is never removed; it only stops being tracked.
+  if (previous.ownership === 'protected') {
+    return {
+      ...base,
+      action: 'none',
+      reason:
+        'Protected file is no longer generated and holds repository content; it stays as a repository-owned file. ' +
+        'Review it with your assistant: keep only what is specific to this repository, or delete it.',
+    };
+  }
+
+  const unchanged = hashContent(currentContent) === previous.contentHash;
+
+  if (previous.ownership === 'structured') {
+    // Unchanged since the generator last wrote it, so the generated entries are still the ones it
+    // put there and can go without asking; the repository's own entries stay.
+    if (!unchanged && !force) {
+      return {
+        ...base,
+        state: 'conflict',
+        action: 'none',
+        reason: 'Obsolete file has local changes; remove it or rerun with --force to drop only the generated entries.',
+      };
+    }
+
+    const pruned = prune(filePath, currentContent);
+
+    if (isMcpConfigPath(filePath) && hasNoMcpServers(pruned)) {
+      return { ...base, action: 'remove', reason: 'Only generated entries were left in this file.' };
+    }
+
+    return pruned === currentContent
+      ? { ...base, action: 'none', reason: 'File is no longer generated; it stays as a repository-owned file.' }
+      : {
+          ...base,
+          action: 'overwrite',
+          resultContent: pruned,
+          reason: 'Generated entries removed; the rest stays as a repository-owned file.',
+        };
+  }
+
+  if (force) {
+    return { ...base, action: 'remove', reason: 'Obsolete managed file removed with --force.' };
+  }
+
+  return {
+    ...base,
+    state: 'conflict',
+    action: 'none',
+    reason: unchanged
+      ? 'Obsolete file holds content adopted from the repository; remove it or rerun with --force.'
+      : 'Obsolete file has local changes; remove it or rerun with --force.',
+  };
+}
+
+/** Personal and gitignored, so a pending template for it would only be noise in a reviewed update. */
+const NO_PENDING_TEMPLATE_PATHS = new Set(['.dev-environment.md']);
+
+export function pendingUpdatePath(filePath: string): string {
+  return `${PENDING_UPDATES_DIR}/${filePath}`;
+}
+
+/**
+ * Plan for a protected file that holds repository content. It is never written. When its template
+ * changed since the last recorded run, the plan carries the new template so the update can leave
+ * it under `PENDING_UPDATES_DIR` — otherwise a repository that edited `CLAUDE.md` once would keep
+ * pointing at files a later release removed, with nothing to tell anyone.
+ */
+function protectedPlan(
+  file: GeneratedFile,
+  currentContent: string,
+  previous: SetupFileRecord | undefined,
+  state: 'preserved' | 'modified',
+  reason: string,
+): ReconcileFilePlan {
+  const templateChanged = previous === undefined || previous.sourceHash !== hashContent(file.content);
+  const needsMerge = templateChanged && !NO_PENDING_TEMPLATE_PATHS.has(file.path);
+
+  return {
+    path: file.path,
+    ownership: 'protected',
+    state,
+    action: 'none',
+    reason: needsMerge
+      ? `${reason} Its template changed: merge ${pendingUpdatePath(file.path)} into it with your assistant.`
+      : reason,
+    desiredContent: file.content,
+    currentContent,
+    previous,
+    ...(needsMerge ? { pendingTemplate: file.content } : {}),
+  };
+}
+
 function collisionPlan(
   file: GeneratedFile,
   currentContent: string,
   previous: SetupFileRecord | undefined,
   force: boolean,
   metadataIsLegacy: boolean,
+  prune: RetiredEntryPruner,
 ): ReconcileFilePlan {
   const ownership = ownershipForPath(file.path);
   const currentHash = hashContent(currentContent);
@@ -124,6 +332,33 @@ function collisionPlan(
     currentContent,
     previous,
   });
+  // A file that differs from what the generator can vouch for blocks the update. --force resolves
+  // it, and what that means depends on the file. A managed file is the generator's: it is replaced.
+  // MCP JSON and Claude settings also hold the repository's own servers, tokens and permissions,
+  // so there --force lets the generated entries win and keeps the rest — replacing the file would
+  // silently drop them. Only a file that cannot be parsed is replaced: there is nothing to merge.
+  const conflictPlan = (reason: string): ReconcileFilePlan => {
+    const base = { path: file.path, ownership, reason, desiredContent: file.content, currentContent, previous };
+
+    if (!force) {
+      return { ...base, state: 'conflict', action: 'none' };
+    }
+
+    if (ownership === 'structured' && isMergeablePath(file.path)) {
+      try {
+        return {
+          ...base,
+          state: 'modified',
+          action: 'merge',
+          resultContent: mergeFile(file.path, prune(file.path, currentContent), file.content),
+        };
+      } catch {
+        // Not valid JSON: fall through and replace it.
+      }
+    }
+
+    return { ...base, state: 'modified', action: 'overwrite' };
+  };
 
   if (!previous) {
     if (currentHash === desiredHash) {
@@ -142,30 +377,22 @@ function collisionPlan(
     }
 
     if (ownership === 'protected') {
-      return {
-        path: file.path,
-        ownership,
-        state: 'preserved',
-        action: 'none',
-        reason: metadataIsLegacy
+      return protectedPlan(
+        file,
+        currentContent,
+        previous,
+        'preserved',
+        metadataIsLegacy
           ? 'Protected file adopted while migrating schema 5 metadata.'
           : 'Existing protected file was adopted without replacement.',
-        desiredContent: file.content,
-        currentContent,
-      };
+      );
     }
 
-    return {
-      path: file.path,
-      ownership,
-      state: force ? 'modified' : 'conflict',
-      action: force ? 'overwrite' : 'none',
-      reason: metadataIsLegacy
+    return conflictPlan(
+      metadataIsLegacy
         ? 'Existing content cannot be verified against schema 5 metadata.'
         : 'Existing content has no generated baseline.',
-      desiredContent: file.content,
-      currentContent,
-    };
+    );
   }
 
   if (currentHash !== previous.contentHash) {
@@ -174,28 +401,16 @@ function collisionPlan(
     }
 
     if (ownership === 'protected') {
-      return {
-        path: file.path,
-        ownership,
-        state: 'modified',
-        action: 'none',
-        reason: 'Protected file contains repository-owned changes.',
-        desiredContent: file.content,
+      return protectedPlan(
+        file,
         currentContent,
         previous,
-      };
+        'modified',
+        'Protected file contains repository-owned changes.',
+      );
     }
 
-    return {
-      path: file.path,
-      ownership,
-      state: force ? 'modified' : 'conflict',
-      action: force ? 'overwrite' : 'none',
-      reason: 'File differs from its recorded generated baseline.',
-      desiredContent: file.content,
-      currentContent,
-      previous,
-    };
+    return conflictPlan('File differs from its recorded generated baseline.');
   }
 
   if (previous.baseline !== 'adopted' && previous.sourceHash === desiredHash) {
@@ -215,16 +430,7 @@ function collisionPlan(
   }
 
   if (previous.baseline === 'adopted' && currentHash !== desiredHash && ownership !== 'protected') {
-    return {
-      path: file.path,
-      ownership,
-      state: force ? 'modified' : 'conflict',
-      action: force ? 'overwrite' : 'none',
-      reason: 'Adopted content has no verified generated baseline.',
-      desiredContent: file.content,
-      currentContent,
-      previous,
-    };
+    return conflictPlan('Adopted content has no verified generated baseline.');
   }
 
   if (currentHash === desiredHash) {
@@ -240,19 +446,34 @@ function collisionPlan(
   }
 
   if (ownership === 'protected') {
-    return {
-      path: file.path,
-      ownership,
-      state: 'preserved',
-      action: 'none',
-      reason: 'Protected file is preserved; review the new template separately.',
-      desiredContent: file.content,
+    // Untouched since the generator wrote it, so there is no repository content to protect: the
+    // file follows its template like a managed one. Without this, every repository would keep the
+    // instructions of the release that set it up, however many files later releases removed.
+    if (previous.baseline === 'generated') {
+      return {
+        path: file.path,
+        ownership,
+        state: 'outdated',
+        action: 'overwrite',
+        desiredContent: file.content,
+        currentContent,
+        previous,
+      };
+    }
+
+    return protectedPlan(
+      file,
       currentContent,
       previous,
-    };
+      'preserved',
+      'Protected file holds content adopted from the repository.',
+    );
   }
 
-  if (ownership === 'structured' && isMergeablePath(file.path)) {
+  // A structured file is merged to keep what the repository put into it. One that is still exactly
+  // what the generator wrote has nothing of the repository's, so it follows its template instead:
+  // a merge only ever adds, and would leave an untouched AGENTS.md listing agents that are gone.
+  if (ownership === 'structured' && isMergeablePath(file.path) && previous.baseline !== 'generated') {
     return {
       path: file.path,
       ownership,
@@ -260,6 +481,7 @@ function collisionPlan(
       action: 'merge',
       desiredContent: file.content,
       currentContent,
+      resultContent: mergeFile(file.path, prune(file.path, currentContent), file.content),
       previous,
     };
   }
@@ -288,6 +510,13 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
   const previousMetadata = options.metadata.kind === 'current' ? options.metadata.metadata : undefined;
   const desiredFiles = desiredSetupFiles(options.files);
   const desiredPaths = new Set(desiredFiles.map((file) => file.path));
+  // Where earlier setups wrote MCP servers: schema 6 records it per run, schema 5 in its raw record.
+  const generatedBefore: GeneratedMcpTargets | undefined = previousMetadata
+    ? { playwright: previousMetadata.playwrightMcp, figma: previousMetadata.figmaMcp }
+    : options.metadata.kind === 'legacy'
+      ? legacyGeneratedMcpTargets(options.metadata.raw)
+      : undefined;
+  const prune = createRetiredEntryPruner(options.targetDir, generatedBefore, desiredFiles);
   const plans: ReconcileFilePlan[] = [];
 
   for (const file of desiredFiles) {
@@ -306,7 +535,7 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
       continue;
     }
 
-    plans.push(collisionPlan(file, currentContent, previous, options.force, metadataIsLegacy));
+    plans.push(collisionPlan(file, currentContent, previous, options.force, metadataIsLegacy, prune));
   }
 
   if (previousMetadata) {
@@ -321,31 +550,33 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
         continue;
       }
 
-      const unchanged = hashContent(currentContent) === previous.contentHash;
-      const removable = previous.ownership === 'managed' && unchanged;
+      plans.push(orphanPlan(filePath, currentContent, previous, options.force, prune));
+    }
+  }
 
-      plans.push({
-        path: filePath,
-        ownership: previous.ownership,
-        state: 'orphaned',
-        action: removable ? 'remove' : 'none',
-        reason: removable
-          ? 'Managed file is no longer produced by this release.'
-          : 'Obsolete file was preserved because it is protected or differs from its generated baseline.',
-        currentContent,
-        previous,
-      });
+  // Every write carries the exact content it produces, so the write and the metadata that records
+  // it can never disagree about what ended up on disk.
+  for (const filePlan of plans) {
+    if (filePlan.resultContent !== undefined) {
+      continue;
+    }
+
+    if (filePlan.action === 'create' || filePlan.action === 'overwrite') {
+      filePlan.resultContent = filePlan.desiredContent ?? '';
+    } else if (filePlan.action === 'merge') {
+      filePlan.resultContent = mergeFile(filePlan.path, filePlan.currentContent ?? '', filePlan.desiredContent ?? '');
     }
   }
 
   if (metadataIsLegacy) {
     const plannedPaths = new Set(plans.map((file) => file.path));
 
-    for (const legacyPath of REMOVABLE_LEGACY_SETUP_PATHS) {
+    for (const legacyPath of retiredSetupPaths(options.assistants)) {
       if (plannedPaths.has(legacyPath) || !fs.existsSync(path.join(options.targetDir, legacyPath))) {
         continue;
       }
 
+      plannedPaths.add(legacyPath);
       plans.push({
         path: legacyPath,
         ownership: 'managed',
@@ -353,6 +584,60 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
         action: options.force ? 'remove' : 'none',
         reason: 'Legacy generated file has no schema 6 hash baseline.',
         currentContent: readCurrentFile(options.targetDir, legacyPath),
+      });
+    }
+
+    // An MCP file this selection no longer generates. Without hashes the whole file cannot be
+    // judged, but a single server can: one that still equals the generated definition is the
+    // generator's and goes; everything else in the file is the repository's and stays.
+    for (const mcpPath of [CURSOR_MCP_PATH, ROOT_MCP_PATH]) {
+      const currentContent = plannedPaths.has(mcpPath) ? undefined : readCurrentFile(options.targetDir, mcpPath);
+      const pruned = currentContent === undefined ? undefined : prune(mcpPath, currentContent);
+
+      if (currentContent === undefined || pruned === undefined || pruned === currentContent) {
+        continue;
+      }
+
+      plannedPaths.add(mcpPath);
+      plans.push(
+        hasNoMcpServers(pruned)
+          ? {
+              path: mcpPath,
+              ownership: 'structured',
+              state: 'orphaned',
+              action: 'remove',
+              reason: 'Only generated entries were left in this file.',
+              currentContent,
+            }
+          : {
+              path: mcpPath,
+              ownership: 'structured',
+              state: 'orphaned',
+              action: 'overwrite',
+              resultContent: pruned,
+              reason: 'Generated entries removed; the rest stays as a repository-owned file.',
+              currentContent,
+            },
+      );
+    }
+
+    // `.cursorrules` is protected, and without a hash nobody can say whether the team edited it.
+    // It is never removed, not with --force either — but it is reported, because the generated
+    // stub points at rules and files that no longer exist.
+    const cursorRules = plannedPaths.has('.cursorrules')
+      ? undefined
+      : readCurrentFile(options.targetDir, '.cursorrules');
+
+    if (cursorRules !== undefined) {
+      plans.push({
+        path: '.cursorrules',
+        ownership: 'protected',
+        state: 'orphaned',
+        action: 'none',
+        reason:
+          'No longer generated: Cursor rules live in .cursor/rules/. Review it with your assistant: ' +
+          'keep only what is specific to this repository, or delete it.',
+        currentContent: cursorRules,
       });
     }
   }
@@ -369,7 +654,13 @@ export function buildReconcilePlan(options: ReconcileOptions): ReconcilePlan {
   const hasChanges =
     metadataMigrationRequired ||
     metadataOutdated ||
-    plans.some((file) => file.action !== 'none' || file.state === 'conflict' || file.state === 'orphaned');
+    plans.some(
+      (file) =>
+        file.action !== 'none' ||
+        file.state === 'conflict' ||
+        file.state === 'orphaned' ||
+        file.pendingTemplate !== undefined,
+    );
 
   return {
     files: plans,
@@ -428,6 +719,7 @@ function resultFromPlan(
     missing: byState('missing'),
     outdated: byState('outdated'),
     orphaned: byState('orphaned'),
+    pendingMerges: plan.files.filter((file) => file.pendingTemplate !== undefined).map((file) => file.path),
     plan,
   };
 }
@@ -458,23 +750,12 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
       continue;
     }
 
-    let finalContent: string;
-
-    if (filePlan.action === 'create' || filePlan.action === 'overwrite') {
-      finalContent = file.content;
-    } else if (filePlan.action === 'merge') {
-      finalContent = mergeFile(file.path, filePlan.currentContent ?? '', file.content);
-    } else {
-      finalContent = filePlan.currentContent ?? file.content;
-    }
-
-    installedContent.set(file.path, finalContent);
+    installedContent.set(file.path, filePlan.resultContent ?? filePlan.currentContent ?? file.content);
   }
 
   const metadata = createSetupMetadata(
     {
       assistants: options.assistants,
-      playwrightMcp: resolvePlaywrightMcpTargets(options.assistants, options.playwrightMcpInclude),
       figmaMcp: resolveFigmaMcpTargets(options.assistants, options.figmaMcpInclude),
       qaAiRulesEnabled: options.qaAiRulesInclude,
     },
@@ -482,15 +763,10 @@ function buildUpdatedMetadata(options: ReconcileOptions, plan: ReconcilePlan) {
     installedContent,
   );
 
+  // An obsolete file that stays on disk is not recorded again. By now it is either protected or a
+  // structured file holding only repository entries, so it is the repository's own from here on;
+  // tracking it further would keep `check` at exit code 2 for a file nobody is going to change.
   for (const filePlan of plan.files) {
-    if (filePlan.state === 'orphaned' && filePlan.action !== 'remove' && filePlan.previous && filePlan.currentContent) {
-      metadata.files[filePlan.path] = {
-        ...filePlan.previous,
-        contentHash: hashContent(filePlan.currentContent),
-      };
-      continue;
-    }
-
     const record = metadata.files[filePlan.path];
 
     if (!record) {
@@ -526,16 +802,22 @@ export function updateSetup(options: ReconcileOptions): ReconcileResult {
 
   if (!options.dryRun) {
     for (const filePlan of plan.files) {
-      if (filePlan.action === 'create' || filePlan.action === 'overwrite') {
-        writeFile(options.targetDir, filePlan.path, filePlan.desiredContent ?? '');
-      } else if (filePlan.action === 'merge') {
-        writeFile(
-          options.targetDir,
-          filePlan.path,
-          mergeFile(filePlan.path, filePlan.currentContent ?? '', filePlan.desiredContent ?? ''),
-        );
+      if (filePlan.action === 'create' || filePlan.action === 'overwrite' || filePlan.action === 'merge') {
+        writeFile(options.targetDir, filePlan.path, filePlan.resultContent ?? '');
       } else if (filePlan.action === 'remove') {
-        fs.rmSync(path.join(options.targetDir, filePlan.path), { force: true });
+        const destination = path.join(options.targetDir, filePlan.path);
+
+        fs.rmSync(destination, { force: true });
+        removeEmptyParentDirs(options.targetDir, destination);
+      }
+    }
+
+    // The new template of a protected file that keeps repository content goes next to the setup,
+    // for an assistant to merge. A pending template is never removed here: this run cannot know
+    // whether the previous one was merged, and whoever merges it deletes it.
+    for (const filePlan of plan.files) {
+      if (filePlan.pendingTemplate !== undefined) {
+        writeFile(options.targetDir, pendingUpdatePath(filePlan.path), filePlan.pendingTemplate);
       }
     }
   }

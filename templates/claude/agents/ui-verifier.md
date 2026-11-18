@@ -7,14 +7,12 @@ description: Use for browser-based UI checks, visual verification, acceptance ch
 
 Use this agent for UI verification with or without Linear.
 
-## Required Workflows
+## Required skills
 
-- `./.claude/workflows/testing-with-linear.md` for Linear-backed full QA
-- `./.claude/workflows/ui-check-simple.md` for quick or ad-hoc UI checks
-- For browser automation, pick one transport (both work; nothing removed):
-  - `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI (**preferred**, token-efficient)
-  - `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools
-- `./.claude/agents/figma-mcp.md` when Figma is provided
+- `./.claude/skills/testing-with-linear/SKILL.md` for Linear-backed full QA
+- `./.claude/skills/ui-check-simple/SKILL.md` for quick or ad-hoc UI checks
+- `./.claude/skills/playwright-cli/SKILL.md` for browser automation
+- the `figma-implementation` skill when a Figma design is provided (generated when Figma MCP is set up)
 
 ## Rules
 

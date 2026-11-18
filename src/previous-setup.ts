@@ -3,7 +3,6 @@ import { loadSetupMetadata } from './setup-metadata.js';
 
 export type InteractiveDefaults = {
   assistants: Assistant[];
-  playwrightMcpInclude: boolean;
   figmaMcpInclude: boolean;
   qaAiRulesInclude: boolean;
 };
@@ -38,8 +37,8 @@ function parseQaAiRulesInclude(meta: Record<string, unknown>): boolean | null {
   return typeof enabled === 'boolean' ? enabled : null;
 }
 
-function parseMcpInclude(meta: Record<string, unknown>, key: 'playwrightMcp' | 'figmaMcp'): boolean | null {
-  const block = meta[key];
+function parseFigmaMcpInclude(meta: Record<string, unknown>): boolean | null {
+  const block = meta.figmaMcp;
 
   if (!block || typeof block !== 'object') {
     return null;
@@ -64,7 +63,6 @@ export function loadPreviousInteractiveDefaults(targetDir: string): InteractiveD
   if (loaded.kind === 'current') {
     return {
       assistants: loaded.metadata.assistants,
-      playwrightMcpInclude: loaded.metadata.playwrightMcp.cursorFile || loaded.metadata.playwrightMcp.projectRootFile,
       figmaMcpInclude: loaded.metadata.figmaMcp.cursorFile || loaded.metadata.figmaMcp.projectRootFile,
       qaAiRulesInclude: loaded.metadata.qaAiRules.enabled,
     };
@@ -73,13 +71,11 @@ export function loadPreviousInteractiveDefaults(targetDir: string): InteractiveD
   const meta = loaded.raw;
   const assistants = parseAssistants(meta) ?? DEFAULT_ASSISTANTS;
 
-  const playwright = parseMcpInclude(meta, 'playwrightMcp');
-  const figma = parseMcpInclude(meta, 'figmaMcp');
+  const figma = parseFigmaMcpInclude(meta);
   const qa = parseQaAiRulesInclude(meta);
 
   return {
     assistants,
-    playwrightMcpInclude: playwright ?? true,
     figmaMcpInclude: figma ?? false,
     qaAiRulesInclude: qa ?? false,
   };

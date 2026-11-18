@@ -143,8 +143,9 @@ Recency check, cheap and worth doing once per app:
 
 ```bash
 git log -1 --format=%ad -- test-documentation/<CONTEXT_KEY>/    # when the test docs last changed
-linear-cli cm list <KEY> --output json                          # newest comment date and content
 ```
+
+Then read the newest comment date and content with the Linear MCP tool `list_comments` (`issueId: <KEY>`).
 
 Comments and commits newer than the test docs are where the drift lives — read those first, and
 treat any test-doc claim they touch as stale until re-checked.
@@ -181,10 +182,10 @@ role vocabulary; map deliberately, and never copy `QA_USER_*` names or credentia
 
 Intent, decisions, ticket refs — and what changed late in the build.
 
-```bash
-linear-cli i get PP-3825 --output json       # epic: title, description, children
-linear-cli cm list PP-3826 --output json     # comments override the description
-```
+Read it with the Linear MCP tools (see the `linear-workflow` skill):
+
+- `get_issue` (`id: PP-3825`) — the epic: title and description; `list_issues` (`parentId: PP-3825`) — its children
+- `list_comments` (`issueId: PP-3826`) — comments override the description
 
 Take the epic key and per-app ticket refs for the **ledger header and citations only** — they never
 appear in the document. For the document, take the reason a design choice was made (the sentence

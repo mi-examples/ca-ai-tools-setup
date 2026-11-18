@@ -1,29 +1,36 @@
 # @metricinsights/ca-ai-tools-setup
 
-Bootstrap Metric Insights Linear CLI setup files for both Cursor and Claude.
+Bootstrap Metric Insights AI assistant setup files (rules, skills, subagents) for both Cursor and Claude Code.
 
 ## What this package generates
 
-**Shared (every run):** `LINEAR_CLI.md`, `AGENTS.md`, `.dev-environment.md`,
-`.assistant-setup/page-workflow-context.md`, `.assistant-setup/SETUP_STATUS.md`,
-`.assistant-setup/ca-ai-tools-setup.json`
+Every rule and skill has **one source** under `templates/`. What differs per assistant is only where the file
+goes and its frontmatter.
 
-**Cursor rules (Cursor and/or Claude):** `.cursor/rules/*.mdc` — Claude Code follows the same rules. Emitted for **Claude-only** runs too.
+| Path                                                                                                                                                                               | When                                           | Source                                                          |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| `AGENTS.md`, `.gitignore` entry, `.dev-environment.md`, `.assistant-setup/page-workflow-context.md`, `.assistant-setup/SETUP_STATUS.md`, `.assistant-setup/ca-ai-tools-setup.json` | every run                                      | `templates/AGENTS.md`, `templates/assistant-setup/*`            |
+| `.cursor/rules/*.mdc`                                                                                                                                                              | Cursor selected                                | `templates/rules/*.md`                                          |
+| `.claude/rules/*.md`                                                                                                                                                               | Claude selected                                | `templates/rules/*.md`                                          |
+| `.claude/skills/*`                                                                                                                                                                 | Claude selected (Cursor reads this folder too) | `templates/skills/*`                                            |
+| `.cursor/skills/*`                                                                                                                                                                 | Cursor selected **without** Claude             | `templates/skills/*`                                            |
+| `setup-cursor-assistant.md`, `.cursorignore`                                                                                                                                       | Cursor selected                                | `templates/setup-assistant.md`, `templates/cursor/cursorignore` |
+| `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                  | Claude selected                                | `templates/setup-assistant.md`, `templates/claude/CLAUDE.md`    |
+| `.claude/agents/*` (`qa-tester`, `ui-verifier`, `linear-reporter`), `.claude/commands/*` (`/ui-check`, `/customer-docs`)                                                           | Claude selected                                | `templates/claude/*`                                            |
+| `.cursor/mcp.json`, `.mcp.json`, the `figma-implementation` and `figma-code-connect` skills                                                                                        | Figma MCP selected                             | `src/generators/mcp.ts`, `templates/skills/figma-*`             |
 
-| Path                                                                                                                                                                                                                                                                                            | When                 |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| `setup-cursor-assistant.md`                                                                                                                                                                                                                                                                     | Cursor selected      |
-| `.cursorrules`, `.cursorignore`                                                                                                                                                                                                                                                                 | Cursor selected      |
-| `.cursor/rules/*` (assistant-setup-health, code-style, linear-cli, linear-task-gates, portal-env-credentials, test-case-rules, test-suite-template, README; `figma-mcp.mdc` if Figma MCP)                                                                                                       | Cursor and/or Claude |
-| `.cursor/skills/*` (ai-development + DOD-FULL, customer-app-docs + references/assets, testing-flow, testing-with-linear, ui-check-simple, linear-report, linear-workflow, test-documentation, playwright-mcp, figma-implementation, form-builder; figma-code-connect + references if Figma MCP) | Cursor selected      |
-| `.cursor/prompts/react-component-unit.md`                                                                                                                                                                                                                                                       | Cursor selected      |
-| `.cursor/mcp.json`, `.cursor/ca-ai-tools-setup.json`                                                                                                                                                                                                                                            | Cursor + MCP option  |
-| `setup-claude-assistant.md`, `CLAUDE.md`, `.claude/settings.json`                                                                                                                                                                                                                               | Claude selected      |
-| `.claude/skills/*` (ai-development + DOD-FULL, customer-app-docs, README; figma-code-connect if Figma MCP)                                                                                                                                                                                      | Claude selected      |
-| `.claude/workflows/*`, `.claude/commands/*` (incl. `/customer-docs`)                                                                                                                                                                                                                            | Claude selected      |
-| `.claude/agents/code-style.md`                                                                                                                                                                                                                                                                  | Claude selected      |
-| `.claude/agents/figma-mcp.md`                                                                                                                                                                                                                                                                   | Claude + Figma MCP   |
-| `.mcp.json` (repo root)                                                                                                                                                                                                                                                                         | Claude + MCP option  |
+**Rules** (`assistant-setup-health`, `linear-task-gates`, `code-style`, `frontend-architecture`): the first two
+apply always, the other two only to files under `src/`. A rule source declares `apply: always` or a `paths`
+list; the generator turns that into `alwaysApply` / `globs` for Cursor and into `paths` for Claude Code.
+
+**Skills** cover everything that is needed only now and then: `start-working-with-task`, `ai-development`,
+`testing-with-linear`, `testing-flow`, `ui-check-simple`, `linear-workflow`, `linear-report`,
+`linear-merge-notification`, `test-documentation`, `playwright-cli`, `commit-convention`,
+`portal-env-credentials`, `customer-app-docs`. A skill runs as `/<name>` or is picked up from its description,
+so there are no separate workflow or command copies. Assistant-specific blocks in a shared template are marked
+with `<!-- only:cursor -->` / `<!-- only:claude -->` / `<!-- only:cursor-only -->` … `<!-- /only -->`.
+
+There is no `.cursorrules`: Cursor deprecated it in favor of `.cursor/rules/` and `AGENTS.md`.
 
 Skip/`--force` behavior: setup assistant markdown is always refreshed; most other paths are created once, then skipped unless `--force` (see package docs below).
 
@@ -34,7 +41,7 @@ The `.mdc` / `.md` rule and agent content under `templates/` is not written from
 When auditing `templates/` for drift against a reference repo:
 
 1. Diff this repo's `templates/` tree against the reference repo's generated `.claude/` / `.cursor/` files.
-2. For anything that exists downstream but not here, check the commit that introduced it in the reference repo — a new rule usually lands together with cross-reference updates in `code-style.*`, `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules/README.md`; port those alongside it.
+2. For anything that exists downstream but not here, check the commit that introduced it in the reference repo — a new rule usually lands together with cross-reference updates in `code-style.*`, `AGENTS.md` and `CLAUDE.md`; port those alongside it.
 3. Don't assume staleness only runs one direction: a reference repo can also fall behind **this** tool's structural additions (new skills/workflows) if it wasn't re-bootstrapped with `--force`. Treat each file independently rather than blanket-copying either direction.
 
 ## Distribution
@@ -135,8 +142,8 @@ npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --target ../m
 
 ### Non-interactive — defaults (`--yes`)
 
-**Selects** both assistants, Playwright MCP **on**, Figma MCP **off**, QA AI rules **off**. Emits
-**`.cursor/mcp.json`** / **`.mcp.json`** when MCP is enabled for the selected assistants.
+**Selects** both assistants, Figma MCP **off**, QA AI rules **off**. **`.cursor/mcp.json`** / **`.mcp.json`**
+are written only when Figma MCP is enabled.
 
 ```bash
 npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes
@@ -192,26 +199,17 @@ npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants clau
 npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants claude --yes
 ```
 
-### MCP — disable Playwright or enable Figma
+### MCP — enable Figma
 
-Disable Playwright MCP (no **`.cursor/mcp.json`** / **`.mcp.json`** from this run unless Figma is on):
+Figma is the only MCP server the setup writes (requires **`FIGMA_API_KEY`**). Browser automation does not use
+MCP: it runs through the Playwright CLI (`npx playwright-cli`), which ships with the generated skills.
 
 ```bash
-npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
+npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-figma yes
 ```
 
 ```powershell
-npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright none
-```
-
-Enable **both** Playwright and Figma MCP (requires **`FIGMA_API_KEY`** where Figma is used):
-
-```bash
-npx --yes --package="$CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
-```
-
-```powershell
-npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-playwright yes --mcp-figma yes
+npx --yes --package="$env:CA_AI_TOOLS_SETUP_TGZ" ca-ai-tools-setup --assistants cursor,claude --yes --mcp-figma yes
 ```
 
 ### QA AI rules (`@metricinsights/qa-ai-rules`)
@@ -317,15 +315,37 @@ Update ownership rules:
 
 - Managed rules, skills, workflows, prompts, agents, and shared references update automatically only when their
   current hash matches the recorded generated baseline.
-- Repository-owned files such as `.cursorrules`, `CLAUDE.md`, `.dev-environment.md`, and page context are
-  preserved and recorded as adopted content.
-- MCP JSON and Claude settings use semantic merge only when their baseline is unchanged.
-- Existing `AGENTS.md` content is never replaced, including with `--force`; missing generated agent rows are
-  merged into its registry table or appended as a separate generated section.
-- Locally modified managed/structured files block the entire update so a partial write cannot occur. Use
-  `--force` only when replacing those generated baselines is intentional.
-- Unchanged managed files removed by a release are deleted; modified or protected orphaned files are preserved
-  and reported.
+- Protected files such as `CLAUDE.md`, `.cursorignore`, `.dev-environment.md` and the page context follow their
+  template only while they are still exactly what the generator wrote. Once the repository edits one, it is never
+  overwritten: when its template changes, the new template is written to
+  `.assistant-setup/pending-updates/<path>` and listed under `pendingMerges`, and `SETUP_STATUS.md` tells the
+  assistant how to merge it. The personal `.dev-environment.md` never gets a pending template.
+- Structured files (`AGENTS.md`, `.gitignore`, MCP JSON, Claude settings) follow their template while they are
+  still exactly what the generator wrote. Once one holds repository content it is merged, never replaced.
+- MCP JSON and Claude settings use semantic merge only when their baseline is unchanged. A server the generator
+  wrote earlier and no longer generates is removed from them while the entry is still exactly what the generator
+  wrote; repository servers and edited entries stay.
+- `AGENTS.md` content the repository wrote is never replaced, including with `--force`; missing generated agent
+  rows are merged into its registry table or appended as a separate generated section.
+- Locally modified managed/structured files block the entire update so a partial write cannot occur. With
+  `--force` a managed file is replaced. MCP JSON and Claude settings are merged instead: generated entries win
+  over same-named ones, while repository servers, real tokens in `env` and other settings stay. Only a file
+  that is not valid JSON is replaced.
+- Files a release stops generating:
+  - an untouched generated file is deleted, together with any directory it leaves empty;
+  - a file with local edits, or with content adopted from the repository, is a conflict that blocks the update
+    like any other. `--force` deletes a managed file; from MCP JSON and Claude settings it removes only the
+    generated entries;
+  - a protected file the repository edited, and an MCP file left with repository servers only, stay in place
+    and are no longer tracked — after that update `check` returns `0`.
+- A plain re-run (without `update`) deletes untouched obsolete files the same way. It never deletes an edited
+  one: the file stays tracked, so `check` and `update` report the conflict.
+- Repositories on schema 5 metadata, or with no metadata, have no per-file hashes to compare with. `update`
+  removes the known obsolete paths there only with `--force`; a plain re-run removes them and lists them under
+  "Removed legacy files". The known paths include the `.cursor/skills/` copies when Claude is selected and the
+  Cursor rules of a Claude-only setup. A generated MCP server that is no longer generated is removed from
+  `.mcp.json` / `.cursor/mcp.json` without `--force`, as long as the entry still equals the generated one.
+  `.cursorrules` is reported and never removed.
 
 The metadata file records package version, release commit/template revision, and per-file SHA-256 hashes with
 line endings normalized for Windows/macOS/Linux checkouts. It contains no timestamp, so identical content
@@ -344,10 +364,10 @@ freshness matters and to request approval before any update.
 - `--target <path>`: target repo directory (resolved from the current working directory; omit or press Enter in the prompt to use the current directory)
 - `--assistants <list>`: comma-separated assistants, e.g. `cursor,claude`
 - `--dry-run`: preview generation or update changes without writing; for `update`, exits `2` when changes or conflicts are pending
-- `--force`: overwrite generated managed/structured baselines; protected files remain preserved in `update` mode
+- `--force`: overwrite generated managed baselines; in `update` mode protected files remain preserved and MCP JSON / Claude settings are merged, not replaced (see the ownership rules above)
 - `--yes` / `-y`: non-interactive defaults (existing **`setup-cursor-assistant.md`** / **`setup-claude-assistant.md`** are always replaced; existing **`.cursor/mcp.json`** / **`.mcp.json`** are left unchanged unless you pass **`--force`**)
 - `--json`: emit the run as a single machine-readable JSON document on stdout instead of the human summary; see [Machine-readable output](#machine-readable-output-json)
-- `--mcp-playwright <yes|no>`: add or skip Playwright MCP files for the assistants you selected (`yes` / `true` / `1` / `cursor` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **yes**
+- `--mcp-playwright <yes|no>`: **deprecated and ignored.** Playwright MCP is no longer generated; browser automation uses the Playwright CLI. The flag is still accepted so existing commands keep working, and prints a warning on stderr. On `update`, the `playwright` server an older release wrote is removed from the MCP files and Claude settings (see the ownership rules above)
 - `--mcp-figma <yes|no>`: add or skip Figma MCP files for the assistants you selected (`yes` / `true` / `1` / `figma` / `on` vs `none` / `no` / `false` / `0` / `off`). **Cursor** → **`.cursor/mcp.json`**; **Claude** → **`.mcp.json`** at repo root. With **`--yes`** and no flag, defaults to **no** (requires `FIGMA_API_KEY`)
 - `--qa-ai-rules <yes|no>`: after generating files, run **`@metricinsights/qa-ai-rules`** setup in the target repo (`yes` / `true` / `1` / `on` vs `none` / `no` / `false` / `0` / `off`). Uses **`--cursor`** / **`--claude`** flags aligned with **`--assistants`**. The CLI picks a one-shot runner from **`package.json`** **`packageManager`** (Corepack) and lockfiles: **`pnpm dlx`** when pnpm, **`yarn dlx`** for Yarn 2+ / Berry layout, **`bunx`** when Bun, otherwise **`npx`**. Skipped when **`--dry-run`** is set. If there is no **`package.json`** in the target, the CLI skips with a warning (you can run **`npx`** / **`pnpm dlx`** / **`yarn dlx`** / **`bunx`** manually). With **`--yes`** and no flag, defaults to **no**
 

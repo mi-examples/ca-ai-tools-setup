@@ -1,32 +1,56 @@
-# Claude Code — agent registry
+# Agents and project instructions
 
-Markdown files under **`.claude/agents/`** define **specialized rules** Claude should follow when a task matches (e.g. Figma MCP implementation). **`CLAUDE.md`** instructs Claude to consult these agents; this file is a **human-readable index** so contributors know what exists and when to use it. **Cursor** can read **`AGENTS.md`** too for the same index (see **`.cursorrules`**).
+Shared entry point for AI assistants in this repository. It is a **Metric Insights Portal Page / Custom App**
+project (see `pp-dev.config` and `@metricinsights/pp-dev`); the rules and skills listed below are generated and
+kept current by **`ca-ai-tools-setup`**.
 
 ## Setup health
 
 Check **`.assistant-setup/SETUP_STATUS.md`** before setup-sensitive work. Its absence means
-**`ca-ai-tools-setup` is missing or incomplete**. Follow
-**`.cursor/rules/assistant-setup-health.mdc`** for the read-only freshness check, and never run
-`update` or `--force` without explicit developer approval.
+**`ca-ai-tools-setup` is missing or incomplete**. Follow the **`assistant-setup-health`** rule for the read-only
+freshness check, and never run `update` or `--force` without explicit developer approval.
+
+## Where things live
+
+| What | Location |
+| --- | --- |
+<!-- only:cursor -->
+| Rules for Cursor | `.cursor/rules/*.mdc` |
+<!-- /only -->
+<!-- only:claude -->
+| Rules for Claude Code | `.claude/rules/*.md` |
+| Skills | `.claude/skills/` — read by Claude Code and by Cursor |
+| Subagents (Claude Code) | `.claude/agents/` |
+<!-- /only -->
+<!-- only:cursor-only -->
+| Skills | `.cursor/skills/` |
+<!-- /only -->
+
+Always-on rules are `assistant-setup-health` and `linear-task-gates`; `code-style` and `frontend-architecture`
+apply to files under `src/`. Everything else is a skill, picked up from its description or run by name — start
+from `start-working-with-task` for a Linear issue.
+<!-- only:claude -->
 
 ## Registered agents
 
-| File                       | Purpose                                                                                                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `code-style.md`            | Portal Page naming, SCSS modules, BEM, `app-context` / `app-provider`, `constants.ts`, `index.html` globals. Always-on for development.                     |
-| `frontend-architecture.md` | Component hierarchy, design system first, reuse, JS/TS formatting (tooling-first), TypeScript, minimal scope. Always-on for development.                    |
-| `commit-convention.md`     | Git commit message format — Angular commit message convention (`type(scope): subject`, body, footer). Always-on whenever writing commit messages.           |
-| `qa-tester.md`             | Test cases, Playwright execution (CLI or MCP), bug documentation, and local `test-documentation/` layout.                                                   |
-| `ui-verifier.md`           | Browser UI checks (Playwright CLI or MCP), visual verification, and screenshot evidence for Linear comments.                                                |
-| `linear-reporter.md`       | Publish QA results to Linear (comments, state, embedded screenshots).                                                                                       |
-| `figma-mcp.md`             | Figma MCP: structure-first implementation, tokens, Code Connect, layout fidelity. _(Present only if this repo was bootstrapped with Figma MCP for Claude.)_ |
+Claude Code subagents under **`.claude/agents/`**. Each runs in its own context and follows the skills it
+names.
+
+| File                 | Purpose                                                                                                    |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `qa-tester.md`       | Test cases, browser execution (Playwright CLI), bug documentation, and local `test-documentation/` layout. |
+| `ui-verifier.md`     | Browser UI checks (Playwright CLI), visual verification, and screenshot evidence for Linear comments.      |
+| `linear-reporter.md` | Publish QA results to Linear (comments, state, embedded screenshots).                                      |
 
 Add a row when you introduce a new **`.claude/agents/<name>.md`** file.
+<!-- /only -->
 
 ## Keeping this file current
 
-This starter is produced by **`ca-ai-tools-setup`** as a **shared** repo-root file (not tied to a single assistant).
+This starter is produced by **`ca-ai-tools-setup`** as a **shared** repo-root file (not tied to a single
+assistant).
 
-- **Customize** the table for your repo: fix descriptions, add agents, or remove rows for files you delete.
-- **Re-running the installer:** Existing **`AGENTS.md`** content is preserved, including with **`--force`**. The installer only adds missing generated agent rows; review the resulting diff and update existing descriptions manually when needed.
-- **After changing `.claude/agents/`** on disk, update this index so it stays accurate.
+- **Customize** it for your repo: fix descriptions, add agents, or remove rows for files you delete.
+- **Re-running the installer:** Existing **`AGENTS.md`** content is preserved, including with **`--force`**. The
+  installer only adds missing generated agent rows; review the resulting diff and update existing descriptions
+  manually when needed.

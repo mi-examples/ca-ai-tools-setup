@@ -1,8 +1,11 @@
 export type McpSelection = {
-  includePlaywrightMcp: boolean;
   includeFigmaMcp: boolean;
 };
 
+/**
+ * No longer generated (PP-4531): browser automation runs through the Playwright CLI. The definition
+ * stays so `update` can recognise the entry older releases wrote and remove it.
+ */
 function playwrightServer(): Record<string, unknown> {
   return {
     type: 'stdio',
@@ -22,12 +25,21 @@ function figmaServer(): Record<string, unknown> {
   };
 }
 
+/**
+ * Every MCP server this tool writes or used to write, by its `mcpServers` name. `update` compares
+ * an existing entry with the definition here to tell "the generator wrote this and it is unchanged"
+ * from "the repository owns or edited this" before it removes a server that is no longer generated.
+ * Keep a definition here after the generator stops writing it, or old setups cannot be cleaned up.
+ */
+export function generatedMcpServerDefinitions(): Record<string, Record<string, unknown>> {
+  return {
+    playwright: playwrightServer(),
+    figma: figmaServer(),
+  };
+}
+
 export function buildMcpServers(selection: McpSelection): Record<string, unknown> {
   const servers: Record<string, unknown> = {};
-
-  if (selection.includePlaywrightMcp) {
-    servers.playwright = playwrightServer();
-  }
 
   if (selection.includeFigmaMcp) {
     servers.figma = figmaServer();

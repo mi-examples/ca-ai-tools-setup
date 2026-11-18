@@ -7,7 +7,7 @@ description: Formats and publishes QA test results to a Linear issue—screensho
 
 Formats and publishes test results to a Linear issue. **Requires `ISSUE_KEY`.**
 
-Depends on: **`linear-workflow`** (CLI commands), **`test-documentation`** (bug IDs and report format).
+Depends on: **`linear-workflow`** (the Linear MCP tools, and what to do when they are unavailable), **`test-documentation`** (bug IDs and report format).
 
 ## 1. Input
 
@@ -31,36 +31,31 @@ If `test-cases.md` does not exist or has no results — **stop and run `testing-
 
 If `bugs.md` exists, verify any failed or blocked test rows reference the relevant `BUG-XX` IDs from that file.
 
-## 3. Upload screenshots to Linear Cloud
+## 3. Upload screenshots
 
-Screenshots must be uploaded before posting the comment. Local file paths do not render in Linear.
+Screenshots must be uploaded before the comment is posted: local file paths do not render in Linear.
 
-```bash
-# 1. Get file size
-FILESIZE=$(wc -c < "file.png" | tr -d ' ')
+For **each** screenshot, one at a time:
 
-# 2. Get upload URL
-linear-cli api mutate -o json --compact \
-  -v filename="screenshot.png" -v contentType="image/png" -v size="$FILESIZE" \
-  'mutation($filename:String!,$contentType:String!,$size:Int!){fileUpload(filename:$filename,contentType:$contentType,size:$size){success uploadFile{uploadUrl assetUrl headers{key value}}}}'
+1. Get the exact file size in bytes (`wc -c < file.png`, or `(Get-Item file.png).Length` in PowerShell).
+2. Call the Linear MCP tool **`prepare_file_upload`** with `filename`, `contentType` (`image/png`) and `size`.
+3. `PUT` the raw file to the returned `uploadRequest.url`, sending **every** header from `uploadRequest.headers` exactly as given:
 
-# 3. PUT file to uploadUrl with returned headers
-curl -s -X PUT "$uploadUrl" -H "$header1" -H "$header2" -H "Content-Type: image/png" --data-binary "@file.png"
-```
+   ```bash
+   curl -X PUT --data-binary @file.png \
+     -H "<header-name>: <header-value>" \
+     "<uploadRequest.url>"
+   ```
 
-The returned `assetUrl` is used inline in the comment.
+4. Keep the returned markdown (or `assetUrl`) for the comment.
 
-**Do not** use `attachmentCreate` / issue attachment list for screenshots. Screenshots belong in the **comment body** as inline links/images.
+The signed URL expires within a minute, and a missing or changed header returns HTTP 403. So prepare and upload one file before preparing the next, and do not base64-encode or transform the file.
+
+**Do not** use issue attachments (`prepare_attachment_upload`, `create_attachment`) for screenshots. Screenshots belong in the **comment body** as inline links/images.
 
 ## 4. Comment format
 
-Write the comment body to a **UTF-8** markdown file, then post:
-
-```bash
-linear-cli i comment <ISSUE_KEY> --body - < /tmp/linear-comment.md
-```
-
-**Unicode (status icons):** On Windows, do not pipe through PowerShell, cmd, or `cat … | linear-cli` — encoding breaks and icons become `???`. Use a UTF-8 script or stdin redirection instead.
+Post the report with **`save_comment`** (`issueId: <ISSUE_KEY>`, `body`: the markdown below, with real newlines). Ask before posting unless the user asked for the results to be published.
 
 ### Comment body template
 

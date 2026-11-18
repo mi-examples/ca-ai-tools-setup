@@ -12,7 +12,7 @@ function makeTempDir(): string {
 }
 
 test('getGeneratedFiles records qaAiRules in metadata when enabled', () => {
-  const files = getGeneratedFiles(['cursor'], false, false, true);
+  const files = getGeneratedFiles(['cursor'], false, true);
   const metaFile = files.find((f) => f.path === '.assistant-setup/ca-ai-tools-setup.json');
 
   assert.ok(metaFile);
@@ -28,31 +28,36 @@ test('generateSetup creates files for selected assistants', () => {
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
   });
 
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
   assert.ok(fs.existsSync(path.join(dir, 'setup-cursor-assistant.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/assistant-setup-health.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/linear-cli.mdc')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/react-component-unit.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/frontend-architecture.mdc')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/portal-env-credentials/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/commit-convention/SKILL.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.claude')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/prompts')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursorignore')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/ai-development/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-flow/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/playwright-cli/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/playwright-mcp/SKILL.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/playwright-mcp')), false);
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/customer-app-docs/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/customer-app-docs/references/sections.md')));
   assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/customer-app-docs/assets/example.html')));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/README.md')), false);
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/prompts/form-prompt.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/form-builder')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/test-case-rules.mdc')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
   assert.ok(fs.existsSync(path.join(dir, '.dev-environment.md')));
   assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/page-workflow-context.md')));
   assert.ok(fs.existsSync(path.join(dir, '.assistant-setup/SETUP_STATUS.md')));
@@ -60,18 +65,17 @@ test('generateSetup creates files for selected assistants', () => {
     fs.readFileSync(path.join(dir, '.assistant-setup/SETUP_STATUS.md'), 'utf8'),
     /ca-ai-tools-setup-status.*"schemaVersion":6/,
   );
-  assert.ok(result.created.includes('LINEAR_CLI.md'));
-  assert.ok(fs.existsSync(path.join(dir, 'LINEAR_CLI.md')));
-  assert.ok(fs.readFileSync(path.join(dir, 'LINEAR_CLI.md'), 'utf8').includes('Linear CLI Reference'));
-  assert.ok(fs.existsSync(path.join(dir, '.cursorrules')));
-  assert.ok(fs.readFileSync(path.join(dir, '.cursorrules'), 'utf8').includes('AGENTS.md'));
+  assert.equal(fs.existsSync(path.join(dir, 'LINEAR_CLI.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursorrules')), false);
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
-  assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
+  // A Cursor-only setup must not point at Claude Code files that are not there.
+  assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.cursor/skills/'));
+  assert.equal(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/'), false);
   assert.ok(!fs.existsSync(path.join(dir, '.claude/settings.json')));
   assert.ok(!fs.existsSync(path.join(dir, 'setup-claude-assistant.md')));
 });
 
-test('generateSetup skips .cursorrules on second Cursor run unless force', () => {
+test('generateSetup skips existing files on a second Cursor run unless force', () => {
   const dir = makeTempDir();
 
   generateSetup({
@@ -79,7 +83,6 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   const second = generateSetup({
@@ -87,10 +90,9 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
-  assert.ok(second.skipped.includes('.cursorrules'));
+  assert.ok(second.skipped.includes('.cursorignore'));
   assert.ok(second.skipped.includes('.cursor/skills/testing-with-linear/SKILL.md'));
   assert.ok(second.merged.includes('AGENTS.md'));
 
@@ -99,22 +101,20 @@ test('generateSetup skips .cursorrules on second Cursor run unless force', () =>
     assistants: ['cursor'],
     force: true,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
-  assert.ok(forced.overwritten.includes('.cursorrules'));
+  assert.ok(forced.overwritten.includes('.cursorignore'));
   assert.ok(forced.overwritten.includes('.cursor/skills/testing-with-linear/SKILL.md'));
   assert.ok(forced.merged.includes('AGENTS.md'));
 });
 
-test('generateSetup omits .cursor/mcp.json when Playwright MCP is declined', () => {
+test('generateSetup writes no .cursor/mcp.json when no MCP server is selected', () => {
   const dir = makeTempDir();
   const result = generateSetup({
     targetDir: dir,
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   assert.ok(result.created.includes('setup-cursor-assistant.md'));
@@ -134,18 +134,18 @@ test('generateSetup setup-cursor notes bootstrap included MCP when enabled', () 
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
+    figmaMcpInclude: true,
   });
 
   const md = fs.readFileSync(path.join(dir, 'setup-cursor-assistant.md'), 'utf8');
 
   assert.ok(md.includes('bootstrapped **with**'));
   assert.ok(md.includes('can differ by Metric Insights instance version'));
-  assert.ok(md.includes('**2.5. Enable project MCP in Cursor (manual'));
+  assert.ok(md.includes('**Enable project MCP in Cursor (manual'));
   assert.ok(md.includes('does **not** turn MCP servers on'));
 });
 
-test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', () => {
+test('generateSetup writes .mcp.json for Claude when Figma MCP is selected', () => {
   const dir = makeTempDir();
 
   generateSetup({
@@ -153,14 +153,16 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
     assistants: ['claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
+    figmaMcpInclude: true,
   });
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
   assert.equal(fs.existsSync(path.join(dir, '.cursor/mcp.json')), false);
 
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
-  assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: true });
+  // Never set for a new setup: the key only marks what an older release wrote (PP-4531).
+  assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });
+  assert.deepEqual(meta.figmaMcp, { cursorFile: false, projectRootFile: true });
   assert.equal(meta.version, 6);
   assert.equal(meta.provenance.package, '@metricinsights/ca-ai-tools-setup');
   assert.equal(meta.provenance.version, getCliPackageVersion());
@@ -175,10 +177,7 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
   });
-  assert.deepEqual(meta.linearCliReference, {
-    file: 'LINEAR_CLI.md',
-    generated: true,
-  });
+  assert.equal(meta.linearCliReference, undefined);
 
   const md = fs.readFileSync(path.join(dir, 'setup-claude-assistant.md'), 'utf8');
 
@@ -186,28 +185,31 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
   assert.ok(md.includes('https://help.metricinsights.com/m/API_Access'));
   assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/ai-development/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/README.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/README.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/workflows/ui-check.md')), false);
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/linear-task-gates.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/code-style.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/rules/portal-env-credentials.mdc')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/testing-flow.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/playwright-cli.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/playwright-mcp.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/rules/linear-task-gates.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/rules/code-style.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/portal-env-credentials/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/testing-flow/SKILL.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/playwright-cli/SKILL.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/workflows')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/workflows/playwright-mcp.md')), false);
   assert.ok(fs.existsSync(path.join(dir, '.claude/agents/qa-tester.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/agents/code-style.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/commands/testing-flow.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.claude/agents/code-style.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/commands/testing-flow.md')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.claude/commands/ui-check.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/SKILL.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/references/sections.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/references/verify.md')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/skills/customer-app-docs/assets/example.html')));
   assert.ok(fs.existsSync(path.join(dir, '.claude/commands/customer-docs.md')));
-  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('skills/customer-app-docs/SKILL.md'));
-  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('testing-with-linear.md'));
-  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('workflows/testing-with-linear.md'));
-  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('code-style.md'));
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('`customer-app-docs`'));
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('`testing-with-linear`'));
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('.claude/rules/'));
+  assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('`code-style`'));
   assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')));
   assert.ok(fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8').includes('ca-ai-tools-setup'));
   assert.ok(fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8').includes('.claude/agents'));
@@ -221,11 +223,11 @@ test('generateSetup writes .mcp.json for Claude when Playwright MCP enabled', ()
 
   assert.ok(claudeSettings.$schema?.includes('claude-code-settings'));
   assert.equal(claudeSettings.enableAllProjectMcpServers, true);
-  assert.deepEqual(claudeSettings.enabledMcpjsonServers, ['playwright']);
-  assert.ok(claudeSettings.permissions?.allow?.includes('mcp__playwright__*'));
+  assert.deepEqual(claudeSettings.enabledMcpjsonServers, ['figma']);
+  assert.deepEqual(claudeSettings.permissions?.allow, ['mcp__figma__*']);
 });
 
-test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', () => {
+test('generateSetup omits .mcp.json for Claude when no MCP server is selected', () => {
   const dir = makeTempDir();
 
   generateSetup({
@@ -233,7 +235,6 @@ test('generateSetup omits .mcp.json for Claude when Playwright MCP declined', ()
     assistants: ['claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
   assert.equal(fs.existsSync(path.join(dir, '.mcp.json')), false);
 
@@ -259,7 +260,6 @@ test('generateSetup always overwrites setup assistant files', () => {
     assistants: ['claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   const second = generateSetup({
@@ -267,7 +267,6 @@ test('generateSetup always overwrites setup assistant files', () => {
     assistants: ['claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   assert.ok(second.overwritten.includes('setup-claude-assistant.md'));
@@ -277,7 +276,7 @@ test('generateSetup always overwrites setup assistant files', () => {
   assert.ok(second.skipped.includes('.dev-environment.md'));
   assert.ok(second.overwritten.includes('.assistant-setup/ca-ai-tools-setup.json'));
   assert.ok(second.skipped.includes('.assistant-setup/page-workflow-context.md'));
-  assert.ok(second.skipped.includes('LINEAR_CLI.md'));
+  assert.ok(second.skipped.includes('.claude/rules/code-style.md'));
   assert.ok(second.skipped.includes('.claude/skills/ai-development/SKILL.md'));
 
   const forced = generateSetup({
@@ -285,7 +284,6 @@ test('generateSetup always overwrites setup assistant files', () => {
     assistants: ['claude'],
     force: true,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   assert.ok(forced.overwritten.includes('setup-claude-assistant.md'));
@@ -310,14 +308,13 @@ test('generateSetup preserves existing AGENTS.md content and merges generated ro
     assistants: ['claude'],
     force: true,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
   const merged = fs.readFileSync(agentsPath, 'utf8');
 
   assert.ok(result.merged.includes('AGENTS.md'));
   assert.match(merged, /Keep this custom guidance\./);
-  assert.match(merged, /`code-style\.md`/);
-  assert.doesNotMatch(merged, /^# Claude Code — agent registry/m);
+  assert.match(merged, /`qa-tester\.md`/);
+  assert.doesNotMatch(merged, /^# Agents and project instructions/m);
 });
 
 test('generateSetup writes both MCP files when Cursor and Claude selected and MCP enabled', () => {
@@ -328,15 +325,15 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
     assistants: ['cursor', 'claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
+    figmaMcpInclude: true,
   });
   assert.ok(fs.existsSync(path.join(dir, '.cursor/mcp.json')));
   assert.ok(fs.existsSync(path.join(dir, '.mcp.json')));
 
   const meta = JSON.parse(fs.readFileSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8'));
 
-  assert.deepEqual(meta.playwrightMcp, { cursorFile: true, projectRootFile: true });
-  assert.deepEqual(meta.figmaMcp, { cursorFile: false, projectRootFile: false });
+  assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });
+  assert.deepEqual(meta.figmaMcp, { cursorFile: true, projectRootFile: true });
   assert.deepEqual(meta.devEnvironment, {
     file: '.dev-environment.md',
     generated: true,
@@ -345,15 +342,13 @@ test('generateSetup writes both MCP files when Cursor and Claude selected and MC
     file: '.assistant-setup/page-workflow-context.md',
     generated: true,
   });
-  assert.deepEqual(meta.linearCliReference, {
-    file: 'LINEAR_CLI.md',
-    generated: true,
-  });
+  assert.equal(meta.linearCliReference, undefined);
 
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ui-check/SKILL.md')), false);
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.claude/workflows/testing-with-linear.md')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/testing-with-linear/SKILL.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/workflows')), false);
 });
 
 test('generateSetup writes figma MCP only when requested', () => {
@@ -364,7 +359,6 @@ test('generateSetup writes figma MCP only when requested', () => {
     assistants: ['cursor', 'claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
     figmaMcpInclude: true,
   });
 
@@ -380,11 +374,12 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.equal(cursorMcp.mcpServers.playwright, undefined);
   assert.ok(claudeMcp.mcpServers.figma);
   assert.equal(claudeMcp.mcpServers.playwright, undefined);
-  assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-implementation/SKILL.md')), true);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/SKILL.md')), true);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/references/api.md')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/figma-code-connect/SKILL.md')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills')), false);
   assert.deepEqual(meta.playwrightMcp, { cursorFile: false, projectRootFile: false });
   assert.deepEqual(meta.figmaMcp, { cursorFile: true, projectRootFile: true });
 
@@ -397,7 +392,7 @@ test('generateSetup writes figma MCP only when requested', () => {
   assert.ok(claudeSettings.permissions?.allow?.includes('mcp__figma__*'));
 });
 
-test('generateSetup omits .cursor/rules/figma-mcp.mdc when Figma MCP not selected', () => {
+test('generateSetup omits the Figma skills when Figma MCP is not selected', () => {
   const dir = makeTempDir();
 
   generateSetup({
@@ -405,18 +400,16 @@ test('generateSetup omits .cursor/rules/figma-mcp.mdc when Figma MCP not selecte
     assistants: ['cursor', 'claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
     figmaMcpInclude: false,
   });
 
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/rules/figma-mcp.mdc')), false);
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/figma-code-connect/SKILL.md')), false);
-  assert.equal(fs.existsSync(path.join(dir, '.claude/agents/figma-mcp.md')), false);
-  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect/SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-implementation')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/figma-code-connect')), false);
+  assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-development/SKILL.md')), true);
 });
 
-test('buildClaudeSettingsJson enables both MCP servers when selected', () => {
-  const doc = JSON.parse(buildClaudeSettingsJson({ includePlaywrightMcp: true, includeFigmaMcp: true })) as {
+test('buildClaudeSettingsJson enables the Figma MCP server when selected', () => {
+  const doc = JSON.parse(buildClaudeSettingsJson({ includeFigmaMcp: true })) as {
     enableAllProjectMcpServers?: boolean;
     enabledMcpjsonServers?: string[];
     enabledPlugins?: Record<string, boolean>;
@@ -424,24 +417,20 @@ test('buildClaudeSettingsJson enables both MCP servers when selected', () => {
   };
 
   assert.equal(doc.enableAllProjectMcpServers, true);
-  assert.deepEqual(doc.enabledMcpjsonServers, ['playwright', 'figma']);
-  assert.ok(doc.permissions?.allow?.includes('mcp__playwright__*'));
-  assert.ok(doc.permissions?.allow?.includes('mcp__figma__*'));
+  assert.deepEqual(doc.enabledMcpjsonServers, ['figma']);
+  assert.deepEqual(doc.permissions?.allow, ['mcp__figma__*']);
   assert.equal(doc.enabledPlugins?.['claude-code-setup@claude-plugins-official'], true);
 });
 
 test('buildClaudeSettingsJson omits MCP keys when no MCP selected', () => {
-  const doc = JSON.parse(buildClaudeSettingsJson({ includePlaywrightMcp: false, includeFigmaMcp: false })) as Record<
-    string,
-    unknown
-  >;
+  const doc = JSON.parse(buildClaudeSettingsJson({ includeFigmaMcp: false })) as Record<string, unknown>;
 
   assert.ok(doc.$schema);
   assert.equal(doc.enableAllProjectMcpServers, undefined);
   assert.deepEqual(doc.enabledPlugins, { 'claude-code-setup@claude-plugins-official': true });
 });
 
-test('generateSetup can combine playwright and figma MCP in one file', () => {
+test('generateSetup writes only the Figma server into the MCP file', () => {
   const dir = makeTempDir();
 
   generateSetup({
@@ -449,7 +438,6 @@ test('generateSetup can combine playwright and figma MCP in one file', () => {
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
     figmaMcpInclude: true,
   });
 
@@ -457,8 +445,7 @@ test('generateSetup can combine playwright and figma MCP in one file', () => {
     mcpServers: Record<string, unknown>;
   };
 
-  assert.ok(cursorMcp.mcpServers.playwright);
-  assert.ok(cursorMcp.mcpServers.figma);
+  assert.deepEqual(Object.keys(cursorMcp.mcpServers), ['figma']);
 });
 
 test('generateSetup dry-run does not write files', () => {
@@ -468,7 +455,6 @@ test('generateSetup dry-run does not write files', () => {
     assistants: ['cursor', 'claude'],
     force: true,
     dryRun: true,
-    playwrightMcpInclude: true,
   });
 
   assert.ok(result.created.length > 0);
@@ -495,7 +481,7 @@ test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () 
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
+    figmaMcpInclude: true,
     existingFileActions: { '.cursor/mcp.json': 'merge' },
   });
 
@@ -507,7 +493,7 @@ test('generateSetup merge combines mcpServers in existing .cursor/mcp.json', () 
 
   assert.equal(parsed.note, 'keep-me');
   assert.ok(parsed.mcpServers.custom);
-  assert.ok(parsed.mcpServers.playwright);
+  assert.ok(parsed.mcpServers.figma);
 });
 
 test('generateSetup merge keeps existing FIGMA_API_KEY token when template has placeholder', () => {
@@ -534,7 +520,6 @@ test('generateSetup merge keeps existing FIGMA_API_KEY token when template has p
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
     figmaMcpInclude: true,
     existingFileActions: { '.cursor/mcp.json': 'merge' },
   });
@@ -569,7 +554,6 @@ test('generateSetup merge combines MCP servers in existing .claude/settings.json
     assistants: ['claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: true,
     figmaMcpInclude: true,
     existingFileActions: { '.claude/settings.json': 'merge' },
   });
@@ -609,7 +593,6 @@ test('generateSetup merge appends new agent rows to existing AGENTS.md', () => {
     assistants: ['claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
     figmaMcpInclude: true,
     existingFileActions: { 'AGENTS.md': 'merge' },
   });
@@ -619,7 +602,7 @@ test('generateSetup merge appends new agent rows to existing AGENTS.md', () => {
   const content = fs.readFileSync(path.join(dir, 'AGENTS.md'), 'utf8');
 
   assert.ok(content.includes('`custom-agent.md`'), 'existing row preserved');
-  assert.ok(content.includes('`figma-mcp.md`'), 'new row appended');
+  assert.ok(content.includes('`qa-tester.md`'), 'new row appended');
 });
 
 test('generateSetup throws when merge requested for unsupported file', () => {
@@ -634,7 +617,6 @@ test('generateSetup throws when merge requested for unsupported file', () => {
         assistants: ['claude'],
         force: false,
         dryRun: false,
-        playwrightMcpInclude: false,
         existingFileActions: { 'CLAUDE.md': 'merge' },
       }),
     /Merge is not supported/,
@@ -654,17 +636,17 @@ test('generateSetup migrates legacy setup metadata files to new names', () => {
     assistants: ['cursor', 'claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), true);
+  // The Cursor copy has no successor any more: nothing reads it, so it is removed, not renamed.
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), false);
   assert.ok(
     result.migratedLegacy.includes('.assistant-setup/linear-cli-setup.json -> .assistant-setup/ca-ai-tools-setup.json'),
   );
-  assert.ok(result.migratedLegacy.includes('.cursor/linear-cli-setup.json -> .cursor/ca-ai-tools-setup.json'));
+  assert.ok(result.removedLegacy.includes('.cursor/linear-cli-setup.json'));
 });
 
 test('generateSetup removes obsolete legacy QA skills on re-run', () => {
@@ -685,7 +667,6 @@ test('generateSetup removes obsolete legacy QA skills on re-run', () => {
     assistants: ['cursor', 'claude'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing/SKILL.md')), false);
@@ -696,8 +677,8 @@ test('generateSetup removes obsolete legacy QA skills on re-run', () => {
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ai-testing')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/skills/ui-check')), false);
   assert.equal(fs.existsSync(path.join(dir, '.claude/skills/ai-testing')), false);
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills/testing-with-linear/SKILL.md')));
-  assert.ok(fs.existsSync(path.join(dir, '.cursor/skills')));
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/testing-with-linear/SKILL.md')));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills')), false);
   assert.ok(result.removedLegacy.includes('.cursor/skills/ai-testing/SKILL.md'));
   assert.ok(result.removedLegacy.includes('.cursor/skills/ui-check/SKILL.md'));
   assert.ok(result.removedLegacy.includes('.claude/workflows/ui-check.md'));
@@ -719,13 +700,12 @@ test('generateSetup removes legacy metadata files with --force', () => {
     assistants: ['cursor', 'claude'],
     force: true,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.cursor/linear-cli-setup.json')), false);
   assert.equal(fs.existsSync(path.join(dir, '.assistant-setup/ca-ai-tools-setup.json')), true);
-  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), true);
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/ca-ai-tools-setup.json')), false);
   assert.ok(result.removedLegacy.includes('.assistant-setup/linear-cli-setup.json'));
   assert.ok(result.removedLegacy.includes('.cursor/linear-cli-setup.json'));
 });
@@ -742,7 +722,6 @@ test('generateSetup merges an existing .gitignore instead of replacing it, even 
     assistants: ['cursor'],
     force: true,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   const merged = fs.readFileSync(gitignorePath, 'utf8');
@@ -761,7 +740,6 @@ test('generateSetup creates .gitignore ignoring the machine-specific dev environ
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   const content = fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8');
@@ -779,9 +757,114 @@ test('.dev-environment.md is generated but ignored', () => {
     assistants: ['cursor'],
     force: false,
     dryRun: false,
-    playwrightMcpInclude: false,
   });
 
   assert.ok(fs.existsSync(path.join(targetDir, '.dev-environment.md')));
   assert.match(fs.readFileSync(path.join(targetDir, '.gitignore'), 'utf8'), /\.dev-environment\.md/u);
+});
+
+// --- Plain re-run and files a release stops generating (PP-4839) ----------------------------------
+//
+// `generateSetup` rewrites the metadata from the current file list. Before it cleaned up after
+// itself, a file dropped by a release simply fell out of the metadata on the next plain re-run and
+// was never reported again — the obsolete instructions stayed in the repository for good.
+
+const RETIRED_PATH = '.cursor/rules/retired-rule.mdc';
+const RETIRED_CONTENT = 'Generated by an older release.\n';
+
+function generateCursor(targetDir: string, files: ReturnType<typeof getGeneratedFiles>, force = false) {
+  return generateSetup({
+    targetDir,
+    assistants: ['cursor'],
+    force,
+    dryRun: false,
+    files,
+  });
+}
+
+function trackedFiles(targetDir: string): Record<string, { contentHash: string }> {
+  return (
+    JSON.parse(fs.readFileSync(path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json'), 'utf8')) as {
+      files: Record<string, { contentHash: string }>;
+    }
+  ).files;
+}
+
+test('generateSetup re-run removes a tracked file the release no longer generates', () => {
+  const dir = makeTempDir();
+  const current = getGeneratedFiles(['cursor'], false, false);
+
+  generateCursor(dir, [...current, { path: RETIRED_PATH, content: RETIRED_CONTENT }]);
+  assert.equal(fs.existsSync(path.join(dir, RETIRED_PATH)), true);
+
+  const result = generateCursor(dir, current);
+
+  assert.ok(result.removedLegacy.includes(RETIRED_PATH));
+  assert.equal(fs.existsSync(path.join(dir, RETIRED_PATH)), false);
+  assert.equal(RETIRED_PATH in trackedFiles(dir), false);
+});
+
+test('generateSetup re-run keeps a locally edited obsolete file and keeps tracking it', () => {
+  const dir = makeTempDir();
+  const current = getGeneratedFiles(['cursor'], false, false);
+
+  generateCursor(dir, [...current, { path: RETIRED_PATH, content: RETIRED_CONTENT }]);
+
+  const recorded = trackedFiles(dir)[RETIRED_PATH];
+
+  fs.writeFileSync(path.join(dir, RETIRED_PATH), 'Repository-owned edit.\n', 'utf8');
+
+  const result = generateCursor(dir, current);
+
+  assert.equal(result.removedLegacy.includes(RETIRED_PATH), false);
+  assert.equal(fs.readFileSync(path.join(dir, RETIRED_PATH), 'utf8'), 'Repository-owned edit.\n');
+  // The record survives unchanged, so `check` and `update` still see the file and raise the conflict.
+  assert.deepEqual(trackedFiles(dir)[RETIRED_PATH], recorded);
+
+  const forced = generateCursor(dir, current, true);
+
+  assert.ok(forced.removedLegacy.includes(RETIRED_PATH));
+  assert.equal(fs.existsSync(path.join(dir, RETIRED_PATH)), false);
+});
+
+test('generateSetup re-run does not delete a tracked legacy path that the repository edited', () => {
+  const dir = makeTempDir();
+  const legacyPath = '.cursor/skills/ui-check/SKILL.md';
+  const current = getGeneratedFiles(['cursor'], false, false);
+
+  // The only way a legacy path gets a record: an older release generated it while tracking files.
+  generateCursor(dir, [...current, { path: legacyPath, content: RETIRED_CONTENT }]);
+  fs.writeFileSync(path.join(dir, legacyPath), 'Repository-owned edit.\n', 'utf8');
+
+  const result = generateCursor(dir, current);
+
+  assert.equal(result.removedLegacy.includes(legacyPath), false);
+  assert.equal(fs.readFileSync(path.join(dir, legacyPath), 'utf8'), 'Repository-owned edit.\n');
+});
+
+// PR #24 review: with Claude selected the skills live under .claude/skills, so the copies an older
+// release wrote under .cursor/skills must go — Cursor reads both folders and would list each twice.
+test('generateSetup re-run removes the Cursor copies of skills once Claude is selected', () => {
+  const dir = makeTempDir();
+  const oldCopy = '.cursor/skills/testing-flow/SKILL.md';
+
+  fs.mkdirSync(path.join(dir, path.dirname(oldCopy)), { recursive: true });
+  fs.writeFileSync(path.join(dir, oldCopy), '# written by an older release\n', 'utf8');
+
+  const result = generateSetup({ targetDir: dir, assistants: ['cursor', 'claude'], force: false, dryRun: false });
+
+  assert.ok(result.removedLegacy.includes(oldCopy));
+  assert.equal(fs.existsSync(path.join(dir, '.cursor/skills')), false);
+  assert.ok(fs.existsSync(path.join(dir, '.claude/skills/testing-flow/SKILL.md')));
+
+  // Cursor alone still owns that folder: the existing file is kept, as any existing file is.
+  const cursorOnly = makeTempDir();
+
+  fs.mkdirSync(path.join(cursorOnly, path.dirname(oldCopy)), { recursive: true });
+  fs.writeFileSync(path.join(cursorOnly, oldCopy), '# written by an older release\n', 'utf8');
+
+  const kept = generateSetup({ targetDir: cursorOnly, assistants: ['cursor'], force: false, dryRun: false });
+
+  assert.equal(kept.removedLegacy.includes(oldCopy), false);
+  assert.ok(kept.skipped.includes(oldCopy));
 });

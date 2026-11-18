@@ -21,16 +21,7 @@ function writeFile(targetPath: string, content: string): void {
 test('cli --dry-run does not write generated files', () => {
   const targetDir = makeTempDir();
 
-  const result = runCli([
-    '--target',
-    targetDir,
-    '--assistants',
-    'cursor',
-    '--yes',
-    '--dry-run',
-    '--mcp-playwright',
-    'no',
-  ]);
+  const result = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--dry-run']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.match(result.stdout, /Dry run completed\./);
@@ -42,40 +33,37 @@ test('cli --dry-run does not write generated files', () => {
   assert.equal(fs.existsSync(path.join(targetDir, 'LINEAR_CLI.md')), false);
 });
 
-test('cli --yes with cursor writes default Cursor setup and Playwright MCP', () => {
+test('cli --yes with cursor writes the default Cursor setup and no MCP file', () => {
   const targetDir = makeTempDir();
   const result = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.ok(fs.existsSync(path.join(targetDir, 'setup-cursor-assistant.md')));
-  assert.ok(fs.existsSync(path.join(targetDir, '.cursor/mcp.json')));
+  assert.equal(fs.existsSync(path.join(targetDir, '.cursor/mcp.json')), false);
   assert.ok(fs.existsSync(path.join(targetDir, '.cursor/skills/testing-with-linear/SKILL.md')));
   assert.equal(fs.existsSync(path.join(targetDir, '.cursor/skills/ui-check/SKILL.md')), false);
   assert.equal(fs.existsSync(path.join(targetDir, '.mcp.json')), false);
-
-  const cursorMcp = JSON.parse(fs.readFileSync(path.join(targetDir, '.cursor/mcp.json'), 'utf8')) as {
-    mcpServers?: Record<string, unknown>;
-  };
-
-  assert.ok(cursorMcp.mcpServers?.playwright);
 });
 
-test('cli enables figma-only MCP when Playwright disabled and Figma enabled', () => {
+// PP-4531: the flag is kept so existing callers do not break, but it no longer selects anything.
+test('cli accepts the deprecated --mcp-playwright flag, warns on stderr and writes no MCP file', () => {
   const targetDir = makeTempDir();
-  const result = runCli([
-    '--target',
-    targetDir,
-    '--assistants',
-    'cursor',
-    '--yes',
-    '--mcp-playwright',
-    'no',
-    '--mcp-figma',
-    'yes',
-  ]);
+  const result = runCli(['--target', targetDir, '--assistants', 'cursor,claude', '--yes', '--mcp-playwright', 'yes']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
-  assert.ok(fs.existsSync(path.join(targetDir, '.cursor/rules/figma-mcp.mdc')));
+  assert.match(result.stderr, /--mcp-playwright is deprecated and ignored/);
+  assert.doesNotMatch(result.stdout, /deprecated/);
+  assert.equal(fs.existsSync(path.join(targetDir, '.cursor/mcp.json')), false);
+  assert.equal(fs.existsSync(path.join(targetDir, '.mcp.json')), false);
+  assert.doesNotMatch(fs.readFileSync(path.join(targetDir, '.claude/settings.json'), 'utf8'), /playwright/);
+});
+
+test('cli writes the Figma server only when Figma MCP is enabled', () => {
+  const targetDir = makeTempDir();
+  const result = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-figma', 'yes']);
+
+  assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
+  assert.ok(fs.existsSync(path.join(targetDir, '.cursor/skills/figma-implementation/SKILL.md')));
 
   const cursorMcp = JSON.parse(fs.readFileSync(path.join(targetDir, '.cursor/mcp.json'), 'utf8')) as {
     mcpServers?: Record<string, unknown>;
@@ -87,11 +75,11 @@ test('cli enables figma-only MCP when Playwright disabled and Figma enabled', ()
 
 test('cli --force overwrites existing generated files', () => {
   const targetDir = makeTempDir();
-  const first = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+  const first = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   assert.equal(first.status, 0, `Initial run failed.\nSTDERR:\n${first.stderr}`);
 
-  const cursorRulesPath = path.join(targetDir, '.cursorrules');
+  const cursorRulesPath = path.join(targetDir, '.cursorignore');
 
   fs.writeFileSync(cursorRulesPath, 'MANUAL TEST CONTENT\n', 'utf8');
 
@@ -124,7 +112,7 @@ test('cli --yes skips existing .cursor/mcp.json (no merge prompt in non-interact
 
   writeFile(mcpPath, customMcp);
 
-  const result = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'yes']);
+  const result = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-figma', 'yes']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.equal(fs.readFileSync(mcpPath, 'utf8'), customMcp);
@@ -151,12 +139,12 @@ test('cli --yes skips existing settings and safely merges AGENTS.md', () => {
   writeFile(settingsPath, customSettings);
   writeFile(agentsPath, customAgents);
 
-  const result = runCli(['--target', targetDir, '--assistants', 'claude', '--yes', '--mcp-playwright', 'yes']);
+  const result = runCli(['--target', targetDir, '--assistants', 'claude', '--yes', '--mcp-figma', 'yes']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.equal(fs.readFileSync(settingsPath, 'utf8'), customSettings);
   assert.match(fs.readFileSync(agentsPath, 'utf8'), /Do not overwrite\./);
-  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`code-style\.md`/);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`qa-tester\.md`/);
   assert.match(result.stdout, /\.claude\/settings\.json/);
   assert.match(result.stdout, /AGENTS\.md/);
 });
@@ -183,17 +171,7 @@ test('cli --yes skips existing .mcp.json and keeps configured token', () => {
 
   writeFile(mcpPath, customMcp);
 
-  const result = runCli([
-    '--target',
-    targetDir,
-    '--assistants',
-    'claude',
-    '--yes',
-    '--mcp-playwright',
-    'no',
-    '--mcp-figma',
-    'yes',
-  ]);
+  const result = runCli(['--target', targetDir, '--assistants', 'claude', '--yes', '--mcp-figma', 'yes']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.equal(fs.readFileSync(mcpPath, 'utf8'), customMcp);
@@ -208,23 +186,14 @@ test('cli --force overwrites settings but safely merges existing AGENTS.md', () 
   writeFile(settingsPath, '{"enabledPlugins":{"legacy":true}}\n');
   writeFile(agentsPath, '# Manual AGENTS\n');
 
-  const result = runCli([
-    '--target',
-    targetDir,
-    '--assistants',
-    'claude',
-    '--yes',
-    '--mcp-playwright',
-    'yes',
-    '--force',
-  ]);
+  const result = runCli(['--target', targetDir, '--assistants', 'claude', '--yes', '--mcp-figma', 'yes', '--force']);
 
   assert.equal(result.status, 0, `CLI exited with non-zero status.\nSTDERR:\n${result.stderr}`);
   assert.match(fs.readFileSync(settingsPath, 'utf8'), /claude-code-settings/);
-  assert.match(fs.readFileSync(settingsPath, 'utf8'), /mcp__playwright__/);
+  assert.match(fs.readFileSync(settingsPath, 'utf8'), /mcp__figma__/);
   assert.match(fs.readFileSync(agentsPath, 'utf8'), /# Manual AGENTS/);
   assert.match(fs.readFileSync(agentsPath, 'utf8'), /Registered agents added by ca-ai-tools-setup/);
-  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`code-style\.md`/);
+  assert.match(fs.readFileSync(agentsPath, 'utf8'), /`qa-tester\.md`/);
 });
 
 test('cli exits non-zero for invalid assistants value', () => {
@@ -254,7 +223,7 @@ test('cli --version prints the package version without starting setup', () => {
 
 test('cli check returns zero for a synchronized tracked setup', () => {
   const targetDir = makeTempDir();
-  const generated = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+  const generated = runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   assert.equal(generated.status, 0, generated.stderr);
 
@@ -268,7 +237,7 @@ test('cli check returns zero for a synchronized tracked setup', () => {
 test('cli check returns two for a missing managed file without changing the repository', () => {
   const targetDir = makeTempDir();
 
-  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   const missingPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
 
@@ -284,7 +253,7 @@ test('cli check returns two for a missing managed file without changing the repo
 test('cli update recreates a missing managed file and produces a PR summary', () => {
   const targetDir = makeTempDir();
 
-  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   const missingPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
 
@@ -301,10 +270,10 @@ test('cli update recreates a missing managed file and produces a PR summary', ()
 test('cli update blocks all writes when a managed file conflicts', () => {
   const targetDir = makeTempDir();
 
-  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   const conflictPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
-  const missingPath = path.join(targetDir, '.cursor/rules/linear-cli.mdc');
+  const missingPath = path.join(targetDir, '.cursor/rules/linear-task-gates.mdc');
 
   fs.writeFileSync(conflictPath, 'Local managed edit.\n', 'utf8');
   fs.rmSync(missingPath);
@@ -320,7 +289,7 @@ test('cli update blocks all writes when a managed file conflicts', () => {
 test('cli update --dry-run previews pending changes without writing and exits two', () => {
   const targetDir = makeTempDir();
 
-  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   const missingPath = path.join(targetDir, '.cursor/rules/code-style.mdc');
   const metadataPath = path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json');
@@ -341,7 +310,7 @@ test('cli update --dry-run previews pending changes without writing and exits tw
 test('cli update is deterministic when no generated content changed', () => {
   const targetDir = makeTempDir();
 
-  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes', '--mcp-playwright', 'no']);
+  runCli(['--target', targetDir, '--assistants', 'cursor', '--yes']);
 
   const metadataPath = path.join(targetDir, '.assistant-setup/ca-ai-tools-setup.json');
   const before = fs.readFileSync(metadataPath, 'utf8');

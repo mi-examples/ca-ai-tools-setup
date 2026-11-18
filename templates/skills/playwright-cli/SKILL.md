@@ -1,31 +1,20 @@
 ---
 name: playwright-cli
-description: Playwright Agent CLI reference for browser automation—token-efficient command-line alternative to the Playwright MCP server. Command catalog, snapshot/ref targeting, Portal Page dev-server + role login, and debugging. Use for UI checks, manual QA execution, or browser automation when you prefer the CLI over MCP.
+description: Playwright Agent CLI reference for browser automation—command catalog, snapshot/ref targeting, Portal Page dev-server + role login, and debugging. Use for UI checks, manual QA execution, and any other browser automation in this repo.
 ---
 
 # Browser Automation with Playwright Agent CLI
 
-Token-efficient, command-line alternative to the **`playwright-mcp`** skill. Drives a real
-browser through Bash commands instead of MCP tools. Concise CLI output keeps large tool
-schemas out of the model context, so this is the **preferred** option for browser work when
-low token cost matters. The MCP path (`playwright-mcp`) stays fully available — pick one per
-task; both reach the same browser.
+The browser-automation tool for this repo. It drives a real browser through Bash commands
+(`npx playwright-cli ...`); its output is short text, so a long QA session stays cheap in
+tokens, and there is no server to configure.
 
 Reference: https://playwright.dev/agent-cli/introduction
-
-## Why CLI vs MCP
-
-| | `playwright-cli` (this skill) | `playwright-mcp` skill |
-|-|-------------------------------|------------------------|
-| Transport | Bash (`npx playwright-cli ...`) | MCP tools (`playwright_*`) |
-| Token cost | Low — concise text output, no tool schemas loaded | Higher — snapshots + tool schemas in context |
-| Setup | Committed skill + `@playwright/cli` devDependency; `npm install` only | `.mcp.json` / `.cursor/mcp.json` + MCP reload |
-| Best for | Most UI checks and QA, especially long sessions | Existing MCP flows, or when MCP tools are already loaded |
 
 ## Install (universal, not per-developer)
 
 The CLI ships **with the repository** so every team member gets it from a plain
-`npm install` — no global install and no per-machine MCP config:
+`npm install` — no global install and no per-machine setup:
 
 1. `@playwright/cli` is a **pinned devDependency** in `package.json`. If it is missing, add it:
    ```bash
@@ -121,7 +110,7 @@ npx playwright-cli request 5               # inspect one request/response body
 ```
 
 The CLI `eval` argument is a JS expression or an `el => ...` arrow function scoped to a
-ref/selector — no IIFE wrapper is needed (unlike the MCP `playwright_evaluate`).
+ref/selector — no IIFE wrapper is needed.
 
 ### Screenshots & PDF
 
@@ -134,8 +123,7 @@ npx playwright-cli pdf --filename=page.pdf
 ```
 
 Save QA evidence under `test-documentation/<CONTEXT_KEY>/screenshots/`. For Linear comments,
-local paths are not enough — upload to Linear Cloud first (see the `linear-report` skill /
-`linear-qa-report` workflow).
+local paths are not enough — upload to Linear Cloud first (see the `linear-report` skill).
 
 ### Viewport / device (responsive checks)
 
@@ -181,8 +169,8 @@ npx playwright-cli list --json
 
 ## Portal Page usage
 
-This repo targets a Metric Insights **Portal Page / Custom App**. Same environment as the
-`ui-check-simple` / `testing-flow` flows — only the automation transport changes.
+This repo targets a Metric Insights **Portal Page / Custom App**. The `ui-check-simple` and
+`testing-flow` flows use the same environment and the commands below.
 
 ### 1. Dev server
 

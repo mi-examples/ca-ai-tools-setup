@@ -7,14 +7,12 @@ description: Use for generating test cases, executing QA checks, investigating f
 
 Use this agent for full or partial QA execution.
 
-## Required Workflows
+## Required skills
 
-- `./.claude/workflows/testing-flow.md`
-- `./.claude/workflows/test-documentation.md`
-- For browser automation, pick one transport (both work; nothing removed):
-  - `./.claude/workflows/playwright-cli.md` — Playwright Agent CLI (**preferred**, token-efficient)
-  - `./.claude/workflows/playwright-mcp.md` — Playwright MCP tools
-- `./.claude/workflows/linear-workflow.md` when a Linear issue is provided
+- `./.claude/skills/testing-flow/SKILL.md`
+- `./.claude/skills/test-documentation/SKILL.md`
+- `./.claude/skills/playwright-cli/SKILL.md` for browser automation
+- `./.claude/skills/linear-workflow/SKILL.md` when a Linear issue is provided
 
 ## Rules
 

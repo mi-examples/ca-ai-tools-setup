@@ -7,7 +7,7 @@ description: Orchestrates full QA workflow with Linear—fetch issue, run testin
 
 Orchestrates the complete QA workflow driven by a Linear issue: **fetch context → test → report**.
 
-Depends on: **`linear-workflow`** (CLI), **`testing-flow`** (test execution and bug investigation), **`linear-report`** (results publishing).
+Depends on: **`linear-workflow`** (Linear MCP tools), **`testing-flow`** (test execution and bug investigation), **`linear-report`** (results publishing).
 
 ## Input
 
@@ -22,27 +22,18 @@ Parse `<ISSUE_KEY>` from the **current** user message only (URL segment after `/
 
 ### Step 1 — Fetch issue context
 
-```bash
-linear-cli i get <ISSUE_KEY>
-```
+Call the Linear MCP tool **`get_issue`** with the issue key (see the **`linear-workflow`** skill).
 
 Extract from the response:
 - **Title** and **Description** — acceptance criteria, user stories
 - **State** — current workflow state
 - **Team** — for status list lookup
 
-If `linear-cli` auth fails:
-
-```bash
-linear-cli auth oauth
-```
+If the Linear tools are missing or return an error, **stop** and ask the user to reconnect Linear. Do not guess the issue content.
 
 #### Step 1b — Read issue comments
 
-```bash
-linear-cli api query -o json --compact \
-  'query { issue(id: "<ISSUE_KEY>") { comments { nodes { body createdAt user { name } } } } }'
-```
+Call **`list_comments`** with `issueId: <ISSUE_KEY>` — `get_issue` does not include the discussion.
 
 **Always read all comments before generating test cases.** Comments often contain:
 - **Revised acceptance criteria** that override the original description (e.g. product decision changes)
@@ -58,14 +49,14 @@ Execute the **`testing-flow`** skill with the Linear issue as context source:
 
 - Pass acceptance criteria from Step 1 as the test scope
 - `<CONTEXT_KEY>` = `<ISSUE_KEY>` for folder naming
-- Generate TCs, execute via a browser transport (**`playwright-cli`** preferred, or **`playwright-mcp`**), investigate bugs per the bug report rule referenced in **`test-documentation`**
+- Generate TCs, execute in the browser with **`playwright-cli`**, investigate bugs per the bug report rule referenced in **`test-documentation`**
 - Results land in `test-documentation/<ISSUE_KEY>/`
 
 ### Step 3 — Publish results to Linear
 
 Execute the **`linear-report`** skill:
 
-- Upload screenshots to Linear Cloud
+- Upload screenshots to Linear
 - Post structured comment with results table
 - Optionally update issue status
 

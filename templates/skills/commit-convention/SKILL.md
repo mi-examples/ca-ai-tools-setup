@@ -1,12 +1,11 @@
 ---
-description: Git commit message format — Angular commit message convention (type(scope): subject, body, footer)
-globs:
-alwaysApply: true
+name: commit-convention
+description: "Git commit message format for this repo—Angular commit message convention (type(scope): subject, body, footer) with the allowed types and examples. Use whenever you write, edit, or review a commit message."
 ---
 
 # Commit Message Convention
 
-Apply whenever you generate, edit, or review a Git commit message in this repo — not only for `feat`/`fix` work. Mirror for Claude: **`.claude/agents/commit-convention.md`**.
+Apply whenever you generate, edit, or review a Git commit message in this repo — not only for `feat`/`fix` work.
 
 ## Format
 
