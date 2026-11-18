@@ -442,13 +442,49 @@ test('one login URL: /login, and only on the password path', () => {
 
   const skill = generated(['claude']).get('.claude/skills/portal-env-credentials/SKILL.md')!;
 
-  assert.match(skill, /`<local app>\/login` — the only login URL/);
+  assert.match(skill, /`\/login` on the host you sign in on — the only login path/);
   // Token first: no login page at all, and roles through pp-dev's per-user hosts.
   assert.match(skill, /there is no login page/);
   assert.match(skill, /\/@api\/users/);
   assert.match(skill, /regular\.localhost:<port>/);
   // The role token is read from .env inside the command, never written into it.
   assert.match(skill, /node --env-file=\.env -e "[^\n]*process\.env\.MI_ACCESS_TOKEN_REGULAR/);
+});
+
+// PR #25 review. With the developer's token set, pp-dev signs every request on localhost as the
+// developer, so a role that has only a password must sign in on its own host — or the run tests
+// the developer's permissions. And a password must reach the form unchanged and unseen: a shell
+// loader rewrites `$`, quotes and `#`, and the CLI prints the text it fills in.
+test('a password role signs in on its own host, and no shell or output touches the password', () => {
+  const output = generated(['cursor', 'claude'], true);
+  const skill = output.get('.claude/skills/portal-env-credentials/SKILL.md')!;
+
+  assert.match(
+    skill,
+    /\| `MI_ACCESS_TOKEN` is set[^\n]*\| the role's own host: `http:\/\/<role>\.localhost:<port>\/login` \|/,
+  );
+  assert.match(skill, /\| no `MI_ACCESS_TOKEN` \| `http:\/\/localhost:<port>\/login` \|/);
+  assert.match(skill, /always answers \*\*as you\*\*/);
+  assert.match(skill, /name:'regular',kind:'session'/);
+  assert.match(skill, /`user\.loginUrl`/);
+
+  // The form is filled by Node with values from process.env, and the CLI output is discarded.
+  const fill = /node --env-file=\.env -e "[^\n]*'fill'[^\n]*"/.exec(skill)?.[0] ?? '';
+
+  assert.match(fill, /process\.env\.QA_USER_REGULAR/);
+  assert.match(fill, /process\.env\.QA_PASS_REGULAR,'--submit'/);
+  assert.match(fill, /stdio:'ignore'/);
+  assert.doesNotMatch(fill, /shell:\s*true|execSync\(/);
+
+  for (const [filePath, content] of output) {
+    // No shell loader for .env, and no password or username expanded by a shell.
+    assert.doesNotMatch(content, /set -a|\. \.\/\.env|Get-Content \.env/, filePath);
+    assert.doesNotMatch(content, /"\$(?:QA_(?:USER|PASS)|DEFAULT_(?:USERNAME|PASSWORD))_|\$env:QA_/, filePath);
+  }
+
+  for (const name of ['playwright-cli', 'testing-flow', 'ui-check-simple']) {
+    assert.match(output.get(`.claude/skills/${name}/SKILL.md`)!, /the role's own host when your token is set/);
+  }
 });
 
 test('the playwright-cli skill ships the CLI as the browser-automation tool', () => {

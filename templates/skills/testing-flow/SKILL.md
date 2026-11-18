@@ -79,14 +79,12 @@ command reference, the targeting rules and the known limitations.
 ### Authentication
 
 Follow the **`portal-env-credentials`** skill. With a token, open the page itself: `http://localhost:<port>`
-as yourself, `http://<role>.localhost:<port>` as a role. With a password, sign in at `/login`:
+as yourself, `http://<role>.localhost:<port>` as a role. With a password, sign in on the host that skill names for the user — the role's own host when your token is set — and fill the form with its command, which reads `.env` without a shell and prints neither value:
 
 ```bash
-set -a && . ./.env && set +a                                # load .env into this shell; prints nothing
-npx playwright-cli open http://localhost:<port>/login
+npx playwright-cli open <login URL>                         # the host that skill names for this user
 npx playwright-cli snapshot                                 # refs for the login form
-npx playwright-cli fill <user-ref> "$QA_USER_<ROLE>"
-npx playwright-cli fill <pass-ref> "$QA_PASS_<ROLE>" --submit
+# fill both fields with that skill's "node --env-file=.env" command — never put a password into a command
 npx playwright-cli snapshot                                 # verify authenticated state
 ```
 

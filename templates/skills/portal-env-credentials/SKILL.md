@@ -15,7 +15,7 @@ skills point here.
 | --- | --- |
 | **Local app** — the page you develop and test | `http://localhost:<port>`, printed by `npm run dev` (default port 3000, the next free one otherwise). Recorded in `.dev-environment.md`. |
 | **MI instance** behind the dev proxy | **`BASE_URL`** in `.env`; the same instance as `mi.url` in `pp-dev.config.ts`. |
-| **Login page** | `<local app>/login` — the only login URL. It is needed on the password path only. |
+| **Login page** | `/login` on the host you sign in on — the only login path. Which host that is, see **Signing in**; it is needed on the password path only. |
 
 ## Variables
 
@@ -72,13 +72,41 @@ Then open the page as that role at **`http://regular.localhost:<port>`** (`power
 
 ### 3. As a role or the admin, with a password
 
-When there is no token for the user, or the instance cannot issue one:
+When there is no token for the user, or the instance cannot issue one. Use **`QA_USER_<ROLE>`** /
+**`QA_PASS_<ROLE>`**, or **`DEFAULT_USERNAME_ADMIN`** / **`DEFAULT_PASSWORD_ADMIN`** for the default admin.
 
-1. Open **`<local app>/login`**.
-2. Sign in with **`QA_USER_<ROLE>`** / **`QA_PASS_<ROLE>`**, or with **`DEFAULT_USERNAME_ADMIN`** /
-   **`DEFAULT_PASSWORD_ADMIN`** for the default admin.
-3. Keep the session instead of signing in again: one named browser session per role with the
-   **`playwright-cli`** skill (`-s=<role>`, `state-save` / `state-load`).
+**Where to sign in** depends on the dev proxy:
+
+| Dev proxy | Sign in at |
+| --- | --- |
+| `MI_ACCESS_TOKEN` is set (`pp-dev` 1.5 and newer) | the role's own host: `http://<role>.localhost:<port>/login` |
+| no `MI_ACCESS_TOKEN` | `http://localhost:<port>/login` |
+
+With your token set, `localhost:<port>` always answers **as you**: the proxy adds your token to every
+request, so a login there would test your permissions, not the role's. Give the role its own host first:
+
+```bash
+node -e "fetch('http://localhost:<port>/@api/users',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'regular',kind:'session'})}).then(async r=>console.log(r.status,await r.text()))"
+```
+
+The answer carries `user.loginUrl` — open that. `409 NAME_TAKEN`: the role is already added, and
+`GET /@api/users` lists its `loginUrl`. `pp-dev` older than 1.5 has no such hosts: with a token set it
+cannot work as another user, so upgrade it.
+
+**Fill the login form** with this command. Node reads `.env` and hands the values straight to the
+browser: no shell touches them (a shell changes `$`, quotes and `#` in a password), and nothing is
+printed — the CLI's own output would show the password, so it is discarded:
+
+```bash
+node --env-file=.env -e "const {spawnSync}=require('node:child_process');const cli=require.resolve('@playwright/cli/playwright-cli.js');for(const a of [['fill','<user-ref>',process.env.QA_USER_REGULAR],['fill','<pass-ref>',process.env.QA_PASS_REGULAR,'--submit']])console.log(a[1],spawnSync(process.execPath,[cli,...a],{stdio:'ignore'}).status===0?'filled':'FAILED')"
+```
+
+Take `<user-ref>` and `<pass-ref>` from `npx playwright-cli snapshot`, and put the variables of the
+user you need. It prints `<ref> filled` or `<ref> FAILED` per field; take a new snapshot to see the
+signed-in page. Never write a password into a command yourself.
+
+Sessions are kept per host, so roles on their own hosts stay signed in side by side in one browser
+session. On the single `localhost:<port>` host only one user is signed in at a time.
 
 Default role when none is asked for: **Admin**.
 
@@ -86,10 +114,9 @@ Default role when none is asked for: **Admin**.
 
 1. Never print a token or a password: no `cat .env`, no echoing a variable, nothing pasted into chat,
    Linear, test documentation or any tracked file. Refer to a secret by its variable name.
-2. Load `.env` into a command instead of copying values: `node --env-file=.env …`, `dotenv` in Node
-   scripts, or `set -a && . ./.env && set +a` in bash. In PowerShell, where a command shows `"$QA_USER_ADMIN"`
-   write `$env:QA_USER_ADMIN`, after loading the file with
-   `Get-Content .env | ForEach-Object { if ($_ -match '^\s*([^#=\s]+)\s*=\s*(.*)$') { Set-Item "Env:$($Matches[1])" $Matches[2].Trim('"') } }`.
+2. Read `.env` with Node, never with a shell: `node --env-file=.env …`, or `dotenv` in a Node script, and
+   pass the values on as arguments from `process.env`. Sourcing the file in a shell, or parsing it in
+   PowerShell, changes passwords that contain `$`, quotes or `#`.
 3. A variable that is not set is reported, not guessed: say which name is missing and stop.
 4. Never commit a populated `.env`. New variables go into `.env.example` as placeholders.
 

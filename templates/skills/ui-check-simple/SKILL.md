@@ -37,14 +37,12 @@ Follow the **`portal-env-credentials`** skill — a token when one is set, a pas
 **Admin** role by default unless a specific role is requested.
 
 With a token, open the page itself (`http://localhost:<port>`, or `http://<role>.localhost:<port>` as a
-role). With a password, sign in at `/login`:
+role). With a password, sign in on the host that skill names for the user — the role's own host when your token is set — and fill the form with its command, which reads `.env` without a shell and prints neither value:
 
 ```bash
-set -a && . ./.env && set +a                                # load .env into this shell; prints nothing
-npx playwright-cli open http://localhost:<port>/login
+npx playwright-cli open <login URL>                         # the host that skill names for this user
 npx playwright-cli snapshot                                 # refs for the login form
-npx playwright-cli fill <user-ref> "$QA_USER_ADMIN"
-npx playwright-cli fill <pass-ref> "$QA_PASS_ADMIN" --submit
+# fill both fields with that skill's "node --env-file=.env" command — never put a password into a command
 npx playwright-cli snapshot                                 # verify authenticated state
 ```
 
